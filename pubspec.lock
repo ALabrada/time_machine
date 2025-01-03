@@ -192,6 +192,34 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.3"
+  time_machine_cam:
+    dependency: "direct main"
+    description:
+      path: time_machine_cam
+      relative: true
+    source: path
+    version: "0.0.1"
+  time_machine_map:
+    dependency: "direct main"
+    description:
+      path: time_machine_map
+      relative: true
+    source: path
+    version: "0.0.1"
+  time_machine_net:
+    dependency: "direct main"
+    description:
+      path: time_machine_net
+      relative: true
+    source: path
+    version: "0.0.1"
+  time_machine_res:
+    dependency: "direct main"
+    description:
+      path: time_machine_res
+      relative: true
+    source: path
+    version: "0.0.1"
   vector_math:
     dependency: transitive
     description:

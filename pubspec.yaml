@@ -35,6 +35,15 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  time_machine_cam:
+    path: ./time_machine_cam
+  time_machine_map:
+    path: ./time_machine_map
+  time_machine_net:
+    path: ./time_machine_net
+  time_machine_res:
+    path: ./time_machine_res
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
