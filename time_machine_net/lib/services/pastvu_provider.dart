@@ -104,6 +104,7 @@ class PastVuProvider implements DataProvider {
       description: obj['title'] as String,
       location: Location(lat: coord[0] as double, lng: coord[1] as double),
       orientation: _decodeOrientation(obj['dir']?.toString()),
+      time: obj['year']?.toString(),
     );
   }
 

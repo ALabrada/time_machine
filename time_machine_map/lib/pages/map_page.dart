@@ -1,10 +1,12 @@
-import 'dart:async';
-
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:math';
+import 'package:image_preview/image_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_compass/flutter_map_compass.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:time_machine_map/controllers/pictures_controller.dart';
+import 'package:time_machine_map/molecules/map_popup.dart';
 import 'package:time_machine_map/molecules/map_search_bar.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -25,6 +27,7 @@ class MapPage extends StatefulWidget {
 
 class _MapPageState extends State<MapPage> {
   final _mapController = MapController();
+  final _popupController = PopupController();
   late PicturesController _picturesController;
 
   @override
@@ -33,6 +36,7 @@ class _MapPageState extends State<MapPage> {
       mapController: _mapController,
       networkService: widget.net,
     );
+    _picturesController.pictures.listen((_) => _popupController.hideAllPopups());
     super.initState();
   }
 
@@ -49,8 +53,6 @@ class _MapPageState extends State<MapPage> {
       child: Stack(
         children: [
           _buildMap(),
-          _buildButtons(),
-          _buildSearchBar(),
         ],
       ),
     );
@@ -58,7 +60,7 @@ class _MapPageState extends State<MapPage> {
 
   Widget _buildButtons() {
     return PositionedDirectional(
-      bottom: 100,
+      bottom: 60,
       end: 8,
       child: Column(
         children: [
@@ -97,52 +99,120 @@ class _MapPageState extends State<MapPage> {
   }
 
   Widget _buildMap() {
-    return StreamBuilder(
-      stream: _picturesController.pictures,
-      builder: (context, snapshot) {
-        return FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-              onMapReady: () {
-              }
+    return PopupScope(
+      popupController: _popupController,
+      child: FlutterMap(
+        mapController: _mapController,
+        options: MapOptions(
+          onTap: (_, __) {
+            _popupController.hideAllPopups();
+          }, // Hide popup when the map is tapped.
+        ),
+        children: [
+          TileLayer( // Display map tiles from any source
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
+            userAgentPackageName: 'com.example.app',
+            // And many more recommended properties!
           ),
-          children: [
-            TileLayer( // Display map tiles from any source
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
-              userAgentPackageName: 'com.example.app',
-              // And many more recommended properties!
-            ),
-            RichAttributionWidget( // Include a stylish prebuilt attribution widget that meets all requirments
-              attributions: [
-                TextSourceAttribution(
-                  'OpenStreetMap contributors',
-                  onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')), // (external)
-                ),
-                // Also add images...
-              ],
-            ),
-            MarkerLayer(
-              markers: [
-                for (final picture in snapshot.data ?? <Picture>[])
-                  _buildMarker(picture),
-              ],
-            )
-          ],
-        );
-      },
+          _buildMarkers(),
+          const MapCompass.cupertino(
+            hideIfRotatedNorth: true,
+            padding: EdgeInsets.fromLTRB(8, 60, 8, 8),
+          ),
+          _buildButtons(),
+          _buildSearchBar(),
+          RichAttributionWidget( // Include a stylish prebuilt attribution widget that meets all requirments
+            attributions: [
+              TextSourceAttribution(
+                'OpenStreetMap contributors',
+                onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')), // (external)
+              ),
+              // Also add images...
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Marker _buildMarker(Picture picture) {
+    double calculateAngle(double lat, double lng) {
+      return atan2(lng, lat);
+    }
+
+    final orientation = picture.orientation;
     return Marker(
+      key: ValueKey(picture.id),
       point: LatLng(picture.location.lat, picture.location.lng),
-      width: 64,
-      height: 64,
-      child: CachedNetworkImage(
-        imageUrl: picture.previewUrl ?? picture.url,
-        width: 64,
-        height: 64,
+      width: 40,
+      height: 40,
+      child: Transform.rotate(
+        angle: orientation == null ? 0 : calculateAngle(orientation.lat, orientation.lng),
+        child: Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: Colors.white.withAlpha(128),
+            border: Border.all(color: Colors.black, width: 1),
+          ),
+          child: Icon(Icons.arrow_upward),
+        ),
       ),
+    );
+  }
+
+  Widget _buildMarkers() {
+    return StreamBuilder(
+      stream: _picturesController.pictures,
+      builder: (context, snapshot) {
+        return MarkerClusterLayerWidget(
+          options: MarkerClusterLayerOptions(
+            maxClusterRadius: 45,
+            size: const Size(40, 40),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.all(50),
+            markers: [
+              for (final picture in snapshot.data ?? <Picture>[])
+                _buildMarker(picture),
+            ],
+            centerMarkerOnClick: false,
+            zoomToBoundsOnClick: false,
+            onClusterTap: (node) {
+              final keys = Set<Key>.from(node.markers.map((e) => e.key));
+              final pictures = snapshot.data?.where((e) => keys.contains(ValueKey(e.id))).toList();
+              _showImages(pictures ?? []);
+            },
+            popupOptions: PopupOptions(
+              popupController: _popupController,
+              popupBuilder: (context, marker) {
+                final picture = snapshot.data?.where((e) => ValueKey(e.id) == marker.key).firstOrNull;
+                return MapPopup(
+                  model: picture,
+                  onShowImage: () => _showImage(picture),
+                );
+              },
+            ),
+            builder: (context, markers) {
+              return Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.blue.withAlpha(128),
+                  border: Border.all(color: Colors.black, width: 1),
+                ),
+                child: Text(
+                  markers.length > 99 ? "99+" : markers.length.toString(),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -163,5 +233,25 @@ class _MapPageState extends State<MapPage> {
     final position = _mapController.camera.center;
     final actualValue = value ?? _mapController.camera.zoom;
     _mapController.move(position, actualValue + increment);
+  }
+
+  void _showImage(Picture? model) {
+    if (model == null) {
+      return;
+    }
+    openImagePage(
+      Navigator.of(context),
+      imgUrl: model.url,
+    );
+  }
+
+  void _showImages(List<Picture> models) {
+    if (models.isEmpty) {
+      return;
+    }
+    openImagesPage(
+      Navigator.of(context),
+      imgUrls: List.generate(models.length, (idx) => models[idx].url),
+    );
   }
 }

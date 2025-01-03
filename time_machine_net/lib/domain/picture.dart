@@ -8,6 +8,7 @@ class Picture {
     this.description,
     required this.location,
     this.orientation,
+    this.time,
   });
 
   final String? id;
@@ -16,4 +17,5 @@ class Picture {
   final String? description;
   final Location location;
   final Location? orientation;
+  final String? time;
 }
