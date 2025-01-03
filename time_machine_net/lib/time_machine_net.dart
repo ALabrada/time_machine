@@ -1,5 +1,7 @@
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+library time_machine_net;
+
+export 'domain/area.dart';
+export 'domain/location.dart';
+export 'domain/picture.dart';
+export 'services/network_service.dart';
+export 'services/pastvu_provider.dart';

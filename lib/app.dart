@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:time_machine/pages/home_page.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 
 class TimeMachineApp extends StatelessWidget {
-  const TimeMachineApp({super.key});
+  TimeMachineApp({super.key});
+
+  final net = NetworkService(providers: {
+    'pastvu': PastVuProvider(),
+  });
 
   // This widget is the root of your application.
   @override
@@ -28,7 +33,9 @@ class TimeMachineApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: HomePage(
+        net: net,
+      ),
     );
   }
 }

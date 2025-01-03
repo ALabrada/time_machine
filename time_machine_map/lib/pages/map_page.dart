@@ -1,15 +1,22 @@
+import 'dart:async';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:time_machine_map/controllers/pictures_controller.dart';
 import 'package:time_machine_map/molecules/map_search_bar.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({
     super.key,
+    this.net,
     this.stepZoom=1.0,
   });
 
+  final NetworkService? net;
   final double stepZoom;
 
   @override
@@ -18,6 +25,23 @@ class MapPage extends StatefulWidget {
 
 class _MapPageState extends State<MapPage> {
   final _mapController = MapController();
+  late PicturesController _picturesController;
+
+  @override
+  void initState() {
+    _picturesController = PicturesController(
+      mapController: _mapController,
+      networkService: widget.net,
+    );
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _picturesController.dispose();
+    _mapController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,25 +97,52 @@ class _MapPageState extends State<MapPage> {
   }
 
   Widget _buildMap() {
-    return FlutterMap(
-      mapController: _mapController,
-      options: MapOptions(),
-      children: [
-        TileLayer( // Display map tiles from any source
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
-          userAgentPackageName: 'com.example.app',
-          // And many more recommended properties!
-        ),
-        RichAttributionWidget( // Include a stylish prebuilt attribution widget that meets all requirments
-          attributions: [
-            TextSourceAttribution(
-              'OpenStreetMap contributors',
-              onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')), // (external)
+    return StreamBuilder(
+      stream: _picturesController.pictures,
+      builder: (context, snapshot) {
+        return FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+              onMapReady: () {
+              }
+          ),
+          children: [
+            TileLayer( // Display map tiles from any source
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
+              userAgentPackageName: 'com.example.app',
+              // And many more recommended properties!
             ),
-            // Also add images...
+            RichAttributionWidget( // Include a stylish prebuilt attribution widget that meets all requirments
+              attributions: [
+                TextSourceAttribution(
+                  'OpenStreetMap contributors',
+                  onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')), // (external)
+                ),
+                // Also add images...
+              ],
+            ),
+            MarkerLayer(
+              markers: [
+                for (final picture in snapshot.data ?? <Picture>[])
+                  _buildMarker(picture),
+              ],
+            )
           ],
-        ),
-      ],
+        );
+      },
+    );
+  }
+
+  Marker _buildMarker(Picture picture) {
+    return Marker(
+      point: LatLng(picture.location.lat, picture.location.lng),
+      width: 64,
+      height: 64,
+      child: CachedNetworkImage(
+        imageUrl: picture.previewUrl ?? picture.url,
+        width: 64,
+        height: 64,
+      ),
     );
   }
 

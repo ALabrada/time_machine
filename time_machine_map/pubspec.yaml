@@ -16,6 +16,7 @@ dependencies:
   time_machine_res:
     path: ../time_machine_res
 
+  cached_network_image: ^3.4.1
   flutter_map: ^7.0.2
   flutter_map_cancellable_tile_provider: ^3.0.2
   latlong2: ^0.9.1

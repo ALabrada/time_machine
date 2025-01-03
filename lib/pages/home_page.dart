@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:time_machine_cam/time_machine_cam.dart';
 import 'package:time_machine_map/time_machine_map.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({
+    super.key,
+    this.net,
+  });
+
+  final NetworkService? net;
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -37,8 +43,12 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: <Widget>[
-        MapPage(),
-        CameraPage(),
+        MapPage(
+          net: widget.net,
+        ),
+        CameraPage(
+          net: widget.net,
+        ),
       ][currentPageIndex],
     );
   }
