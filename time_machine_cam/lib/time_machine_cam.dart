@@ -1,5 +1,3 @@
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+library time_machine_cam;
+
+export 'pages/camera_page.dart';

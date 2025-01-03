@@ -16,6 +16,14 @@ dependencies:
   time_machine_res:
     path: ../time_machine_res
 
+  flutter_map: ^7.0.2
+  flutter_map_cancellable_tile_provider: ^3.0.2
+  latlong2: ^0.9.1
+  material_floating_search_bar_2: ^0.5.0
+  osm_nominatim: ^3.0.1
+  rxdart: ^0.28.0
+  url_launcher: ^6.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
