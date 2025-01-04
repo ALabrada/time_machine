@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+    <string>This app needs access to location in order to detect pictures taken nearby.</string>
+    <key>NSMotionUsageDescription</key>
+    <string>This app requires access to the barometer to provide altitude information.</string>
 </dict>
 </plist>

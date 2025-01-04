@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:time_machine_net/domain/area.dart';
 import 'package:time_machine_net/domain/location.dart';
 import 'package:time_machine_net/domain/picture.dart';
@@ -6,6 +7,14 @@ class NetworkService {
   NetworkService({required this.providers});
   
   final Map<String, DataProvider> providers;
+
+  Future<void> download(
+      String source,
+      String target, {
+        ProgressCallback? onReceiveProgress,
+      }) async {
+    await Dio().download(source, target);
+  }
 
   Future<Map<String, List<Picture>>> findIn({
     required Area area,

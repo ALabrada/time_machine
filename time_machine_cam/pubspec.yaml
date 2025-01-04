@@ -11,10 +11,18 @@ dependencies:
   flutter:
     sdk: flutter
 
+  time_machine_db:
+    path: ../time_machine_db
   time_machine_net:
     path: ../time_machine_net
   time_machine_res:
     path: ../time_machine_res
+
+  ar_flutter_plugin_engine: ^1.0.0
+  geolocator: any
+  rxdart: ^0.28.0
+  vector_math: ^2.1.4
+  sensors_plus: ^6.1.1
 
 dev_dependencies:
   flutter_test:

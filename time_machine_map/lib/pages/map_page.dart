@@ -136,18 +136,14 @@ class _MapPageState extends State<MapPage> {
   }
 
   Marker _buildMarker(Picture picture) {
-    double calculateAngle(double lat, double lng) {
-      return atan2(lng, lat);
-    }
-
-    final orientation = picture.orientation;
+    final bearing = picture.bearing;
     return Marker(
       key: ValueKey(picture.id),
       point: LatLng(picture.location.lat, picture.location.lng),
       width: 40,
       height: 40,
       child: Transform.rotate(
-        angle: orientation == null ? 0 : calculateAngle(orientation.lat, orientation.lng),
+        angle: bearing == null ? 0 : bearing * pi / 180,
         child: Container(
           width: 40,
           height: 40,

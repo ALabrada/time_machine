@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:time_machine/pages/home_page.dart';
+import 'package:time_machine_db/services/database_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 
 class TimeMachineApp extends StatelessWidget {

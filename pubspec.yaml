@@ -33,6 +33,8 @@ dependencies:
 
   time_machine_cam:
     path: ./time_machine_cam
+  time_machine_db:
+    path: ./time_machine_db
   time_machine_map:
     path: ./time_machine_map
   time_machine_net:

@@ -103,21 +103,21 @@ class PastVuProvider implements DataProvider {
       previewUrl: '$baseUrl/_p/h/$path',
       description: obj['title'] as String,
       location: Location(lat: coord[0] as double, lng: coord[1] as double),
-      orientation: _decodeOrientation(obj['dir']?.toString()),
+      bearing: _decodeOrientation(obj['dir']?.toString()),
       time: obj['year']?.toString(),
     );
   }
 
-  Location? _decodeOrientation(String? direction) {
+  double? _decodeOrientation(String? direction) {
     switch (direction) {
-      case 'n': return Location(lat: 1, lng: 0);
-      case 'ne': return Location(lat: 1, lng: 1);
-      case 'e': return Location(lat: 0, lng: 1);
-      case 'se': return Location(lat: -1, lng: 1);
-      case 's': return Location(lat: -1, lng: 0);
-      case 'sw': return Location(lat: -1, lng: -1);
-      case 'w': return Location(lat: 0, lng: -1);
-      case 'nw': return Location(lat: 1, lng: -1);
+      case 'n': return 0;
+      case 'ne': return 45;
+      case 'e': return 90;
+      case 'se': return 135;
+      case 's': return 180;
+      case 'sw': return 225;
+      case 'w': return 270;
+      case 'nw': return 315;
       default: return null;
     }
   }
