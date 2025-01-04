@@ -1,4 +1,4 @@
-name: time_machine_cam
+name: time_machine_db
 description: "A new Flutter package project."
 version: 0.0.1
 homepage:
@@ -11,18 +11,10 @@ dependencies:
   flutter:
     sdk: flutter
 
-  time_machine_db:
-    path: ../time_machine_db
-  time_machine_net:
-    path: ../time_machine_net
-  time_machine_res:
-    path: ../time_machine_res
-
-  ar_location_view: ^2.0.16
-  cached_network_image: ^3.4.1
-  image_preview: 1.0.7
-  geolocator: any
-  rxdart: ^0.28.0
+  path: ^1.8.3
+  path_provider: ^2.1.2
+  sembast: ^3.6.0
+  sembast_web: ^2.2.0
 
 dev_dependencies:
   flutter_test:

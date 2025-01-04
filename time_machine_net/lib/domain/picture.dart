@@ -7,6 +7,7 @@ class Picture {
     this.previewUrl,
     this.description,
     required this.location,
+    this.altitude,
     this.bearing,
     this.time,
   });
@@ -16,6 +17,7 @@ class Picture {
   final String? previewUrl;
   final String? description;
   final Location location;
+  final double? altitude;
   final double? bearing;
   final String? time;
 }
