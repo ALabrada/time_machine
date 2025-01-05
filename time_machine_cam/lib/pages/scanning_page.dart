@@ -47,7 +47,7 @@ class _ScanningPageState extends State<ScanningPage> {
         stream: arController.annotations,
         builder: (context, snapshot) {
           return ArLocationWidget(
-            showDebugInfoSensor: false,
+            // showDebugInfoSensor: false,
             annotations: snapshot.data ?? [],
             maxVisibleDistance: widget.maxDistanceInMeters,
             annotationViewBuilder: (context, annotation) {

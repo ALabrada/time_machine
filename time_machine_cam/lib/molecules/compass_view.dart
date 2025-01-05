@@ -7,10 +7,12 @@ class CompassView extends StatelessWidget {
   const CompassView({
     super.key,
     this.position,
+    this.heading,
     this.target,
   });
 
   final Position? position;
+  final double? heading;
   final Location? target;
 
   @override
@@ -20,8 +22,8 @@ class CompassView extends StatelessWidget {
     if (position == null || target == null) {
       return SizedBox.shrink();
     }
-
-    final heading = Geolocator.bearingBetween(position.latitude, position.longitude, target.lat, target.lng);
+    final currentHeading = heading ?? position.heading;
+    final bearing = Geolocator.bearingBetween(position.latitude, position.longitude, target.lat, target.lng);
     final distance = Geolocator.distanceBetween(position.latitude, position.longitude, target.lat, target.lng).round();
 
     return Stack(
@@ -30,14 +32,14 @@ class CompassView extends StatelessWidget {
         Transform.scale(
           scaleY: 0.5,
           child: AnimatedTransform(
-            rotate: position.heading - heading,
+            rotate: bearing - currentHeading,
             child: Image.asset('assets/images/navigation.png',
               color: Colors.white,
               width: 100,
             ),
           ),
         ),
-        Text('$distance m\n$heading deg',
+        Text('$distance m\n${currentHeading.round()} deg',
           style: TextStyle(color: Colors.red),
         ),
       ],

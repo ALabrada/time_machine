@@ -29,6 +29,8 @@ dependencies:
   image_preview: 1.0.7
   provider: ^6.1.2
   rxdart: ^0.28.0
+  sensors_plus: any
+  uuid: any
 
 dev_dependencies:
   flutter_test:

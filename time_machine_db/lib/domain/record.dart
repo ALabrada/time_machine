@@ -7,16 +7,16 @@ part 'record.g.dart';
 @JsonSerializable()
 class Record {
   Record({
-    required this.originalId,
     required this.pictureId,
+    this.originalId,
     this.localId,
     this.original,
     this.picture,
   });
 
   int? localId;
-  String originalId;
-  String pictureId;
+  int? originalId;
+  int pictureId;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   Picture? original;

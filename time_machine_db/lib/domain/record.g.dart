@@ -7,8 +7,8 @@ part of 'record.dart';
 // **************************************************************************
 
 Record _$RecordFromJson(Map<String, dynamic> json) => Record(
-      originalId: json['originalId'] as String,
-      pictureId: json['pictureId'] as String,
+      pictureId: (json['pictureId'] as num).toInt(),
+      originalId: (json['originalId'] as num?)?.toInt(),
       localId: (json['localId'] as num?)?.toInt(),
     );
 
