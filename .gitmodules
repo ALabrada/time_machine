@@ -1,0 +1,3 @@
+[submodule "camera_camera"]
+	path = camera_camera
+	url = https://github.com/ALabrada/camera_camera.git

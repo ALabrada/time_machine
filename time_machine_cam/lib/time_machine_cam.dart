@@ -1,3 +1,3 @@
 library time_machine_cam;
 
-export 'pages/camera_page.dart';
+export 'pages/scanning_page.dart';

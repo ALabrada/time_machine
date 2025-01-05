@@ -7,10 +7,12 @@ class AnnotationView extends StatelessWidget {
     super.key,
     required this.annotation,
     this.onTap,
+    this.onTapPicture,
   });
 
   final PictureAnnotation annotation;
   final VoidCallback? onTap;
+  final VoidCallback? onTapPicture;
 
   @override
   Widget build(BuildContext context) {
@@ -26,13 +28,8 @@ class AnnotationView extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Container(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(5),
-                    bottomLeft: Radius.circular(5),
-                  ),
-                ),
+              child: InkWell(
+                onTap: onTapPicture,
                 child: CachedNetworkImage(
                   imageUrl: annotation.picture.previewUrl ?? annotation.picture.url,
                   height: 40,

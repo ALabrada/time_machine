@@ -1,10 +1,10 @@
-import 'dart:math';
 import 'package:image_preview/image_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_compass/flutter_map_compass.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 import 'package:time_machine_map/controllers/pictures_controller.dart';
 import 'package:time_machine_map/molecules/map_popup.dart';
 import 'package:time_machine_map/molecules/map_search_bar.dart';
@@ -14,11 +14,9 @@ import 'package:url_launcher/url_launcher.dart';
 class MapPage extends StatefulWidget {
   const MapPage({
     super.key,
-    this.net,
     this.stepZoom=1.0,
   });
 
-  final NetworkService? net;
   final double stepZoom;
 
   @override
@@ -34,7 +32,7 @@ class _MapPageState extends State<MapPage> {
   void initState() {
     _picturesController = PicturesController(
       mapController: _mapController,
-      networkService: widget.net,
+      networkService: context.read<NetworkService>(),
     );
     _picturesController.pictures.listen((_) => _popupController.hideAllPopups());
     super.initState();

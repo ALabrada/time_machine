@@ -9,24 +9,14 @@ import 'package:time_machine_net/time_machine_net.dart';
 class HomePage extends StatefulWidget {
   const HomePage({
     super.key,
-    this.net,
   });
-
-  final NetworkService? net;
 
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  late DatabaseService db;
-  int currentPageIndex = -1;
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(onInitialize());
-  }
+  int currentPageIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -56,21 +46,9 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: <Widget>[
-        MapPage(
-          net: widget.net,
-        ),
-        CameraPage(
-          db: db,
-          net: widget.net,
-        ),
+        MapPage(),
+        ScanningPage(),
       ][currentPageIndex],
     );
-  }
-
-  Future<void> onInitialize() async {
-    db = await DatabaseService.load();
-    setState(() {
-      currentPageIndex = 0;
-    });
   }
 }
