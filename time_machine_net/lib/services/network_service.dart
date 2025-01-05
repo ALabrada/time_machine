@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/domain/area.dart';
-import 'package:time_machine_net/domain/location.dart';
-import 'package:time_machine_net/domain/picture.dart';
 
 class NetworkService {
   NetworkService({required this.providers});
@@ -29,6 +28,9 @@ class NetworkService {
               startDate: startDate,
               endDate: endDate,
             );
+            for (final item in result) {
+              item.provider = entry.key;
+            }
             return (entry.key, result, null);
           } catch (error) {
             return (entry.key, null, error);
@@ -57,6 +59,9 @@ class NetworkService {
           startDate: startDate,
           endDate: endDate,
         );
+        for (final item in result) {
+          item.provider = entry.key;
+        }
         return (entry.key, result, null);
       } catch (error) {
         return (entry.key, null, error);

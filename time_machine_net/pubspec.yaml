@@ -11,6 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  time_machine_db:
+    path: ../time_machine_db
+
   dio: ^5.7.0
 
 dev_dependencies:

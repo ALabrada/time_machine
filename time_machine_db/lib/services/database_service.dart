@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sembast/sembast.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:sembast_web/sembast_web.dart';
+import 'package:time_machine_db/time_machine_db.dart';
 
 class DatabaseService {
   DatabaseService({required this.db, this.dataPath});
@@ -98,6 +99,24 @@ class Repository<T> {
   factory Repository.create({required Database db}) {
     final storeId = T.toString().toLowerCase();
     switch (T) {
+      case Picture:
+        return Repository<Picture>(
+          box: intMapStoreFactory.store(storeId),
+          db: db,
+          fromJson: Picture.fromJson,
+          toJson: (x) => x.toJson(),
+          getKey: (x) => x.localId,
+          setKey: (x, v) => x.localId = v,
+        ) as Repository<T>;
+      case Record:
+        return Repository<Record>(
+          box: intMapStoreFactory.store(storeId),
+          db: db,
+          fromJson: Record.fromJson,
+          toJson: (x) => x.toJson(),
+          getKey: (x) => x.localId,
+          setKey: (x, v) => x.localId = v,
+        ) as Repository<T>;
       default:
         throw Exception("Invalid repository type: ${T.runtimeType.toString()}");
     }

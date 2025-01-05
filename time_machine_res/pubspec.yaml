@@ -11,6 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  time_machine_db:
+    path: ../time_machine_db
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

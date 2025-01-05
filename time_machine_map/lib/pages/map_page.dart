@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:image_preview/image_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -5,9 +6,11 @@ import 'package:flutter_map_compass/flutter_map_compass.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_map/controllers/pictures_controller.dart';
 import 'package:time_machine_map/molecules/map_popup.dart';
 import 'package:time_machine_map/molecules/map_search_bar.dart';
+import 'package:time_machine_map/services/database_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -247,5 +250,14 @@ class _MapPageState extends State<MapPage> {
       Navigator.of(context),
       imgUrls: List.generate(models.length, (idx) => models[idx].url),
     );
+  }
+
+  Future<void> _takePicture(Picture model) async {
+    final db = context.read<DatabaseService?>();
+    final newModel = await db?.savePicture(model);
+    final id = newModel?.localId;
+    if (mounted && id != null) {
+      context.go('/camera?pictureId=$id');
+    }
   }
 }

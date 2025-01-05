@@ -1,6 +1,6 @@
 import 'package:ar_location_view/ar_location_view.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:time_machine_net/domain/picture.dart';
+import 'package:time_machine_db/time_machine_db.dart';
 
 class PictureAnnotation extends ArAnnotation  {
   PictureAnnotation({

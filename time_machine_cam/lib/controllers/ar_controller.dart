@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:ar_location_view/ar_annotation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 import 'package:time_machine_cam/domain/picture_annotation.dart';
+import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 
 class ARController {

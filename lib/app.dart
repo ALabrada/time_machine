@@ -1,8 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine/pages/home_page.dart';
+import 'package:time_machine_cam/pages/camera_page.dart';
 import 'package:time_machine_db/services/database_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
+
+final _router = GoRouter(
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) => HomePage(),
+        routes: [
+          GoRoute(
+            path: 'camera',
+            builder: (context, state) => CameraPage(
+              pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
+            ),
+          ),
+        ]
+      ),
+    ]
+);
 
 class TimeMachineApp extends StatelessWidget {
   const TimeMachineApp({super.key});
@@ -24,7 +43,7 @@ class TimeMachineApp extends StatelessWidget {
           create: (_) => DatabaseService.load(),
         ),
       ],
-      child: MaterialApp(
+      child: MaterialApp.router(
         title: 'Portable Time Machine',
         theme: ThemeData(
           // This is the theme of your application.
@@ -45,7 +64,7 @@ class TimeMachineApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
-        home: HomePage(),
+        routerConfig: _router,
       ),
     );
   }

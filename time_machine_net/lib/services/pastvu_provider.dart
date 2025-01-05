@@ -1,10 +1,8 @@
 import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/domain/area.dart';
-import 'package:time_machine_net/domain/location.dart';
-import 'package:time_machine_net/domain/picture.dart';
 import 'package:time_machine_net/services/network_service.dart';
 
 class PastVuProvider implements DataProvider {
@@ -102,7 +100,8 @@ class PastVuProvider implements DataProvider {
       url: '$baseUrl/_p/a/$path',
       previewUrl: '$baseUrl/_p/h/$path',
       description: obj['title'] as String,
-      location: Location(lat: coord[0] as double, lng: coord[1] as double),
+      latitude: coord[0] as double,
+      longitude: coord[1] as double,
       bearing: _decodeOrientation(obj['dir']?.toString()),
       time: obj['year']?.toString(),
     );

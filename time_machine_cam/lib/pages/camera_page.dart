@@ -2,17 +2,18 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camera_camera/camera_camera.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_cam/controllers/photo_controller.dart';
 import 'package:time_machine_cam/molecules/compass_view.dart';
-import 'package:time_machine_net/time_machine_net.dart';
 
 class CameraPage extends StatefulWidget {
   const CameraPage({
     super.key,
-    this.picture,
+    this.pictureId,
   });
 
-  final Picture? picture;
+  final int? pictureId;
 
   @override
   _CameraPageState createState() => _CameraPageState();
@@ -36,33 +37,54 @@ class _CameraPageState extends State<CameraPage> {
 
   @override
   Widget build(BuildContext context) {
-    final picture = widget.picture;
-    return Stack(
-      children: [
-        CameraCamera(
-          resolutionPreset: ResolutionPreset.max,
-          enableAudio: false,
-          onFile: (_) { },
-        ),
-        if (picture != null)
-          Opacity(
-            opacity: 0.5,
-            child: CachedNetworkImage(imageUrl: picture.url),
+    return FutureBuilder(
+      future: _loadPicture(),
+      builder: (context, snapshot) {
+        final picture = snapshot.data;
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(picture?.description ?? ""),
           ),
-        Positioned(
-          top: 16,
-          left: 16,
-          child: StreamBuilder(
-            stream: controller.position,
-            builder: (context, snapshot) {
-              return CompassView(
-                position: snapshot.data,
-                target: picture?.location,
-              );
-            },
+          extendBodyBehindAppBar: true,
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              CameraCamera(
+                resolutionPreset: ResolutionPreset.max,
+                enableAudio: false,
+                onFile: (_) { },
+              ),
+              if (picture != null)
+                Opacity(
+                  opacity: 0.5,
+                  child: CachedNetworkImage(imageUrl: picture.url),
+                ),
+              Positioned(
+                top: 68,
+                left: 16,
+                child: StreamBuilder(
+                  stream: controller.position,
+                  builder: (context, snapshot) {
+                    return CompassView(
+                      position: snapshot.data,
+                      target: picture?.location,
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+        );
+      },
     );
+  }
+
+  Future<Picture?> _loadPicture() async {
+    final id = widget.pictureId;
+    if (id == null) {
+      return null;
+    }
+    final db = context.read<DatabaseService>();
+    return await db.createRepository<Picture>().getById(id);
   }
 }
