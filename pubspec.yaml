@@ -37,6 +37,8 @@ dependencies:
     path: ./time_machine_cam
   time_machine_db:
     path: ./time_machine_db
+  time_machine_img:
+    path: ./time_machine_img
   time_machine_map:
     path: ./time_machine_map
   time_machine_net:
@@ -47,6 +49,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  font_awesome_flutter: ^10.2.1
   go_router: ^14.6.2
   provider: ^6.1.2
 
@@ -60,6 +63,31 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1 # dart run flutter_launcher_icons
+  flutter_native_splash: ^2.3.10 # dart run flutter_native_splash:create
+  change_app_package_name: ^1.1.0 # dart run change_app_package_name:main com.kk
+  rename_app: ^1.3.2 # dart run rename_app:main all="KK"
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/favicon.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "assets/images/favicon.png"
+    background_color: "#8B4513"
+    theme_color: "#FFD700"
+
+flutter_native_splash:
+  image: "assets/images/favicon.png"
+  color: "#8B4513"
+  #branding: assets/dart.png
+  #branding_mode: bottom
+  android_12:
+    image: "assets/images/favicon.png"
+    color: "#8B4513"
+    #branding: assets/dart.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

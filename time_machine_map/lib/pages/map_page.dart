@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
+import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_preview/image_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_compass/flutter_map_compass.dart';
@@ -8,10 +12,11 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_map/controllers/pictures_controller.dart';
-import 'package:time_machine_map/molecules/map_popup.dart';
 import 'package:time_machine_map/molecules/map_search_bar.dart';
+import 'package:time_machine_map/molecules/picture_marker.dart';
 import 'package:time_machine_map/services/database_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MapPage extends StatefulWidget {
@@ -89,9 +94,7 @@ class _MapPageState extends State<MapPage> {
           const SizedBox(height: 22),
           FloatingActionButton(
             heroTag: "btn3",
-            onPressed: () async {
-
-            },
+            onPressed: () => unawaited(_picturesController.moveToCurrentLocation()),
             child: Icon(Icons.my_location),
           ),
         ],
@@ -113,8 +116,10 @@ class _MapPageState extends State<MapPage> {
           TileLayer( // Display map tiles from any source
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
             userAgentPackageName: 'com.example.app',
+            tileProvider: CancellableNetworkTileProvider(),
             // And many more recommended properties!
           ),
+          CurrentLocationLayer(),
           _buildMarkers(),
           const MapCompass.cupertino(
             hideIfRotatedNorth: true,
@@ -136,25 +141,43 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  Marker _buildMarker(Picture picture) {
-    final bearing = picture.bearing;
-    return Marker(
-      key: ValueKey(picture.id),
-      point: LatLng(picture.location.lat, picture.location.lng),
+  Widget _buildCluster(List<Marker> markers) {
+    return Container(
       width: 40,
       height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: accent02.withAlpha(128),
+        border: Border.all(color: label01, width: 1),
+      ),
+      child: Text(
+        markers.length > 99 ? "99+" : markers.length.toString(),
+        style: TextStyle(color: label01),
+      ),
+    );
+  }
+
+  Marker _buildMarker(Picture picture) {
+    final bearing = picture.bearing;
+    return PictureMarker(
+      key: ValueKey('${picture.provider}/${picture.id}'),
+      picture: picture,
+      width: 30,
+      height: 30,
       child: Transform.rotate(
         angle: bearing == null ? 0 : bearing * pi / 180,
         child: Container(
-          width: 40,
-          height: 40,
+          width: 30,
+          height: 30,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: Colors.white.withAlpha(128),
-            border: Border.all(color: Colors.black, width: 1),
+            borderRadius: BorderRadius.circular(15),
+            color: background02,
           ),
-          child: Icon(Icons.arrow_upward),
+          child: Image.asset('assets/images/navigation.png',
+            color: accent01,
+          ),
         ),
       ),
     );
@@ -176,36 +199,22 @@ class _MapPageState extends State<MapPage> {
             ],
             centerMarkerOnClick: false,
             zoomToBoundsOnClick: false,
-            onClusterTap: (node) {
-              final keys = Set<Key>.from(node.markers.map((e) => e.key));
-              final pictures = snapshot.data?.where((e) => keys.contains(ValueKey(e.id))).toList();
-              _showImages(pictures ?? []);
-            },
             popupOptions: PopupOptions(
               popupController: _popupController,
               popupBuilder: (context, marker) {
-                final picture = snapshot.data?.where((e) => ValueKey(e.id) == marker.key).firstOrNull;
-                return MapPopup(
-                  model: picture,
-                  onShowImage: () => _showImage(picture),
+                final picture = marker is PictureMarker ? marker.picture : null;
+                return Container(
+                  margin: EdgeInsets.all(5),
+                  constraints: BoxConstraints(maxWidth: 0.8 * MediaQuery.of(context).size.width),
+                  child: PictureView.model(
+                    model: picture,
+                    onTapImage: picture == null ? null :() => _showImage(picture),
+                  ),
                 );
               },
             ),
             builder: (context, markers) {
-              return Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.blue.withAlpha(128),
-                  border: Border.all(color: Colors.black, width: 1),
-                ),
-                child: Text(
-                  markers.length > 99 ? "99+" : markers.length.toString(),
-                  style: const TextStyle(color: Colors.white),
-                ),
-              );
+              return _buildCluster(markers);
             },
           ),
         );
@@ -232,24 +241,13 @@ class _MapPageState extends State<MapPage> {
     _mapController.move(position, actualValue + increment);
   }
 
-  void _showImage(Picture? model) {
-    if (model == null) {
-      return;
+  void _showImage(Picture model) async {
+    final db = context.read<DatabaseService?>();
+    final newModel = await db?.savePicture(model);
+    final id = newModel?.localId;
+    if (mounted && id != null) {
+      context.go('/picture/$id');
     }
-    openImagePage(
-      Navigator.of(context),
-      imgUrl: model.url,
-    );
-  }
-
-  void _showImages(List<Picture> models) {
-    if (models.isEmpty) {
-      return;
-    }
-    openImagesPage(
-      Navigator.of(context),
-      imgUrls: List.generate(models.length, (idx) => models[idx].url),
-    );
   }
 
   Future<void> _takePicture(Picture model) async {

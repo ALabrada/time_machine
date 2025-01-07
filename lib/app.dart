@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:time_machine/pages/home_page.dart';
 import 'package:time_machine_cam/pages/camera_page.dart';
 import 'package:time_machine_db/services/database_service.dart';
+import 'package:time_machine_img/pages/picture_page.dart';
 import 'package:time_machine_net/time_machine_net.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 
 final _router = GoRouter(
     routes: [
@@ -16,6 +18,12 @@ final _router = GoRouter(
             path: 'camera',
             builder: (context, state) => CameraPage(
               pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
+            ),
+          ),
+          GoRoute(
+            path: 'picture/:pictureId',
+            builder: (context, state) => PicturePage(
+              pictureId: int.tryParse(state.pathParameters['pictureId'] ?? ''),
             ),
           ),
         ]
@@ -41,6 +49,7 @@ class TimeMachineApp extends StatelessWidget {
         FutureProvider<DatabaseService?>(
           initialData: null,
           create: (_) => DatabaseService.load(),
+          lazy: false,
         ),
       ],
       child: MaterialApp.router(
@@ -61,7 +70,7 @@ class TimeMachineApp extends StatelessWidget {
           //
           // This works for code too, not just values: Most code changes can be
           // tested with just a hot reload.
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          colorScheme: colorScheme,
           useMaterial3: true,
         ),
         routerConfig: _router,

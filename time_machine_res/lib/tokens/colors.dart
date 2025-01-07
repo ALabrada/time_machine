@@ -1,0 +1,20 @@
+import 'dart:ui';
+
+const primary01 = Color(0xFFFFD700);
+const primary02 = Color(0xFFDDB900);
+const primary03 = Color(0xFF917800);
+const background01 = Color(0xFFF2EFEA);
+const background02 = Color(0xFFE8E5E0);
+const background03 = Color(0xFFBFBDB8);
+const accent01 = Color(0xFF8B4513);
+const accent02 = Color(0xFFFFD299);
+const gray01 = Color(0xFFF6F6F6);
+const gray02 = Color(0xFFE8E8E8);
+const gray03 = Color(0xFFBDBDBD);
+const gray04 = Color(0xFF979797);
+const gray05 = Color(0xFF898A8D);
+const gray06 = Color(0xFF666666);
+const label01 = Color(0xFF000000);
+const label02 = Color(0xFF2C2C2C);
+const label03 = Color(0xFFFFFFFF);
+const warn = Color(0xFFED1818);

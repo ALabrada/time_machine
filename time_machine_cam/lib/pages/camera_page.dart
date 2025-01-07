@@ -49,37 +49,41 @@ class _CameraPageState extends State<CameraPage> {
             title: Text(picture?.description ?? ""),
           ),
           extendBodyBehindAppBar: true,
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              CameraCamera(
-                resolutionPreset: ResolutionPreset.max,
-                enableAudio: false,
-                onFile: (file) => _savePicture(file, original: picture),
-              ),
-              if (picture != null)
-                Opacity(
-                  opacity: 0.5,
-                  child: CachedNetworkImage(imageUrl: picture.url),
-                ),
-              Positioned(
-                top: 68,
-                left: 16,
-                child: StreamBuilder(
-                  stream: CombineLatestStream.combine2(controller.position, controller.heading, (x, y) => (position: x, heading: y)),
-                  builder: (context, snapshot) {
-                    return CompassView(
-                      position: snapshot.data?.position,
-                      heading: snapshot.data?.heading,
-                      target: picture?.location,
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+          body: _buildContent(picture: picture),
         );
       },
+    );
+  }
+
+  Widget _buildContent({Picture? picture}) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CameraCamera(
+          resolutionPreset: ResolutionPreset.max,
+          enableAudio: false,
+          onFile: (file) => _savePicture(file, original: picture),
+        ),
+        if (picture != null)
+          Opacity(
+            opacity: 0.5,
+            child: CachedNetworkImage(imageUrl: picture.url),
+          ),
+        Positioned(
+          top: 68,
+          left: 16,
+          child: StreamBuilder(
+            stream: CombineLatestStream.combine2(controller.position, controller.heading, (x, y) => (position: x, heading: y)),
+            builder: (context, snapshot) {
+              return CompassView(
+                position: snapshot.data?.position,
+                heading: snapshot.data?.heading,
+                target: picture?.location,
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

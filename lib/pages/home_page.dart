@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:time_machine_cam/time_machine_cam.dart';
-import 'package:time_machine_db/services/database_service.dart';
+import 'package:time_machine_img/pages/gallery_page.dart';
 import 'package:time_machine_map/time_machine_map.dart';
-import 'package:time_machine_net/time_machine_net.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -30,24 +30,31 @@ class _HomePageState extends State<HomePage> {
             currentPageIndex = index;
           });
         },
-        indicatorColor: Colors.amber,
+        indicatorColor: Theme.of(context).primaryColor,
+        backgroundColor: background02,
         selectedIndex: currentPageIndex,
         destinations: const <Widget>[
           NavigationDestination(
-            selectedIcon: Icon(Icons.map),
-            icon: Icon(Icons.map_outlined),
-            label: 'Map',
+            selectedIcon: Icon(Icons.photo_album),
+            icon: Icon(Icons.photo_album_outlined),
+            label: 'Gallery',
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.camera_alt),
             icon: Icon(Icons.camera_alt_outlined),
             label: 'Camera',
           ),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.map),
+            icon: Icon(Icons.map_outlined),
+            label: 'Map',
+          ),
         ],
       ),
       body: <Widget>[
-        MapPage(),
+        GalleryPage(),
         ScanningPage(),
+        MapPage(),
       ][currentPageIndex],
     );
   }

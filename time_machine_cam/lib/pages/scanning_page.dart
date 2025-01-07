@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:ar_location_view/ar_location_view.dart';
 import 'package:flutter/material.dart';
-import 'package:image_preview/image_preview.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_cam/services/database_service.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -55,7 +54,7 @@ class _ScanningPageState extends State<ScanningPage> {
               return AnnotationView(
                 key: ValueKey(annotation.uid),
                 annotation: model,
-                onTapPicture: () => _showImage(model.picture),
+                onTapPicture: () => unawaited(_showImage(model.picture)),
                 onTap: () => unawaited(_takePicture(model.picture)),
               );
             },
@@ -67,14 +66,16 @@ class _ScanningPageState extends State<ScanningPage> {
     );
   }
 
-  void _showImage(Picture? model) {
+  Future<void> _showImage(Picture? model) async {
     if (model == null) {
       return;
     }
-    openImagePage(
-      Navigator.of(context),
-      imgUrl: model.url,
-    );
+    final db = context.read<DatabaseService?>();
+    final newModel = await db?.savePicture(model);
+    final id = newModel?.localId;
+    if (mounted && id != null) {
+      context.go('/picture/$id');
+    }
   }
 
   Future<void> _takePicture(Picture model) async {

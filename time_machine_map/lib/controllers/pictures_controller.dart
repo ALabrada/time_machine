@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -21,6 +22,7 @@ class PicturesController {
   final MapController? mapController;
   final NetworkService? networkService;
   final BehaviorSubject<List<Picture>> pictures = BehaviorSubject();
+  final BehaviorSubject<Picture?> selection = BehaviorSubject.seeded(null);
 
   StreamSubscription? _eventSubscription;
 
@@ -54,5 +56,28 @@ class PicturesController {
         for (final item in result)
           item,
     ];
+  }
+
+  Future<bool> moveToCurrentLocation() async {
+    final mapController = this.mapController;
+    if (mapController == null) {
+      return false;
+    }
+
+    var permission = await Geolocator.checkPermission();
+    if (permission != LocationPermission.always && permission != LocationPermission.whileInUse) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        return false;
+      }
+    }
+
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      return false;
+    }
+
+    final position = await Geolocator.getCurrentPosition();
+    final coord = LatLng(position.latitude, position.longitude);
+    return mapController.move(coord, mapController.camera.zoom);
   }
 }

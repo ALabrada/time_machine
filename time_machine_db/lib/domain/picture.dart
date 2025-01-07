@@ -39,6 +39,15 @@ class Picture {
     longitude = value.lng;
   }
 
+  @JsonKey(includeToJson: false, includeFromJson: false)
+  String get text {
+    final time = this.time;
+    if (time == null) {
+      return description ?? '';
+    }
+    return '$description ($time)';
+  }
+
   factory Picture.fromJson(Map<String, dynamic> json) => _$PictureFromJson(json);
 
   Map<String, dynamic> toJson() => _$PictureToJson(this);

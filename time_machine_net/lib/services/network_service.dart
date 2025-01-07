@@ -12,7 +12,7 @@ class NetworkService {
       String target, {
         ProgressCallback? onReceiveProgress,
       }) async {
-    await Dio().download(source, target);
+    await Dio().download(source, target, onReceiveProgress: onReceiveProgress);
   }
 
   Future<Map<String, List<Picture>>> findIn({
