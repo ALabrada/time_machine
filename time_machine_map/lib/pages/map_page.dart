@@ -41,6 +41,7 @@ class _MapPageState extends State<MapPage> {
     _picturesController = PicturesController(
       mapController: _mapController,
       networkService: context.read<NetworkService>(),
+      preferences: context.read(),
     );
     _picturesController.pictures.listen((_) => _popupController.hideAllPopups());
     super.initState();
@@ -108,6 +109,9 @@ class _MapPageState extends State<MapPage> {
       child: FlutterMap(
         mapController: _mapController,
         options: MapOptions(
+          initialCenter: _picturesController.defaultCenter ?? LatLng(0, 0),
+          initialZoom: _picturesController.defaultZoom ?? 2.0,
+          initialRotation: _picturesController.defaultRotation ?? 0.0,
           onTap: (_, __) {
             _popupController.hideAllPopups();
           }, // Hide popup when the map is tapped.

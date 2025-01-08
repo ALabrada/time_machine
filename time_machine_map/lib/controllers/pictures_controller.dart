@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 
@@ -11,20 +13,34 @@ class PicturesController {
   PicturesController({
     this.mapController,
     this.networkService,
+    this.preferences,
   }) {
     _eventSubscription = mapController?.mapEventStream
       .throttleTime(Duration(seconds: 1))
       .listen((e) {
+        saveSettings(e.camera);
         unawaited(loadPictures(e.camera));
       });
   }
 
   final MapController? mapController;
   final NetworkService? networkService;
+  final SharedPreferencesWithCache? preferences;
   final BehaviorSubject<List<Picture>> pictures = BehaviorSubject();
   final BehaviorSubject<Picture?> selection = BehaviorSubject.seeded(null);
 
   StreamSubscription? _eventSubscription;
+
+  LatLng? get defaultCenter {
+    final lat = preferences?.getDouble('map.lat');
+    final lng = preferences?.getDouble('map.lng');
+    if (lat != null && lng != null) {
+      return LatLng(lat, lng);
+    }
+    return null;
+  }
+  double? get defaultRotation => preferences?.getDouble('map.rotation');
+  double? get defaultZoom => preferences?.getDouble('map.zoom');
 
   void dispose() {
     _eventSubscription?.cancel();
@@ -33,9 +49,16 @@ class PicturesController {
 
   Future<void> reload() => loadPictures(mapController?.camera);
 
+  void saveSettings(MapCamera camera) {
+    preferences?.setDouble('map.lat', camera.center.latitude);
+    preferences?.setDouble('map.lng', camera.center.longitude);
+    preferences?.setDouble('map.zoom', camera.zoom);
+    preferences?.setDouble('map.rotation', camera.rotation);
+  }
+
   Future<void> loadPictures(MapCamera? camera) async {
     final net = networkService;
-    if (camera == null || net == null) {
+    if (camera == null || net == null || camera.zoom <= 10.0) {
       pictures.value = [];
       return;
     }
@@ -47,10 +70,7 @@ class PicturesController {
       maxLng: bounds.east,
       zoom: camera.zoom,
     );
-    final location = Location(lat: camera.center.latitude, lng: camera.center.longitude);
-    final diameter = Distance().as(LengthUnit.Meter, LatLng(bounds.south, bounds.east), LatLng(bounds.north, bounds.west));
     final results = await net.findIn(area: area);
-    // final results = await net.findNear(location: location, radius: diameter / 2.0);
     pictures.value = [
       for (final result in results.values)
         for (final item in result)
@@ -78,6 +98,11 @@ class PicturesController {
 
     final position = await Geolocator.getCurrentPosition();
     final coord = LatLng(position.latitude, position.longitude);
-    return mapController.move(coord, mapController.camera.zoom);
+    if (mapController.move(coord, max(mapController.camera.zoom, 17.0))) {
+      saveSettings(mapController.camera);
+      return true;
+    }
+
+    return false;
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_machine/pages/home_page.dart';
 import 'package:time_machine_cam/pages/camera_page.dart';
 import 'package:time_machine_db/services/database_service.dart';
@@ -50,6 +51,13 @@ class TimeMachineApp extends StatelessWidget {
         FutureProvider<DatabaseService?>(
           initialData: null,
           create: (_) => DatabaseService.load(),
+          lazy: false,
+        ),
+        FutureProvider<SharedPreferencesWithCache?>(
+          initialData: null,
+          create: (_) => SharedPreferencesWithCache.create(
+            cacheOptions: SharedPreferencesWithCacheOptions(),
+          ),
           lazy: false,
         ),
       ],
