@@ -49,8 +49,8 @@ class PicturesController {
     );
     final location = Location(lat: camera.center.latitude, lng: camera.center.longitude);
     final diameter = Distance().as(LengthUnit.Meter, LatLng(bounds.south, bounds.east), LatLng(bounds.north, bounds.west));
-    // final results = await net.findIn(area: area);
-    final results = await net.findNear(location: location, radius: diameter / 2.0);
+    final results = await net.findIn(area: area);
+    // final results = await net.findNear(location: location, radius: diameter / 2.0);
     pictures.value = [
       for (final result in results.values)
         for (final item in result)

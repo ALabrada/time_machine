@@ -58,6 +58,8 @@ class PictureView extends StatelessWidget {
       ) : Image(
         image: image,
         height: 48,
+        width: 48,
+        fit: BoxFit.fitHeight,
       ),
     );
   }

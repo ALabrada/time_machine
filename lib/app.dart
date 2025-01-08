@@ -43,6 +43,7 @@ class TimeMachineApp extends StatelessWidget {
           create: (_) => NetworkService(
             providers: {
               'pastvu': PastVuProvider(),
+              'russiainphoto': RussiaInPhotoProvider(),
             },
           ),
         ),

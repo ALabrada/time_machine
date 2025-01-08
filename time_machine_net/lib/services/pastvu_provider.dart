@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -35,16 +36,20 @@ class PastVuProvider implements DataProvider {
       'geometry': {
         'type': 'Polygon',
         'coordinates': [
-          [area.minLat, area.minLng],
-          [area.maxLat, area.minLng],
-          [area.maxLat, area.maxLng],
-          [area.minLat, area.maxLng],
+          [
+            [area.minLng, area.minLat],
+            [area.maxLng, area.minLat],
+            [area.maxLng, area.maxLat],
+            [area.minLng, area.maxLat],
+            [area.minLng, area.minLat],
+          ]
         ],
       },
       if (startDate != null)
         'year': startDate.year,
       if (endDate != null)
         'year2': endDate.year,
+      'isPainting': 0,
       if (zoom != null)
         'localWork': zoom >= 17 ? 1 : 0,
     };
@@ -78,6 +83,7 @@ class PastVuProvider implements DataProvider {
         'year': startDate.year,
       if (endDate != null)
         'year2': endDate.year,
+      'isPainting': 0,
     };
     final response = await dio.get('/api2',
       queryParameters: {
@@ -103,7 +109,13 @@ class PastVuProvider implements DataProvider {
       latitude: coord[0] as double,
       longitude: coord[1] as double,
       bearing: _decodeOrientation(obj['dir']?.toString()),
-      time: obj['year']?.toString(),
+      time: [
+        obj['year']?.toString(),
+        obj['year2']?.toString(),
+      ].whereType<String>()
+          .toSet()
+          .sorted((x, y) => x.compareTo(y))
+          .join('-'),
     );
   }
 

@@ -14,6 +14,7 @@ dependencies:
   time_machine_db:
     path: ../time_machine_db
 
+  collection: any
   dio: ^5.7.0
 
 dev_dependencies:
