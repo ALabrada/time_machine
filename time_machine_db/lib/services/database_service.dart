@@ -152,7 +152,9 @@ class Repository<T> {
     if (data == null) {
       return null;
     }
-    return fromJson(data);
+    final item = fromJson(data);
+    setKey(item, id);
+    return item;
   }
 
   Future<T> insert(T entity) async {

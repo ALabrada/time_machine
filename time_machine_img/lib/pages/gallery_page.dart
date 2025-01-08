@@ -94,6 +94,6 @@ class _GalleryPageState extends State<GalleryPage> {
   }
 
   void _select(Record element) {
-    context.go('/picture/${element.pictureId}');
+    context.go('/gallery/${element.localId}');
   }
 }

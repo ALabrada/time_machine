@@ -49,6 +49,8 @@ class _CameraPageState extends State<CameraPage> {
         return Scaffold(
           appBar: AppBar(
             title: Text(picture?.description ?? ""),
+            backgroundColor: Theme.of(context).colorScheme.secondary.withAlpha(127),
+            foregroundColor: Theme.of(context).colorScheme.onSecondary,
           ),
           extendBodyBehindAppBar: true,
           body: _buildContent(picture: picture),
@@ -97,7 +99,8 @@ class _CameraPageState extends State<CameraPage> {
       return null;
     }
     final db = context.read<DatabaseService>();
-    return await db.createRepository<Picture>().getById(id);
+    final picture = await db.createRepository<Picture>().getById(id);
+    return picture;
   }
 
   Future<void> _savePicture(XFile file, {Picture? original}) async {
@@ -111,9 +114,10 @@ class _CameraPageState extends State<CameraPage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text("Picture added to the gallery"),
+        backgroundColor: Theme.of(context).primaryColor,
         action: SnackBarAction(
           label: "View",
-          onPressed: () => context.go('/picture/${record.pictureId}'),
+          onPressed: () => context.go('/gallery/${record.localId}'),
         ),
       ));
     }

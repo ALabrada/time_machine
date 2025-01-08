@@ -38,6 +38,7 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
     );
     pictureController = PictureController(
       databaseService: context.read(),
+      networkService: context.read(),
     );
     super.initState();
   }

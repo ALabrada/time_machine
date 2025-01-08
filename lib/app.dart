@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_machine/pages/home_page.dart';
 import 'package:time_machine_cam/pages/camera_page.dart';
 import 'package:time_machine_db/services/database_service.dart';
-import 'package:time_machine_img/pages/picture_page.dart';
+import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
@@ -25,6 +25,12 @@ final _router = GoRouter(
             path: 'picture/:pictureId',
             builder: (context, state) => PicturePage(
               pictureId: int.tryParse(state.pathParameters['pictureId'] ?? ''),
+            ),
+          ),
+          GoRoute(
+            path: 'gallery/:recordId',
+            builder: (context, state) => ComparisonPage(
+              recordId: int.tryParse(state.pathParameters['recordId'] ?? ''),
             ),
           ),
         ]

@@ -16,6 +16,7 @@ class Record {
     this.picture,
   });
 
+  @JsonKey(includeToJson: false, includeFromJson: false)
   int? localId;
   int? originalId;
   int pictureId;
@@ -24,7 +25,7 @@ class Record {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   Picture? original;
-@JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   Picture? picture;
 
   factory Record.fromJson(Map<String, dynamic> json) => _$RecordFromJson(json);

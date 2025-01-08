@@ -23,6 +23,7 @@ dependencies:
   extended_text: ^14.2.0
   go_router: any
   group_grid_view: ^1.0.1
+  image_compare_slider: ^2.8.0
   intl: any
   path: any
   path_provider: any

@@ -21,6 +21,7 @@ class Picture {
   });
 
   String id;
+  @JsonKey(includeToJson: false, includeFromJson: false)
   int? localId;
   String? provider;
   String url;

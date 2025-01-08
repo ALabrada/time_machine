@@ -511,6 +511,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.5.2"
+  image_compare_slider:
+    dependency: transitive
+    description:
+      name: image_compare_slider
+      sha256: "0f36da1f396fadb11e1667684db1c0b354cdfebd2c1723d2c8dc1fb0cc9eca3c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.8.0"
   intl:
     dependency: transitive
     description:
