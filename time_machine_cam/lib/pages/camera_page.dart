@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camera_camera/camera_camera.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_cam/services/database_service.dart';
@@ -65,9 +67,11 @@ class _CameraPageState extends State<CameraPage> {
           onFile: (file) => _savePicture(file, original: picture),
         ),
         if (picture != null)
-          Opacity(
-            opacity: 0.5,
-            child: CachedNetworkImage(imageUrl: picture.url),
+          IgnorePointer(
+            child: Opacity(
+              opacity: 0.5,
+              child: CachedNetworkImage(imageUrl: picture.url),
+            ),
           ),
         Positioned(
           top: 68,
@@ -98,11 +102,20 @@ class _CameraPageState extends State<CameraPage> {
 
   Future<void> _savePicture(XFile file, {Picture? original}) async {
     final db = context.read<DatabaseService>();
-    await db.createRecord(
+    final record = await db.createRecord(
       file: file,
       original: original,
       position: controller.position.valueOrNull,
       heading: controller.heading.valueOrNull,
     );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Picture added to the gallery"),
+        action: SnackBarAction(
+          label: "View",
+          onPressed: () => context.go('/picture/${record.pictureId}'),
+        ),
+      ));
+    }
   }
 }

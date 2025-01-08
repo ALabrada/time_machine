@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:extended_text/extended_text.dart';
@@ -85,7 +87,7 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
               }
             },
             child: PhotoView(
-              imageProvider: CachedNetworkImageProvider(picture.url),
+              imageProvider: _imageFor(picture),
               scaleStateChangedCallback: (state) async {
                 if (animationController.value == 0.0 && state == PhotoViewScaleState.zoomedIn) {
                   await animationController.animateTo(1, curve: Curves.easeIn);
@@ -163,6 +165,18 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
         );
       },
     );
+  }
+
+  ImageProvider _imageFor(Picture picture) {
+    final url = Uri.parse(picture.url);
+    if (url.isScheme('file')) {
+      return FileImage(File(url.path));
+    }
+    if (url.isScheme('data')) {
+      final data = base64Decode(picture.url.split(';base64,').last);
+      return MemoryImage(data);
+    }
+    return CachedNetworkImageProvider(picture.url);
   }
 
   void _takePicture() {

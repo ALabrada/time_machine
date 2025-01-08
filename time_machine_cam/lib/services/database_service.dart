@@ -13,7 +13,7 @@ extension CamDatabaseService on DatabaseService {
     Picture? original,
   }) async {
     final time = DateTime.now();
-    final id = Uuid().toString();
+    final id = Uuid().v4();
     String url;
     final dirPath = filePath;
     if (dirPath == null) {
@@ -21,7 +21,9 @@ extension CamDatabaseService on DatabaseService {
       url = 'data:${file.mimeType ?? ''};base64,${base64Encode(data)}';
     } else {
       final localPath = '$dirPath/pictures/$id.jpg';
-      await file.saveTo(localPath);
+      await File(localPath).create(recursive: true);
+      await File(file.path).copy(localPath);
+      // await file.saveTo(localPath);
       url = Uri.file(localPath).toString();
     }
 
@@ -36,15 +38,17 @@ extension CamDatabaseService on DatabaseService {
       bearing: heading ?? position?.heading ?? original?.bearing,
       time: '${time.year}-${time.month}-${time.day}',
     );
-    picture = await createRepository().insert(picture);
+    picture = await createRepository<Picture>().insert(picture);
 
     final record = Record(
       originalId: original?.localId,
       original: original,
       pictureId: picture.localId!,
-      picture: picture
+      picture: picture,
+      createdAt: time,
+      updateAt: time,
     );
-    return await createRepository().insert(record);
+    return await createRepository<Record>().insert(record);
   }
 
   Future<Picture> savePicture(Picture model) async {

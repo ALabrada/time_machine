@@ -63,7 +63,7 @@ class TimeMachineApp extends StatelessWidget {
       ],
       child: MaterialApp.router(
         title: 'Portable Time Machine',
-        theme: ThemeData(
+        theme: ThemeData.from(
           // This is the theme of your application.
           //
           // TRY THIS: Try running your application with "flutter run". You'll see

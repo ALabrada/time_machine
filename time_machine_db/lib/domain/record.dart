@@ -8,6 +8,8 @@ part 'record.g.dart';
 class Record {
   Record({
     required this.pictureId,
+    required this.createdAt,
+    required this.updateAt,
     this.originalId,
     this.localId,
     this.original,
@@ -17,6 +19,8 @@ class Record {
   int? localId;
   int? originalId;
   int pictureId;
+  DateTime createdAt;
+  DateTime updateAt;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   Picture? original;
