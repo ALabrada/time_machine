@@ -75,6 +75,20 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
     return ImageCompareSlider(
       itemOne: Image(image: _imageFor(original),),
       itemTwo: Image(image: _imageFor(picture),),
+      itemOneBuilder: (child, context) => AspectRatio(
+        aspectRatio: 4.0/3.0,
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: child,
+        ),
+      ),
+      itemTwoBuilder: (child, context) => AspectRatio(
+        aspectRatio: 4.0/3.0,
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: child,
+        ),
+      ),
       handleColor: Theme.of(context).colorScheme.primary,
       dividerColor: Theme.of(context).colorScheme.primary,
       fillHandle: true,
