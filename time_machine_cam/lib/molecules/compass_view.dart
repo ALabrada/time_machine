@@ -1,4 +1,4 @@
-import 'package:animated_transform/animated_transform.dart';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -9,11 +9,13 @@ class CompassView extends StatelessWidget {
     this.position,
     this.heading,
     this.target,
+    this.minDistance=0,
   });
 
   final Position? position;
   final double? heading;
   final Location? target;
+  final double minDistance;
 
   @override
   Widget build(BuildContext context) {
@@ -31,17 +33,28 @@ class CompassView extends StatelessWidget {
       children: [
         Transform.scale(
           scaleY: 0.5,
-          child: AnimatedTransform(
-            rotate: bearing - currentHeading,
-            child: Image.asset('assets/images/navigation.png',
-              color: Colors.white,
+          child: Transform.rotate(
+            angle: (bearing - currentHeading) * math.pi / 180.0,
+            child: Container(
               width: 100,
+              height: 100,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(50),
+                color: Theme.of(context).colorScheme.surface.withAlpha(127),
+              ),
+              child: Image.asset('assets/images/navigation.png',
+                color: Theme.of(context).colorScheme.secondary,
+              ),
             ),
           ),
         ),
-        Text('$distance m\n${currentHeading.round()} deg',
-          style: TextStyle(color: Colors.red),
-        ),
+        if (distance >= minDistance)
+          Text(distance < 1000 ? '$distance m' : '+1 Km',
+            style: TextTheme.of(context).bodyLarge?.merge(TextStyle(
+                color: Theme.of(context).colorScheme.primary),
+            ),
+          ),
       ],
     );
   }

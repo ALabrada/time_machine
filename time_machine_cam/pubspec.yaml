@@ -24,6 +24,7 @@ dependencies:
   ar_location_view: ^2.0.16
   cached_network_image: ^3.4.1
   camera: ^0.11.0+2
+  flutter_compass: ^0.8.1
   geolocator: any
   go_router: any
   osm_nominatim: ^3.0.1

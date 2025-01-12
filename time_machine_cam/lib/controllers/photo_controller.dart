@@ -1,13 +1,13 @@
 import 'dart:async';
-import 'dart:math' as math;
-import 'package:flutter/cupertino.dart';
+import 'package:camera/camera.dart';
+import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 
 class PhotoController {
   final position = BehaviorSubject<Position>();
   final heading = BehaviorSubject<double>();
+  final camera = BehaviorSubject<CameraDescription>();
 
   StreamSubscription? positionSubscription, headingSubscription;
 
@@ -34,21 +34,9 @@ class PhotoController {
       locationSettings: LocationSettings(accuracy: LocationAccuracy.bestForNavigation),
     ).listen(position.add);
 
-    headingSubscription = magnetometerEventStream()
-      .map(_calculateHeading)
-      .listen(heading.add);
+    headingSubscription = FlutterCompass.events?.mapNotNull((e) => e.heading)
+        .listen(heading.add);
+
     return true;
-  }
-
-  double _calculateHeading(MagnetometerEvent event) {
-    debugPrint("heading: $event");
-
-    // Calculate direction in radians
-    double directionRadians = math.atan2(event.x, event.z);
-
-    // Convert radians to degrees
-    double directionDegrees = directionRadians * (180 / math.pi);
-
-    return (directionDegrees + 360) % 360;
   }
 }

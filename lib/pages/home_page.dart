@@ -1,10 +1,13 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:time_machine_cam/time_machine_cam.dart';
 import 'package:time_machine_img/pages/gallery_page.dart';
 import 'package:time_machine_map/time_machine_map.dart';
 import 'package:time_machine_res/time_machine_res.dart';
+
+import '../app.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -15,8 +18,30 @@ class HomePage extends StatefulWidget {
   _HomePageState createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with RouteAware {
+  late RouteObserver _routeObserver;
   int currentPageIndex = 0;
+
+  @override
+  void initState() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _routeObserver = context.read<RouteObserver>();
+    _routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    _routeObserver.unsubscribe(this);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,4 +83,25 @@ class _HomePageState extends State<HomePage> {
       ][currentPageIndex],
     );
   }
+
+  @override
+  void didPush() {
+  }
+
+  @override
+  void didPushNext() {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+  }
+
+  @override
+  void didPop() {
+  }
+
+  @override
+  void didPopNext() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+  }
+
 }

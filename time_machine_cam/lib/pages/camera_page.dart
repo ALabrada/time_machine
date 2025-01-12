@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:time_machine_cam/molecules/camera_trigger_button.dart';
 import 'package:time_machine_cam/services/database_service.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_cam/controllers/photo_controller.dart';
@@ -47,12 +48,6 @@ class _CameraPageState extends State<CameraPage> {
       builder: (context, snapshot) {
         final picture = snapshot.data;
         return Scaffold(
-          appBar: AppBar(
-            title: Text(picture?.description ?? ""),
-            backgroundColor: Theme.of(context).colorScheme.secondary.withAlpha(127),
-            foregroundColor: Theme.of(context).colorScheme.onSecondary,
-          ),
-          extendBodyBehindAppBar: true,
           body: _buildContent(picture: picture),
         );
       },
@@ -66,18 +61,33 @@ class _CameraPageState extends State<CameraPage> {
         CameraCamera(
           resolutionPreset: ResolutionPreset.max,
           enableAudio: false,
+          mode: CameraMode.ratio4s3,
           onFile: (file) => _savePicture(file, original: picture),
+          onChangeCamera: (camera) => controller.camera.value = camera,
+          triggerIcon: CameraTriggerButton(),
         ),
         if (picture != null)
-          IgnorePointer(
-            child: Opacity(
-              opacity: 0.5,
-              child: CachedNetworkImage(imageUrl: picture.url),
+          SafeArea(
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.5,
+                child: CachedNetworkImage(imageUrl: picture.url),
+              ),
             ),
           ),
         Positioned(
-          top: 68,
-          left: 16,
+          top: 0,
+          left: 0,
+          right: 0,
+          child: AppBar(
+            title: Text(picture?.description ?? ""),
+            backgroundColor: Theme.of(context).colorScheme.secondary.withAlpha(127),
+            foregroundColor: Theme.of(context).colorScheme.onSecondary,
+          ),
+        ),
+        RotatedContainer(
+          alignment: Alignment.topLeft,
+          padding: EdgeInsets.only(top: 76, left: 16),
           child: StreamBuilder(
             stream: CombineLatestStream.combine2(controller.position, controller.heading, (x, y) => (position: x, heading: y)),
             builder: (context, snapshot) {

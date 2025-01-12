@@ -9,35 +9,6 @@ import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
-final _router = GoRouter(
-    routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => HomePage(),
-        routes: [
-          GoRoute(
-            path: 'camera',
-            builder: (context, state) => CameraPage(
-              pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
-            ),
-          ),
-          GoRoute(
-            path: 'picture/:pictureId',
-            builder: (context, state) => PicturePage(
-              pictureId: int.tryParse(state.pathParameters['pictureId'] ?? ''),
-            ),
-          ),
-          GoRoute(
-            path: 'gallery/:recordId',
-            builder: (context, state) => ComparisonPage(
-              recordId: int.tryParse(state.pathParameters['recordId'] ?? ''),
-            ),
-          ),
-        ]
-      ),
-    ]
-);
-
 class TimeMachineApp extends StatelessWidget {
   const TimeMachineApp({super.key});
 
@@ -46,6 +17,44 @@ class TimeMachineApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider<RouteObserver>(
+          create: (_) => RouteObserver<ModalRoute<void>>(),
+        ),
+        Provider<GoRouter>(
+          create: (context) {
+            return GoRouter(
+              routes: [
+                GoRoute(
+                    path: '/',
+                    builder: (context, state) => HomePage(),
+                    routes: [
+                      GoRoute(
+                        path: 'camera',
+                        builder: (context, state) => CameraPage(
+                          pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'picture/:pictureId',
+                        builder: (context, state) => PicturePage(
+                          pictureId: int.tryParse(state.pathParameters['pictureId'] ?? ''),
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'gallery/:recordId',
+                        builder: (context, state) => ComparisonPage(
+                          recordId: int.tryParse(state.pathParameters['recordId'] ?? ''),
+                        ),
+                      ),
+                    ]
+                ),
+              ],
+              observers: [
+                context.read<RouteObserver>(),
+              ],
+            );
+          },
+        ),
         Provider<NetworkService>(
           create: (_) => NetworkService(
             providers: {
@@ -67,29 +76,16 @@ class TimeMachineApp extends StatelessWidget {
           lazy: false,
         ),
       ],
-      child: MaterialApp.router(
-        title: 'Portable Time Machine',
-        theme: ThemeData.from(
-          // This is the theme of your application.
-          //
-          // TRY THIS: Try running your application with "flutter run". You'll see
-          // the application has a purple toolbar. Then, without quitting the app,
-          // try changing the seedColor in the colorScheme below to Colors.green
-          // and then invoke "hot reload" (save your changes or press the "hot
-          // reload" button in a Flutter-supported IDE, or press "r" if you used
-          // the command line to start the app).
-          //
-          // Notice that the counter didn't reset back to zero; the application
-          // state is not lost during the reload. To reset the state, use hot
-          // restart instead.
-          //
-          // This works for code too, not just values: Most code changes can be
-          // tested with just a hot reload.
-          colorScheme: colorScheme,
-          useMaterial3: true,
-        ),
-        routerConfig: _router,
-      ),
+      builder: (context, _) {
+        return MaterialApp.router(
+          title: 'Portable Time Machine',
+          theme: ThemeData.from(
+            colorScheme: colorScheme,
+            useMaterial3: true,
+          ),
+          routerConfig: context.read<GoRouter>(),
+        );
+      },
     );
   }
 }

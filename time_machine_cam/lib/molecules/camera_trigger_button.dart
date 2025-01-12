@@ -17,8 +17,8 @@ class CameraTriggerButton extends StatelessWidget {
         color: Colors.transparent,
       ),
       child: Container(
-        width: 50,
-        height: 50,
+        width: 60,
+        height: 60,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.transparent,
@@ -29,8 +29,8 @@ class CameraTriggerButton extends StatelessWidget {
         ),
         child: Center(
           child: Container(
-            width: 40,
-            height: 40,
+            width: 50,
+            height: 50,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
