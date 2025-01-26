@@ -17,6 +17,8 @@ Picture _$PictureFromJson(Map<String, dynamic> json) => Picture(
       altitude: (json['altitude'] as num?)?.toDouble(),
       bearing: (json['bearing'] as num?)?.toDouble(),
       time: json['time'] as String?,
+      margin: json['margin'] as String?,
+      site: json['site'] as String?,
     );
 
 Map<String, dynamic> _$PictureToJson(Picture instance) => <String, dynamic>{
@@ -30,4 +32,6 @@ Map<String, dynamic> _$PictureToJson(Picture instance) => <String, dynamic>{
       'altitude': instance.altitude,
       'bearing': instance.bearing,
       'time': instance.time,
+      'margin': instance.margin,
+      'site': instance.site,
     };

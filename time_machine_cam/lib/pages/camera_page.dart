@@ -12,6 +12,7 @@ import 'package:time_machine_cam/services/database_service.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_cam/controllers/photo_controller.dart';
 import 'package:time_machine_cam/molecules/compass_view.dart';
+import 'package:time_machine_res/molecules/picture_frame.dart';
 
 class CameraPage extends StatefulWidget {
   const CameraPage({
@@ -61,7 +62,7 @@ class _CameraPageState extends State<CameraPage> {
         CameraCamera(
           resolutionPreset: ResolutionPreset.max,
           enableAudio: false,
-          mode: CameraMode.ratio4s3,
+          mode: CameraMode.ratio16s9,
           onFile: (file) => _savePicture(file, original: picture),
           onChangeCamera: (camera) => controller.camera.value = camera,
           triggerIcon: CameraTriggerButton(),

@@ -309,6 +309,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.8.1"
+  flutter_exif_rotation:
+    dependency: transitive
+    description:
+      name: flutter_exif_rotation
+      sha256: f581601523bbb7fbec3a0498fe930bf6c48f627d4548d859b2772230edfbe658
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.2"
   flutter_launcher_icons:
     dependency: "direct dev"
     description:

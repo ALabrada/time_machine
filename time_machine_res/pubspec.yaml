@@ -15,6 +15,7 @@ dependencies:
     path: ../time_machine_db
 
   cached_network_image: ^3.4.1
+  provider: ^6.1.2
 
 dev_dependencies:
   flutter_test:

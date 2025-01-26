@@ -73,21 +73,15 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
       return null;
     }
     return ImageCompareSlider(
-      itemOne: Image(image: _imageFor(original),),
-      itemTwo: Image(image: _imageFor(picture),),
-      itemOneBuilder: (child, context) => AspectRatio(
+      itemOne: Image(image: PictureFrame.imageFor(original.url)),
+      itemTwo: Image(image: PictureFrame.imageFor(picture.url)),
+      itemOneBuilder: (child, context) => PictureFrame(
         aspectRatio: 4.0/3.0,
-        child: FittedBox(
-          fit: BoxFit.cover,
-          child: child,
-        ),
+        child: child,
       ),
-      itemTwoBuilder: (child, context) => AspectRatio(
+      itemTwoBuilder: (child, context) => PictureFrame(
         aspectRatio: 4.0/3.0,
-        child: FittedBox(
-          fit: BoxFit.cover,
-          child: child,
-        ),
+        child: child,
       ),
       handleColor: Theme.of(context).colorScheme.primary,
       dividerColor: Theme.of(context).colorScheme.primary,
@@ -195,18 +189,6 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
         ),
       ),
     );
-  }
-
-  ImageProvider _imageFor(Picture picture) {
-    final url = Uri.parse(picture.url);
-    if (url.isScheme('file')) {
-      return FileImage(File(url.path));
-    }
-    if (url.isScheme('data')) {
-      final data = base64Decode(picture.url.split(';base64,').last);
-      return MemoryImage(data);
-    }
-    return CachedNetworkImageProvider(picture.url);
   }
 
   List<String> _labelsFor(SliderDirection direction) {

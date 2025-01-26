@@ -18,6 +18,8 @@ class Picture {
     this.altitude,
     this.bearing,
     this.time,
+    this.margin,
+    this.site,
   });
 
   String id;
@@ -32,6 +34,8 @@ class Picture {
   double? altitude;
   double? bearing;
   String? time;
+  String? margin;
+  String? site;
 
   @JsonKey(includeToJson: false, includeFromJson: false)
   Location get location => Location(lat: latitude, lng: longitude);

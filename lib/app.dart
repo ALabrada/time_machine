@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,24 +27,40 @@ class TimeMachineApp extends StatelessWidget {
               routes: [
                 GoRoute(
                     path: '/',
-                    builder: (context, state) => HomePage(),
+                    builder: (context, state) => FixedOrientationView(
+                      orientations: [DeviceOrientation.portraitUp],
+                      child: HomePage(),
+                    ),
                     routes: [
                       GoRoute(
                         path: 'camera',
-                        builder: (context, state) => CameraPage(
-                          pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
+                        builder: (context, state) => FixedOrientationView(
+                          orientations: [
+                            DeviceOrientation.portraitUp,
+                            DeviceOrientation.landscapeLeft,
+                            DeviceOrientation.landscapeRight,
+                          ],
+                          child: CameraPage(
+                            pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
+                          ),
                         ),
                       ),
                       GoRoute(
                         path: 'picture/:pictureId',
-                        builder: (context, state) => PicturePage(
-                          pictureId: int.tryParse(state.pathParameters['pictureId'] ?? ''),
+                        builder: (context, state) => FixedOrientationView(
+                          orientations: DeviceOrientation.values,
+                          child: PicturePage(
+                            pictureId: int.tryParse(state.pathParameters['pictureId'] ?? ''),
+                          ),
                         ),
                       ),
                       GoRoute(
                         path: 'gallery/:recordId',
-                        builder: (context, state) => ComparisonPage(
-                          recordId: int.tryParse(state.pathParameters['recordId'] ?? ''),
+                        builder: (context, state) => FixedOrientationView(
+                          orientations: DeviceOrientation.values,
+                          child: ComparisonPage(
+                            recordId: int.tryParse(state.pathParameters['recordId'] ?? ''),
+                          ),
                         ),
                       ),
                     ]

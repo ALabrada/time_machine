@@ -13,6 +13,8 @@ import 'package:time_machine_db/time_machine_db.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_img/controllers/picture_controller.dart';
 import 'package:time_machine_net/services/network_service.dart';
+import 'package:time_machine_res/time_machine_res.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class PicturePage extends StatefulWidget {
   const PicturePage({
@@ -88,7 +90,7 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
               }
             },
             child: PhotoView(
-              imageProvider: _imageFor(picture),
+              imageProvider: PictureFrame.imageFor(picture.url),
               scaleStateChangedCallback: (state) async {
                 if (animationController.value == 0.0 && state == PhotoViewScaleState.zoomedIn) {
                   await animationController.animateTo(1, curve: Curves.easeIn);
@@ -120,13 +122,13 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
           bottom: 0,
           left: 0,
           right: 0,
-          child: _buildToolbar(),
+          child: _buildToolbar(picture: picture),
         ),
       ],
     );
   }
 
-  Widget _buildToolbar() {
+  Widget _buildToolbar({Picture? picture}) {
     return AnimatedBuilder(
       animation: animationController,
       child: SafeArea(
@@ -145,6 +147,11 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
                   onPressed: widget.pictureId == null ? null : _takePicture,
                   icon: Icon(Icons.camera_alt),
                 ),
+                if (picture?.site != null)
+                  IconButton(
+                    onPressed: () => _openSite(picture!.site!),
+                    icon: Icon(Icons.open_in_browser),
+                  ),
                 IconButton(
                   onPressed: widget.pictureId == null ? null : () {
                     unawaited(pictureController.sharePicture());
@@ -168,19 +175,11 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
     );
   }
 
-  ImageProvider _imageFor(Picture picture) {
-    final url = Uri.parse(picture.url);
-    if (url.isScheme('file')) {
-      return FileImage(File(url.path));
-    }
-    if (url.isScheme('data')) {
-      final data = base64Decode(picture.url.split(';base64,').last);
-      return MemoryImage(data);
-    }
-    return CachedNetworkImageProvider(picture.url);
-  }
-
   void _takePicture() {
     context.go('/camera?pictureId=${widget.pictureId}');
+  }
+
+  void _openSite(String site) {
+    unawaited(launchUrlString(site));
   }
 }

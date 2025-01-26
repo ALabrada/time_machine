@@ -99,16 +99,19 @@ class PastVuProvider implements DataProvider {
 
   Picture _decode(dynamic obj) {
     final baseUrl = dio.options.baseUrl;
-    final path = obj['file'] as String;
+    final id = obj['cid'].toString();
+    final path = obj['file'].toString();
     final coord = obj['geo'] as List;
     return Picture(
-      id: obj['cid'].toString(),
+      id: id,
       url: '$baseUrl/_p/a/$path',
       previewUrl: '$baseUrl/_p/h/$path',
       description: obj['title'] as String,
       latitude: coord[0] as double,
       longitude: coord[1] as double,
       bearing: _decodeOrientation(obj['dir']?.toString()),
+      margin: '0,0,0,19',
+      site: 'https://pastvu.com/p/$id',
       time: [
         obj['year']?.toString(),
         obj['year2']?.toString(),

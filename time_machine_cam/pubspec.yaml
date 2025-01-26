@@ -27,6 +27,8 @@ dependencies:
   flutter_compass: ^0.8.1
   geolocator: any
   go_router: any
+  image: ^4.5.2
+  native_device_orientation: ^2.0.3
   osm_nominatim: ^3.0.1
   provider: ^6.1.2
   rxdart: ^0.28.0
