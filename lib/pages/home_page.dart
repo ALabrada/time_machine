@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:time_machine_cam/time_machine_cam.dart';
-import 'package:time_machine_img/pages/gallery_page.dart';
+import 'package:time_machine_config/time_machine_config.dart';
+import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_map/time_machine_map.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
@@ -50,12 +51,18 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.map_outlined),
             label: 'Map',
           ),
+          NavigationDestination(
+            selectedIcon: Icon(Icons.settings),
+            icon: Icon(Icons.settings_outlined),
+            label: 'Settings',
+          ),
         ],
       ),
       body: <Widget>[
         GalleryPage(),
         ScanningPage(),
         MapPage(),
+        ConfigurationPage()
       ][currentPageIndex],
     );
   }

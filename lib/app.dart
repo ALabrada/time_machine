@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_machine/pages/home_page.dart';
 import 'package:time_machine_cam/pages/camera_page.dart';
+import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/services/database_service.dart';
 import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_net/time_machine_net.dart';
@@ -63,6 +64,13 @@ class TimeMachineApp extends StatelessWidget {
                           ),
                         ),
                       ),
+                      GoRoute(
+                        path: 'settings',
+                        builder: (context, state) => FixedOrientationView(
+                          orientations: [DeviceOrientation.portraitUp],
+                          child: ConfigurationPage(),
+                        ),
+                      ),
                     ]
                 ),
               ],
@@ -91,6 +99,11 @@ class TimeMachineApp extends StatelessWidget {
             cacheOptions: SharedPreferencesWithCacheOptions(),
           ),
           lazy: false,
+        ),
+        Provider<ConfigurationService>(
+          create: (context) => ConfigurationService(
+            preferences: context.read,
+          ),
         ),
       ],
       builder: (context, _) {
