@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:time_machine_config/controllers/selection_controller.dart';
+import 'package:time_machine_config/domain/map_tile_server.dart';
 import 'package:time_machine_config/domain/selectable_item.dart';
 import 'package:time_machine_config/services/configuration_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
@@ -18,15 +19,25 @@ final class ConfigurationController extends ChangeNotifier {
         providers = _createProviders(
           configurationService: configurationService,
           networkService: networkService,
+        ),
+        tileServer = SelectionController(
+          value: configurationService.tileServer ?? MapTileServer.values[0].id,
         )
   {
     updateYears();
+    updateTileServers();
     maxYear.addListener(() {
+      configurationService.maxYear = maxYear.value;
       updateYears();
       notifyListeners();
     });
     minYear.addListener(() {
+      configurationService.minYear = minYear.value;
       updateYears();
+      notifyListeners();
+    });
+    tileServer.addListener(() {
+      configurationService.tileServer = tileServer.value;
       notifyListeners();
     });
     for (final provider in providers) {
@@ -43,6 +54,7 @@ final class ConfigurationController extends ChangeNotifier {
   final SelectionController<int> maxYear;
   final SelectionController<int> minYear;
   final List<SelectableItem<String>> providers;
+  final SelectionController<String> tileServer;
 
   void updateProvider(String key, bool selected) {
     final providers = configurationService.providers
@@ -54,6 +66,12 @@ final class ConfigurationController extends ChangeNotifier {
       providers.add(key);
     }
     configurationService.providers = providers;
+  }
+
+  void updateTileServers() {
+    tileServer.elements.value = MapTileServer.values
+        .map((e) => e.id)
+        .toList();
   }
 
   void updateYears() {

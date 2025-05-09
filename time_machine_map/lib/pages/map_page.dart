@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:geolocator/geolocator.dart';
@@ -10,7 +11,7 @@ import 'package:flutter_map_compass/flutter_map_compass.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import 'package:time_machine_config/services/configuration_service.dart';
+import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_map/controllers/pictures_controller.dart';
 import 'package:time_machine_map/molecules/map_search_bar.dart';
@@ -36,6 +37,10 @@ class _MapPageState extends State<MapPage> {
   final _mapController = MapController();
   final _popupController = PopupController();
   late PicturesController _picturesController;
+
+  MapTileServer get _tileServer => MapTileServer.values
+      .where((e) => e.id == _picturesController.configurationService?.tileServer)
+      .firstOrNull ?? MapTileServer.values[0];
 
   @override
   void initState() {
@@ -120,10 +125,10 @@ class _MapPageState extends State<MapPage> {
         ),
         children: [
           TileLayer( // Display map tiles from any source
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
+            urlTemplate: _tileServer.url, // OSMF's Tile Server
             userAgentPackageName: 'com.example.app',
             tileProvider: CancellableNetworkTileProvider(),
-            // And many more recommended properties!
+            subdomains: _tileServer.subdomains ?? const ['a', 'b', 'c'],
           ),
           CurrentLocationLayer(),
           _buildMarkers(),
@@ -133,15 +138,21 @@ class _MapPageState extends State<MapPage> {
           ),
           _buildButtons(),
           _buildSearchBar(),
-          RichAttributionWidget( // Include a stylish prebuilt attribution widget that meets all requirments
-            attributions: [
-              TextSourceAttribution(
-                'OpenStreetMap contributors',
-                onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')), // (external)
-              ),
-              // Also add images...
-            ],
-          ),
+          if (_tileServer.attributionLabel != null || _tileServer.attributionLogo != null)
+            RichAttributionWidget(
+              attributions: [
+                if (_tileServer.attributionLogo != null)
+                  LogoSourceAttribution(
+                    Image.asset(_tileServer.attributionLogo!),
+                    onTap: _openAttribution,
+                  ),
+                if (_tileServer.attributionLabel != null)
+                  TextSourceAttribution(
+                    _tileServer.attributionLabel!,
+                    onTap: _openAttribution,
+                  ),
+              ],
+            ),
         ],
       ),
     );
@@ -253,6 +264,13 @@ class _MapPageState extends State<MapPage> {
     final id = newModel?.localId;
     if (mounted && id != null) {
       context.go('/picture/$id');
+    }
+  }
+
+  void _openAttribution() {
+    final url = Uri.tryParse(_tileServer.attributionUrl ?? '');
+    if (url != null) {
+      launchUrl(url);
     }
   }
 

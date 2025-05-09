@@ -36,4 +36,13 @@ final class ConfigurationService {
       preferences()?.setInt('settings.maxYear', value);
     }
   }
+
+  String? get tileServer => preferences()?.getString('settings.tileServer');
+  set tileServer(String? value) {
+    if (value == null) {
+      preferences()?.remove('settings.tileServer');
+    } else {
+      preferences()?.setString('settings.tileServer', value);
+    }
+  }
 }

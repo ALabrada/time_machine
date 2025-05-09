@@ -37,12 +37,29 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
         builder: (context, _) {
           return SettingsList(
             sections: [
+              _buildMapSection(),
               _buildProvidersSection(),
               _buildSearchOptions(),
             ],
           );
         },
       ),
+    );
+  }
+
+  AbstractSettingsSection _buildMapSection() {
+    return SettingsSection(
+      title: Text("Map"),
+      tiles: [
+        SettingsTile.navigation(
+          title: Text("Provider"),
+          value: Text(controller.tileServer.value),
+          onPressed: (_) => _showSelectionDialog(
+            label: "Map Provider",
+            controller: controller.tileServer,
+          ),
+        ),
+      ],
     );
   }
 
