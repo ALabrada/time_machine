@@ -6,11 +6,13 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 
 class PicturesController {
   PicturesController({
+    this.configurationService,
     this.mapController,
     this.networkService,
     this.preferences,
@@ -23,6 +25,7 @@ class PicturesController {
       });
   }
 
+  final ConfigurationService? configurationService;
   final MapController? mapController;
   final NetworkService? networkService;
   final SharedPreferencesWithCache? preferences;
@@ -58,6 +61,7 @@ class PicturesController {
 
   Future<void> loadPictures(MapCamera? camera) async {
     final net = networkService;
+    final config = configurationService;
     if (camera == null || net == null || camera.zoom <= 10.0) {
       pictures.value = [];
       return;
@@ -70,7 +74,12 @@ class PicturesController {
       maxLng: bounds.east,
       zoom: camera.zoom,
     );
-    final results = await net.findIn(area: area);
+    final results = await net.findIn(
+      area: area,
+      startDate: DateTime(config?.minYear ?? ConfigurationService.defaultMinYear),
+      endDate: DateTime(config?.maxYear ?? ConfigurationService.defaultMaxYear),
+      sources: config?.providers,
+    );
     pictures.value = [
       for (final result in results.values)
         for (final item in result)

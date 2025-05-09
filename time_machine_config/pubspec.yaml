@@ -21,6 +21,7 @@ dependencies:
   cached_network_image: ^3.4.1
   geolocator: any
   go_router: any
+  select_dialog: ^2.0.2
   settings_ui: ^2.0.2
   shared_preferences: any
 

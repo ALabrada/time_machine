@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:select_dialog/select_dialog.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:time_machine_config/controllers/configuration_controller.dart';
 import 'package:time_machine_config/services/configuration_service.dart';
 import 'package:time_machine_net/services/network_service.dart';
 import 'package:provider/provider.dart';
+
+import '../controllers/selection_controller.dart';
 
 class ConfigurationPage extends StatefulWidget {
   const ConfigurationPage({
@@ -61,15 +64,35 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
     return SettingsSection(
       title: Text("Search Options"),
       tiles: [
-        SettingsTile(
-          title: Text('Beginning (year)'),
+        SettingsTile.navigation(
+          title: Text("Beginning (year)"),
           value: Text(controller.minYear.value.toString()),
+          onPressed: (_) => _showSelectionDialog(
+            label: "Beginning (year)",
+            controller: controller.minYear,
+          ),
         ),
-        SettingsTile(
-          title: Text('End (year)'),
+        SettingsTile.navigation(
+          title: Text("End (year)"),
           value: Text(controller.maxYear.value.toString()),
+          onPressed: (_) => _showSelectionDialog(
+            label: "End (year)",
+            controller: controller.maxYear,
+          ),
         ),
       ],
+    );
+  }
+
+  Future<void> _showSelectionDialog<T>({
+    required String label,
+    required SelectionController<T> controller,
+  }) async {
+    await SelectDialog.showModal<T>(context,
+      label: label,
+      selectedValue: controller.value,
+      items: controller.elements.value,
+      onChange: (v) => controller.value = v,
     );
   }
 }

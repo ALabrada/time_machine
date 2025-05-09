@@ -3,6 +3,7 @@ import 'package:ar_location_view/ar_location_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_cam/services/database_service.dart';
+import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_cam/controllers/ar_controller.dart';
 import 'package:time_machine_cam/domain/picture_annotation.dart';
@@ -29,6 +30,7 @@ class _ScanningPageState extends State<ScanningPage> {
   void initState() {
     arController = ARController(
       maxDistanceInMeters: widget.maxDistanceInMeters,
+      configurationService: context.read<ConfigurationService>(),
       networkService: context.read<NetworkService>(),
     );
     super.initState();

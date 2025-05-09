@@ -45,7 +45,9 @@ final class ConfigurationController extends ChangeNotifier {
   final List<SelectableItem<String>> providers;
 
   void updateProvider(String key, bool selected) {
-    final providers = configurationService.providers ?? [];
+    final providers = configurationService.providers
+        ?? networkService?.providers.keys.toList()
+        ?? [];
     if (!selected) {
       providers.remove(key);
     } else if (!providers.contains(key)) {

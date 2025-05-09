@@ -10,6 +10,7 @@ import 'package:flutter_map_compass/flutter_map_compass.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:time_machine_config/services/configuration_service.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_map/controllers/pictures_controller.dart';
 import 'package:time_machine_map/molecules/map_search_bar.dart';
@@ -39,6 +40,7 @@ class _MapPageState extends State<MapPage> {
   @override
   void initState() {
     _picturesController = PicturesController(
+      configurationService: context.read<ConfigurationService>(),
       mapController: _mapController,
       networkService: context.read<NetworkService>(),
       preferences: context.read(),

@@ -2,7 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 final class ConfigurationService {
   static const defaultMaxYear = 2000;
-  static const defaultMinYear = 1000;
+  static const defaultMinYear = 1900;
 
   const ConfigurationService({
     required this.preferences,

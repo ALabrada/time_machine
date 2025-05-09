@@ -19,8 +19,10 @@ class NetworkService {
     required Area area,
     DateTime? startDate,
     DateTime? endDate,
+    List<String>? sources,
   }) async {
     final operations = providers.entries
+        .where((e) => sources?.contains(e.key) ?? true)
         .map((entry) async {
           try {
             final result = await entry.value.findIn(
@@ -49,8 +51,10 @@ class NetworkService {
     required double radius,
     DateTime? startDate,
     DateTime? endDate,
+    List<String>? sources,
   }) async {
     final operations = providers.entries
+        .where((e) => sources?.contains(e.key) ?? true)
         .map((entry) async {
       try {
         final result = await entry.value.findNear(
