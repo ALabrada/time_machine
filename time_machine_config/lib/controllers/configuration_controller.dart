@@ -10,6 +10,10 @@ final class ConfigurationController extends ChangeNotifier {
     required this.configurationService,
     this.networkService,
   }) :
+        cameraRatio = SelectionController<String>(
+          value: configurationService.cameraRatio ?? ConfigurationService.defaultCameraRatio,
+          elements: ['16x9', '4x3', '1x1'],
+        ),
         maxYear = SelectionController<int>(
           value: configurationService.maxYear ?? ConfigurationService.defaultMaxYear,
         ),
@@ -22,10 +26,16 @@ final class ConfigurationController extends ChangeNotifier {
         ),
         tileServer = SelectionController(
           value: configurationService.tileServer ?? MapTileServer.values[0].id,
+          elements: MapTileServer.values
+              .map((e) => e.id)
+              .toList(),
         )
   {
     updateYears();
-    updateTileServers();
+    cameraRatio.addListener(() {
+      configurationService.cameraRatio = cameraRatio.value;
+      notifyListeners();
+    });
     maxYear.addListener(() {
       configurationService.maxYear = maxYear.value;
       updateYears();
@@ -51,10 +61,18 @@ final class ConfigurationController extends ChangeNotifier {
   final NetworkService? networkService;
   final ConfigurationService configurationService;
 
+  final SelectionController<String> cameraRatio;
   final SelectionController<int> maxYear;
   final SelectionController<int> minYear;
   final List<SelectableItem<String>> providers;
   final SelectionController<String> tileServer;
+
+  double get cameraPictureOpacity => configurationService.cameraPictureOpacity
+      ?? ConfigurationService.defaultCameraPictureOpacity;
+  set cameraPictureOpacity(double value) {
+    configurationService.cameraPictureOpacity = value;
+    notifyListeners();
+  }
 
   void updateProvider(String key, bool selected) {
     final providers = configurationService.providers
@@ -66,12 +84,6 @@ final class ConfigurationController extends ChangeNotifier {
       providers.add(key);
     }
     configurationService.providers = providers;
-  }
-
-  void updateTileServers() {
-    tileServer.elements.value = MapTileServer.values
-        .map((e) => e.id)
-        .toList();
   }
 
   void updateYears() {

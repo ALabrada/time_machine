@@ -37,6 +37,7 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
         builder: (context, _) {
           return SettingsList(
             sections: [
+              _buildCameraSection(),
               _buildMapSection(),
               _buildProvidersSection(),
               _buildSearchOptions(),
@@ -44,6 +45,32 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
           );
         },
       ),
+    );
+  }
+
+  AbstractSettingsSection _buildCameraSection() {
+    return SettingsSection(
+      title: Text("Camera"),
+      tiles: [
+        SettingsTile.navigation(
+          title: Text("Picture Ratio"),
+          value: Text(controller.cameraRatio.value),
+          onPressed: (_) => _showSelectionDialog(
+            label: "Picture Ratio",
+            controller: controller.cameraRatio,
+          ),
+        ),
+        SettingsTile(
+          title: Text("Reference Opacity"),
+          value: Text('${(100 * controller.cameraPictureOpacity).toStringAsFixed(0)}%'),
+          trailing: Slider(
+            value: controller.cameraPictureOpacity,
+            min: 0,
+            max: 1,
+            onChanged: (v) => controller.cameraPictureOpacity = v,
+          ),
+        ),
+      ],
     );
   }
 

@@ -1,6 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 final class ConfigurationService {
+  static const defaultCameraPictureOpacity = 0.5;
+  static const defaultCameraRatio = '16x9';
   static const defaultMaxYear = 2000;
   static const defaultMinYear = 1900;
 
@@ -9,6 +11,24 @@ final class ConfigurationService {
   });
 
   final SharedPreferencesWithCache? Function() preferences;
+
+  double? get cameraPictureOpacity => preferences()?.getDouble('settings.cameraPictureOpacity');
+  set cameraPictureOpacity(double? value) {
+    if (value == null) {
+      preferences()?.remove('settings.cameraPictureOpacity');
+    } else {
+      preferences()?.setDouble('settings.cameraPictureOpacity', value);
+    }
+  }
+
+  String? get cameraRatio => preferences()?.getString('settings.cameraRatio');
+  set cameraRatio(String? value) {
+    if (value == null) {
+      preferences()?.remove('settings.cameraRatio');
+    } else {
+      preferences()?.setString('settings.cameraRatio', value);
+    }
+  }
 
   List<String>? get providers => preferences()?.getStringList('settings.providers');
   set providers(List<String>? value) {

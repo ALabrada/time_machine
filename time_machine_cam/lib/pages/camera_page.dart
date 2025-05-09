@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_cam/molecules/camera_trigger_button.dart';
 import 'package:time_machine_cam/services/database_service.dart';
+import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_cam/controllers/photo_controller.dart';
 import 'package:time_machine_cam/molecules/compass_view.dart';
@@ -31,7 +32,9 @@ class _CameraPageState extends State<CameraPage> {
 
   @override
   void initState() {
-    controller = PhotoController();
+    controller = PhotoController(
+      configurationService: context.read<ConfigurationService>(),
+    );
     super.initState();
     unawaited(controller.init());
   }
@@ -62,7 +65,7 @@ class _CameraPageState extends State<CameraPage> {
         CameraCamera(
           resolutionPreset: ResolutionPreset.max,
           enableAudio: false,
-          mode: CameraMode.ratio16s9,
+          mode: controller.cameraMode,
           onFile: (file) => _savePicture(file, original: picture),
           onChangeCamera: (camera) => controller.camera.value = camera,
           triggerIcon: CameraTriggerButton(),
@@ -71,7 +74,7 @@ class _CameraPageState extends State<CameraPage> {
           SafeArea(
             child: IgnorePointer(
               child: Opacity(
-                opacity: 0.5,
+                opacity: controller.pictureOpacity,
                 child: CachedNetworkImage(imageUrl: picture.url),
               ),
             ),
