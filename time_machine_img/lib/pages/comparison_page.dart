@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_compare_slider/image_compare_slider.dart';
@@ -172,7 +172,7 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
               ),
               IconButton(
                 onPressed: widget.recordId == null ? null : () {
-                  unawaited(comparisonController.sharePictures());
+                  unawaited(showSharingMenu());
                 },
                 icon: Icon(Icons.share),
               ),
@@ -215,5 +215,29 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
       default:
         sliderDirection.value = SliderDirection.leftToRight;
     }
+  }
+
+  Future<void> showSharingMenu() async {
+    await showAdaptiveActionSheet(
+      context: context,
+      title: const Text("How to share?"),
+      cancelAction: CancelAction(title: const Text('Cancel')),
+      actions: [
+        BottomSheetAction(
+          title: const Text("Upload to re.photos"),
+          onPressed: (context) {
+            context.go('/gallery/${widget.recordId}/upload');
+            context.pop();
+          },
+        ),
+        BottomSheetAction(
+          title: const Text("Share images"),
+          onPressed: (context) {
+            unawaited(comparisonController.sharePictures());
+            context.pop();
+          },
+        ),
+      ],
+    );
   }
 }

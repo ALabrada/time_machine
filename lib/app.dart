@@ -63,6 +63,18 @@ class TimeMachineApp extends StatelessWidget {
                             recordId: int.tryParse(state.pathParameters['recordId'] ?? ''),
                           ),
                         ),
+                        routes: [
+                          GoRoute(
+                            path: 'upload',
+                            builder: (context, state) => FixedOrientationView(
+                              orientations: DeviceOrientation.values,
+                              child: UploadPage(
+                                recordId: int.tryParse(state.pathParameters['recordId'] ?? ''),
+                                webPage: state.uri.queryParameters['webPage'] ?? '',
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       GoRoute(
                         path: 'settings',

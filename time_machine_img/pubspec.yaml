@@ -20,12 +20,15 @@ dependencies:
   time_machine_res:
     path: ../time_machine_res
 
+  adaptive_action_sheet: ^2.0.4
   cached_network_image: ^3.4.1
   collection: any
   extended_text: ^15.0.2
+  file_picker: ^10.1.7
   go_router: any
   group_grid_view: ^1.0.1
   image_compare_slider: ^2.8.0
+  image_picker: ^1.1.2
   intl: any
   path: any
   path_provider: any
@@ -33,7 +36,11 @@ dependencies:
   provider: ^6.1.2
   rxdart: ^0.28.0
   share_plus: ^10.1.3
+  shared_preferences: any
   url_launcher: ^6.3.1
+  webview_cookie_manager_plus: ^2.0.16
+  webview_flutter: ^4.11.0
+  webview_flutter_android: any
 
 dev_dependencies:
   flutter_test:
