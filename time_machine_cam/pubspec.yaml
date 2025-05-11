@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   camera_camera:
     path: ../camera_camera
@@ -30,6 +32,7 @@ dependencies:
   geolocator: any
   go_router: any
   image: ^4.5.2
+  intl: any
   native_device_orientation: ^2.0.3
   osm_nominatim: ^3.0.1
   provider: ^6.1.2
@@ -47,6 +50,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
 
   # To add assets to your package, add an assets section, like this:
   # assets:

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 
+import '../l10n/cam_localizations.dart';
+
 class CompassView extends StatelessWidget {
   const CompassView({
     super.key,
@@ -50,7 +52,9 @@ class CompassView extends StatelessWidget {
           ),
         ),
         if (distance >= minDistance)
-          Text(distance < 1000 ? '$distance m' : '+1 Km',
+          Text(distance < 1000
+              ? CamLocalizations.of(context).distanceInMeters(distance)
+              : CamLocalizations.of(context).distanceGreaterThan1Km,
             style: TextTheme.of(context).bodyLarge?.merge(TextStyle(
                 color: Theme.of(context).colorScheme.primary),
             ),

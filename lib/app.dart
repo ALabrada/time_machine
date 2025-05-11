@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_machine/pages/home_page.dart';
+import 'package:time_machine_cam/l10n/cam_localizations.dart';
 import 'package:time_machine_cam/pages/camera_page.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/services/database_service.dart';
@@ -132,6 +133,7 @@ class TimeMachineApp extends StatelessWidget {
           title: context.read<PackageInfo?>()?.appName,
           localizationsDelegates: [
             S.delegate,
+            CamLocalizations.delegate,
             ConfigLocalizations.delegate,
             MapLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,

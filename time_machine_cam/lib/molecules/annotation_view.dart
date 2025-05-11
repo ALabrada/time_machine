@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_cam/domain/picture_annotation.dart';
+import 'package:time_machine_cam/l10n/cam_localizations.dart';
 
 class AnnotationView extends StatelessWidget {
   const AnnotationView({
@@ -55,7 +56,7 @@ class AnnotationView extends StatelessWidget {
                         annotation.picture.time ?? '',
                       ),
                     Text(
-                      '${annotation.distanceFromUser.toInt()} m',
+                      CamLocalizations.of(context).distanceInMeters(annotation.distanceFromUser.toStringAsFixed(0)),
                     ),
                   ],
                 ),

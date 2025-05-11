@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:ar_location_view/ar_location_view.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_cam/services/database_service.dart';
@@ -48,7 +49,7 @@ class _ScanningPageState extends State<ScanningPage> {
         stream: arController.annotations,
         builder: (context, snapshot) {
           return ArLocationWidget(
-            // showDebugInfoSensor: false,
+            showDebugInfoSensor: !kReleaseMode,
             annotations: snapshot.data ?? [],
             maxVisibleDistance: widget.maxDistanceInMeters,
             annotationViewBuilder: (context, annotation) {

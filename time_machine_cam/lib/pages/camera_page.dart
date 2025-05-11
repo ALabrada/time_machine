@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:time_machine_cam/l10n/cam_localizations_en.dart';
 import 'package:time_machine_cam/molecules/camera_trigger_button.dart';
 import 'package:time_machine_cam/services/database_service.dart';
 import 'package:time_machine_config/time_machine_config.dart';
@@ -14,6 +15,8 @@ import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_cam/controllers/photo_controller.dart';
 import 'package:time_machine_cam/molecules/compass_view.dart';
 import 'package:time_machine_res/molecules/picture_frame.dart';
+
+import '../l10n/cam_localizations.dart';
 
 class CameraPage extends StatefulWidget {
   const CameraPage({
@@ -127,10 +130,10 @@ class _CameraPageState extends State<CameraPage> {
     );
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Picture added to the gallery"),
+        content: Text(CamLocalizations.of(context).pictureAddedToGallery),
         backgroundColor: Theme.of(context).primaryColor,
         action: SnackBarAction(
-          label: "View",
+          label: CamLocalizations.of(context).viewPicture,
           onPressed: () => context.go('/gallery/${record.localId}'),
         ),
       ));
