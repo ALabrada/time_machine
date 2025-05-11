@@ -1,4 +1,5 @@
 export 'atoms/buttons.dart';
+export 'atoms/inputs.dart';
 export 'atoms/labels.dart';
 export 'atoms/themes.dart';
 export 'molecules/fixed_orientation_view.dart';

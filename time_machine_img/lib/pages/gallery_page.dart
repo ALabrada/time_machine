@@ -5,6 +5,8 @@ import 'package:group_grid_view/group_grid_view.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/controllers/gallery_controller.dart';
+import 'package:time_machine_img/l10n/img_localizations.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 
 class GalleryPage extends StatefulWidget {
   const GalleryPage({super.key});
@@ -27,15 +29,39 @@ class _GalleryPageState extends State<GalleryPage> {
     return SafeArea(
       child: Column(
         children: [
+          _buildSearchBar(),
           Expanded(child: _buildGrid()),
         ],
       ),
     );
   }
 
+  Widget _buildSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        boxShadow: [
+          BoxShadow(
+            offset: Offset(0,2),
+            blurRadius: 10.0,
+            color: gray05.withValues(alpha: 0.5),
+          ),
+        ],
+      ),
+      margin: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: TextField(
+        controller: galleryController.searchController,
+        decoration: InputDecoration(
+          hintText: ImgLocalizations.of(context).searchBarHint,
+        ).applyDefaults(searchFieldDecoration),
+      ),
+    );
+  }
+
   Widget _buildGrid() {
     return StreamBuilder(
-      stream: galleryController.reloadElements(
+      stream: galleryController.loadAndFilterElements(
         databaseService: context.watch(),
       ),
       builder: (context, snapshot) {
@@ -46,8 +72,11 @@ class _GalleryPageState extends State<GalleryPage> {
           );
         }
         if (sections.isEmpty) {
+          final criteria = galleryController.searchController.text.trim();
           return Center(
-            child: Text("The gallery is empty",
+            child: Text(criteria.isEmpty
+                ? ImgLocalizations.of(context).galleryEmptyList
+                : ImgLocalizations.of(context).galleryNoSearchResults,
               style: TextTheme.of(context).headlineMedium,
             ),
           );

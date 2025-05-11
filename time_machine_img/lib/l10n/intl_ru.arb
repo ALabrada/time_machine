@@ -1,0 +1,20 @@
+{
+  "errorLoadingPage": "Не удалось подключиться к серверу",
+  "comparisonPage": "Сравнение",
+  "comparisonBottom": "Ниже",
+  "comparisonLeft": "Слева",
+  "comparisonRight": "Справа",
+  "comparisonTop": "Выше",
+  "galleryEmptyList": "Галерея пуста",
+  "galleryNoSearchResults": "Нет результатов поиска",
+  "searchBarHint": "Поискать...",
+  "shareMenu": "Как вы хотите поделиться?",
+  "shareMenuCancel": "Отменить",
+  "shareMenuImages": "Делиться фотографиями",
+  "shareMenuUploadTo": "Загрузить на {site}",
+  "uploadMenu": "Что вы хотите загрузить?",
+  "uploadMenuFile": "Другой файл",
+  "uploadMenuOriginal": "Давнюю фотографию",
+  "uploadMenuPicture": "Свою фотографию",
+  "uploadPage": "Загрузить на {site}"
+}

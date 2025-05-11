@@ -1,0 +1,20 @@
+{
+  "errorLoadingPage": "Could not connect to the server",
+  "comparisonPage": "Comparison",
+  "comparisonBottom": "Bottom",
+  "comparisonLeft": "Left",
+  "comparisonRight": "Right",
+  "comparisonTop": "Top",
+  "galleryEmptyList": "The gallery is empty",
+  "galleryNoSearchResults": "No search results",
+  "searchBarHint": "Search...",
+  "shareMenu": "How to share?",
+  "shareMenuCancel": "Cancel",
+  "shareMenuImages": "Share images",
+  "shareMenuUploadTo": "Upload to {site}",
+  "uploadMenu": "What to upload?",
+  "uploadMenuFile": "Another file",
+  "uploadMenuOriginal": "Old picture",
+  "uploadMenuPicture": "My picture",
+  "uploadPage": "Upload to {site}"
+}

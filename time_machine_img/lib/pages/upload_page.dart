@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import '../controllers/upload_controller.dart';
+import '../l10n/img_localizations.dart';
 
 class UploadPage extends StatefulWidget {
   const UploadPage({
@@ -33,6 +34,7 @@ class _UploadPageState extends State<UploadPage> {
       preferences: context.read(),
       url: widget.webPage.isEmpty ? null : Uri.parse(widget.webPage),
       onUploadFile: () => showUploadMenu(),
+      onError: _showError
     );
     super.initState();
     unawaited(_loadPage());
@@ -56,7 +58,7 @@ class _UploadPageState extends State<UploadPage> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      title: Text("Upload to ${uploadController.url.host}"),
+      title: Text( ImgLocalizations.of(context).uploadPage(uploadController.url.host)),
       backgroundColor: Theme.of(context).colorScheme.secondary,
       foregroundColor: Theme.of(context).colorScheme.onSecondary,
     );
@@ -100,24 +102,39 @@ class _UploadPageState extends State<UploadPage> {
     final original = record.original;
     return await showAdaptiveActionSheet<Picture>(
       context: context,
-      title: const Text("What to upload?"),
-      cancelAction: CancelAction(title: const Text('Other file')),
+      title: Text(ImgLocalizations.of(context).uploadMenu),
       actions: [
         if (picture != null)
           BottomSheetAction(
-            title: const Text("My picture"),
+            title: Text(ImgLocalizations.of(context).uploadMenuPicture),
             onPressed: (context) {
               context.pop(picture);
             },
           ),
         if (original != null)
           BottomSheetAction(
-            title: const Text("Old picture"),
+            title: Text(ImgLocalizations.of(context).uploadMenuOriginal),
             onPressed: (context) {
               context.pop(original);
             },
           ),
+        BottomSheetAction(
+          title: Text(ImgLocalizations.of(context).uploadMenuFile),
+          onPressed: (context) {
+            context.pop();
+          },
+        ),
       ],
     );
+  }
+
+  void _showError(String? description) {
+    if (!mounted) {
+      return;
+    }
+    final text = description ?? ImgLocalizations.of(context).errorLoadingPage;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(text),
+    ));
   }
 }

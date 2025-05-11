@@ -23,6 +23,7 @@ final class UploadController extends ChangeNotifier {
     this.preferences,
     this.record,
     this.onUploadFile,
+    this.onError,
     Uri? url,
   }) : url = url ?? Uri.parse(defaultPageUrl) {
     webViewController.setNavigationDelegate(
@@ -48,6 +49,7 @@ final class UploadController extends ChangeNotifier {
   final WebViewController webViewController = WebViewController()
     ..setJavaScriptMode(JavaScriptMode.unrestricted);
   final FutureOr<Picture?> Function()? onUploadFile;
+  final void Function(String? description)? onError;
 
   final BehaviorSubject<int?> loadingProgress = BehaviorSubject();
 
@@ -142,10 +144,12 @@ final class UploadController extends ChangeNotifier {
 
   void _onHttpError(HttpResponseError error) {
     debugPrint('[WEB] error: ${error.response?.toString()}');
+    onError?.call(null);
   }
 
   void _onResourceError(WebResourceError error) {
     debugPrint('[WEB] error ${error.errorCode}: ${error.description}');
+    onError?.call(error.description);
   }
 
   FutureOr<NavigationDecision> _onNavigationRequest(NavigationRequest request) async {

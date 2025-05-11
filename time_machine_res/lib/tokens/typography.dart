@@ -1,4 +1,4 @@
-const fontFamily = "Inter";
+const fontFamily = "Roboto";
 
 const bodySize = 16.0;
 const h1Size = 31.2;

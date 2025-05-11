@@ -135,6 +135,7 @@ class TimeMachineApp extends StatelessWidget {
             S.delegate,
             CamLocalizations.delegate,
             ConfigLocalizations.delegate,
+            ImgLocalizations.delegate,
             MapLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,

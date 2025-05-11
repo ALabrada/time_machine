@@ -9,6 +9,7 @@ import 'package:image_compare_slider/image_compare_slider.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_img/controllers/comparison_controller.dart';
 import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_img/l10n/img_localizations.dart';
 import 'package:time_machine_img/molecules/full_screen_view.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
@@ -60,7 +61,7 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
 
   AppBar _buildAppBar() {
     return AppBar(
-      title: Text("Comparison"),
+      title: Text(ImgLocalizations.of(context).comparisonPage),
       backgroundColor: Theme.of(context).colorScheme.secondary,
       foregroundColor: Theme.of(context).colorScheme.onSecondary,
     );
@@ -192,15 +193,16 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
   }
 
   List<String> _labelsFor(SliderDirection direction) {
+    final loc = ImgLocalizations.of(context);
     switch (direction) {
       case SliderDirection.leftToRight:
-        return ["Left", "Right"];
+        return [];
       case SliderDirection.topToBottom:
-        return ["Top", "Bottom"];
+        return [loc.comparisonTop, loc.comparisonBottom];
       case SliderDirection.rightToLeft:
-        return ["Right", "Left"];
+        return [loc.comparisonRight, loc.comparisonLeft];
       default:
-        return ["Bottom", "Top"];
+        return [loc.comparisonBottom, loc.comparisonTop];
     }
   }
 
@@ -220,18 +222,18 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
   Future<void> showSharingMenu() async {
     await showAdaptiveActionSheet(
       context: context,
-      title: const Text("How to share?"),
-      cancelAction: CancelAction(title: const Text('Cancel')),
+      title: Text( ImgLocalizations.of(context).shareMenu),
+      cancelAction: CancelAction(title: Text(ImgLocalizations.of(context).shareMenuCancel)),
       actions: [
         BottomSheetAction(
-          title: const Text("Upload to re.photos"),
+          title: Text(ImgLocalizations.of(context).shareMenuUploadTo('re.photos')),
           onPressed: (context) {
             context.go('/gallery/${widget.recordId}/upload');
             context.pop();
           },
         ),
         BottomSheetAction(
-          title: const Text("Share images"),
+          title: Text(ImgLocalizations.of(context).shareMenuImages),
           onPressed: (context) {
             unawaited(comparisonController.sharePictures());
             context.pop();

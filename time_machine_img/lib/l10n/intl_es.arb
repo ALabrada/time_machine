@@ -1,0 +1,20 @@
+{
+  "errorLoadingPage": "No se pudo conectarse al servidor",
+  "comparisonPage": "Comparación",
+  "comparisonBottom": "Arriba",
+  "comparisonLeft": "Izquierda",
+  "comparisonRight": "Derecha",
+  "comparisonTop": "Encima",
+  "galleryEmptyList": "La galería está vacía",
+  "galleryNoSearchResults": "No se encontraron resultados",
+  "searchBarHint": "Buscar...",
+  "shareMenu": "¿Cómo desea compartir?",
+  "shareMenuCancel": "Cancelar",
+  "shareMenuImages": "Compartir imágenes",
+  "shareMenuUploadTo": "Subir a {site}",
+  "uploadMenu": "¿Qué desea enviar?",
+  "uploadMenuFile": "Otro archivo",
+  "uploadMenuOriginal": "La foto antigua",
+  "uploadMenuPicture": "Su foto",
+  "uploadPage": "Subir a {site}"
+}
