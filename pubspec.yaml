@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   camera_camera:
     path: ./camera_camera
@@ -53,12 +55,17 @@ dependencies:
   cupertino_icons: ^1.0.8
   font_awesome_flutter: ^10.2.1
   go_router: ^14.6.2
+  intl: any
+  package_info_plus: ^8.3.0
   provider: ^6.1.2
   shared_preferences: ^2.3.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+flutter_intl:
+  enabled: true
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

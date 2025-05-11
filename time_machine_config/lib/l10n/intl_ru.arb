@@ -1,0 +1,11 @@
+{
+  "sectionDataBases": "Базы Данных Изображений",
+  "sectionCamera": "Камера",
+  "sectionMap": "Карта",
+  "sectionSearchOptions": "Параметры Поиска",
+  "settingMapProvider": "Картографический Сервис",
+  "settingPictureRatio": "Соотношение Сторон Изображения",
+  "settingReferenceOpacity": "Прозрачность Эталона",
+  "settingSearchBeginning": "Начало (год)",
+  "settingSearchEnd": "Конец (года)"
+}

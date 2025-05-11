@@ -104,13 +104,11 @@ final class ConfigurationController extends ChangeNotifier {
     return [
       if (networkService?.providers.containsKey('pastvu') ?? false)
         SelectableItem(
-          title: "PastVu",
           item: 'pastvu',
           value: configurationService.providers?.contains('pastvu') ?? true,
         ),
       if (networkService?.providers.containsKey('russiainphoto') ?? false)
         SelectableItem(
-          title: "Russia in Photo",
           item: 'russiainphoto',
           value: configurationService.providers?.contains('russiainphoto') ?? true,
         ),

@@ -1,0 +1,11 @@
+{
+  "sectionDataBases": "Base de Datos de Imágenes",
+  "sectionCamera": "Cámara",
+  "sectionMap": "Mapa",
+  "sectionSearchOptions": "Opciones de Búsqueda",
+  "settingMapProvider": "Servicio de Mapas",
+  "settingPictureRatio": "Relación de Aspecto",
+  "settingReferenceOpacity": "Opacidad de la Referencia",
+  "settingSearchBeginning": "Inicio (año)",
+  "settingSearchEnd": "Fin (año)"
+}

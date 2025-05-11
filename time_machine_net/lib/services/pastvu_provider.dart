@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -8,10 +9,11 @@ import 'package:time_machine_net/services/network_service.dart';
 
 class PastVuProvider implements DataProvider {
   final dio = Dio(
-    BaseOptions(baseUrl: 'https://pastvu.com')
+    BaseOptions(baseUrl: 'https://pastvu.com'),
   );
+  String? userAgent;
 
-  PastVuProvider() {
+  PastVuProvider({this.userAgent,}) {
     dio.interceptors.add(
       LogInterceptor(
         request: true,
@@ -53,11 +55,18 @@ class PastVuProvider implements DataProvider {
       if (zoom != null)
         'localWork': zoom >= 17 ? 1 : 0,
     };
+    final userAgent = this.userAgent;
     final response = await dio.get('/api2',
       queryParameters: {
         'method': 'photo.getByBounds',
         'params': json.encode(params),
       },
+      options: Options(
+        headers: {
+          if (userAgent != null)
+            HttpHeaders.userAgentHeader: userAgent,
+        },
+      ),
     );
     return [
       for (final item in response.data['result']['photos'] as List)
@@ -85,11 +94,18 @@ class PastVuProvider implements DataProvider {
         'year2': endDate.year,
       'isPainting': 0,
     };
+    final userAgent = this.userAgent;
     final response = await dio.get('/api2',
       queryParameters: {
         'method': 'photo.giveNearestPhotos',
         'params': json.encode(params),
       },
+      options: Options(
+        headers: {
+          if (userAgent != null)
+            HttpHeaders.userAgentHeader: userAgent,
+        },
+      ),
     );
     return [
       for (final item in response.data['result']['photos'] as List)

@@ -1,0 +1,11 @@
+{
+  "sectionDataBases": "Picture DataBases",
+  "sectionCamera": "Camera",
+  "sectionMap": "Map",
+  "sectionSearchOptions": "Search Options",
+  "settingMapProvider": "Map Provider",
+  "settingPictureRatio": "Picture Ratio",
+  "settingReferenceOpacity": "Reference Opacity",
+  "settingSearchBeginning": "Beginning (year)",
+  "settingSearchEnd": "End (year)"
+}

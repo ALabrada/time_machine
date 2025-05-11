@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:select_dialog/select_dialog.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -5,7 +7,10 @@ import 'package:time_machine_config/controllers/configuration_controller.dart';
 import 'package:time_machine_config/services/configuration_service.dart';
 import 'package:time_machine_net/services/network_service.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
+import '../l10n/config_localizations.dart';
 import '../controllers/selection_controller.dart';
 
 class ConfigurationPage extends StatefulWidget {
@@ -36,6 +41,7 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
         listenable: controller,
         builder: (context, _) {
           return SettingsList(
+            applicationType: ApplicationType.material,
             sections: [
               _buildCameraSection(),
               _buildMapSection(),
@@ -50,18 +56,18 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
 
   AbstractSettingsSection _buildCameraSection() {
     return SettingsSection(
-      title: Text("Camera"),
+      title: Text(ConfigLocalizations.of(context).sectionCamera),
       tiles: [
         SettingsTile.navigation(
-          title: Text("Picture Ratio"),
+          title: Text(ConfigLocalizations.of(context).settingPictureRatio),
           value: Text(controller.cameraRatio.value),
           onPressed: (_) => _showSelectionDialog(
-            label: "Picture Ratio",
+            label: ConfigLocalizations.of(context).settingPictureRatio,
             controller: controller.cameraRatio,
           ),
         ),
         SettingsTile(
-          title: Text("Reference Opacity"),
+          title: Text(ConfigLocalizations.of(context).settingReferenceOpacity),
           value: Text('${(100 * controller.cameraPictureOpacity).toStringAsFixed(0)}%'),
           trailing: Slider(
             value: controller.cameraPictureOpacity,
@@ -76,13 +82,13 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
 
   AbstractSettingsSection _buildMapSection() {
     return SettingsSection(
-      title: Text("Map"),
+      title: Text(ConfigLocalizations.of(context).sectionMap),
       tiles: [
         SettingsTile.navigation(
-          title: Text("Provider"),
+          title: Text(ConfigLocalizations.of(context).settingMapProvider),
           value: Text(controller.tileServer.value),
           onPressed: (_) => _showSelectionDialog(
-            label: "Map Provider",
+            label: ConfigLocalizations.of(context).settingMapProvider,
             controller: controller.tileServer,
           ),
         ),
@@ -91,14 +97,28 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
   }
 
   AbstractSettingsSection _buildProvidersSection() {
+    final names = {
+      'pastvu': 'PastVu',
+      'russiainphoto': 'История России в фотографиях',
+    };
+    final links = {
+      'pastvu': 'https://pastvu.com/',
+      'russiainphoto': 'https://russiainphoto.ru/',
+    };
     return SettingsSection(
-      title: Text("Data Providers"),
+      title: Text(ConfigLocalizations.of(context).sectionDataBases),
       tiles: [
         for (final provider in controller.providers)
           SettingsTile.switchTile(
             initialValue: provider.value,
             onToggle: (value) => provider.value = value,
-            title: Text(provider.title ?? ''),
+            title: Text(names[provider.item] ?? '?'),
+            description: InkWell(
+              onTap: () => unawaited(launchUrlString(links[provider.item] ?? '?')),
+              child: Text(links[provider.item] ?? '?',
+                style: TextStyle(color: Theme.of(context).colorScheme.secondary),
+              ),
+            ),
           ),
       ],
     );
@@ -106,21 +126,21 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
 
   AbstractSettingsSection _buildSearchOptions() {
     return SettingsSection(
-      title: Text("Search Options"),
+      title: Text(ConfigLocalizations.of(context).sectionSearchOptions),
       tiles: [
         SettingsTile.navigation(
-          title: Text("Beginning (year)"),
+          title: Text(ConfigLocalizations.of(context).settingSearchBeginning),
           value: Text(controller.minYear.value.toString()),
           onPressed: (_) => _showSelectionDialog(
-            label: "Beginning (year)",
+            label: ConfigLocalizations.of(context).settingSearchBeginning,
             controller: controller.minYear,
           ),
         ),
         SettingsTile.navigation(
-          title: Text("End (year)"),
+          title: Text(ConfigLocalizations.of(context).settingSearchEnd),
           value: Text(controller.maxYear.value.toString()),
           onPressed: (_) => _showSelectionDialog(
-            label: "End (year)",
+            label: ConfigLocalizations.of(context).settingSearchEnd,
             controller: controller.maxYear,
           ),
         ),

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -9,8 +11,9 @@ class RussiaInPhotoProvider implements DataProvider {
   final dio = Dio(
       BaseOptions(baseUrl: 'https://russiainphoto.ru')
   );
+  String? userAgent;
 
-  RussiaInPhotoProvider() {
+  RussiaInPhotoProvider({this.userAgent,}) {
     dio.interceptors.add(
       LogInterceptor(
         request: true,
@@ -28,10 +31,17 @@ class RussiaInPhotoProvider implements DataProvider {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
+    final userAgent = this.userAgent;
     final response = await dio.get('/rest/front/map-grid/',
       queryParameters: {
         'bounds': '${area.maxLat},${area.minLng},${area.minLat},${area.maxLng}',
       },
+      options: Options(
+        headers: {
+          if (userAgent != null)
+            HttpHeaders.userAgentHeader: userAgent,
+        },
+      ),
     );
     return [
       for (final item in response.data['results'] as List)

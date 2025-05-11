@@ -6,6 +6,7 @@ import 'package:time_machine_map/time_machine_map.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
 import '../app.dart';
+import '../generated/l10n.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -35,26 +36,26 @@ class _HomePageState extends State<HomePage> {
         indicatorColor: Theme.of(context).primaryColor,
         backgroundColor: background02,
         selectedIndex: currentPageIndex,
-        destinations: const <Widget>[
+        destinations: <Widget>[
           NavigationDestination(
             selectedIcon: Icon(Icons.photo_album),
             icon: Icon(Icons.photo_album_outlined),
-            label: 'Gallery',
+            label: S.of(context).homeTabsGallery,
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.camera_alt),
             icon: Icon(Icons.camera_alt_outlined),
-            label: 'Camera',
+            label: S.of(context).homeTabsCamera,
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.map),
             icon: Icon(Icons.map_outlined),
-            label: 'Map',
+            label: S.of(context).homeTabsMap,
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.settings),
             icon: Icon(Icons.settings_outlined),
-            label: 'Settings',
+            label: S.of(context).homeTabsConfig,
           ),
         ],
       ),

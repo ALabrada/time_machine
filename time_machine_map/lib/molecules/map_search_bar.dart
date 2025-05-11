@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_floating_search_bar_2/material_floating_search_bar_2.dart';
 import 'package:time_machine_map/controllers/map_search_controller.dart';
+import 'package:time_machine_map/l10n/map_localizations.dart';
 
 class MapSearchBar extends StatefulWidget {
   const MapSearchBar({
@@ -26,7 +27,7 @@ class _MapSearchBarState extends State<MapSearchBar> {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return FloatingSearchBar(
-      hint: 'Search...',
+      hint: MapLocalizations.of(context).searchBarHint,
       controller: _fieldController,
       scrollPadding: const EdgeInsets.only(top: 16, bottom: 56),
       transitionDuration: const Duration(milliseconds: 800),

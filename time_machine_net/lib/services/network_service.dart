@@ -1,18 +1,31 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/domain/area.dart';
 
 class NetworkService {
-  NetworkService({required this.providers});
+  NetworkService({
+    required this.providers,
+    this.userAgent,
+  });
   
   final Map<String, DataProvider> providers;
+  String? userAgent;
 
   Future<void> download(
       String source,
       String target, {
         ProgressCallback? onReceiveProgress,
       }) async {
-    await Dio().download(source, target, onReceiveProgress: onReceiveProgress);
+    final userAgent = this.userAgent;
+    await Dio().download(source, target,
+      onReceiveProgress: onReceiveProgress,
+      options: Options(headers: {
+        if (userAgent != null)
+          HttpHeaders.userAgentHeader: userAgent,
+      })
+    );
   }
 
   Future<Map<String, List<Picture>>> findIn({

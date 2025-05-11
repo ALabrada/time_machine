@@ -79,7 +79,7 @@ class _MapPageState extends State<MapPage> {
       child: Column(
         children: [
           FloatingActionButton(
-            heroTag: "btn1",
+            heroTag: "zoom_in",
             shape: const CircleBorder(),
             onPressed: () {
               _zoom(increment: widget.stepZoom);
@@ -90,7 +90,7 @@ class _MapPageState extends State<MapPage> {
           ),
           const SizedBox(height: 16),
           FloatingActionButton(
-            heroTag: "btn2",
+            heroTag: "zoom_out",
             shape: const CircleBorder(),
             onPressed: () {
               _zoom(increment: -widget.stepZoom);
@@ -101,7 +101,7 @@ class _MapPageState extends State<MapPage> {
           ),
           const SizedBox(height: 22),
           FloatingActionButton(
-            heroTag: "btn3",
+            heroTag: "my_location",
             onPressed: () => unawaited(_picturesController.moveToCurrentLocation()),
             child: Icon(Icons.my_location),
           ),
@@ -111,6 +111,8 @@ class _MapPageState extends State<MapPage> {
   }
 
   Widget _buildMap() {
+    final attributionLabel = _tileServer.attributionLabel?.call(context);
+    final attributionLogo = _tileServer.attributionLogo?.call(context);
     return PopupScope(
       popupController: _popupController,
       child: FlutterMap(
@@ -138,17 +140,17 @@ class _MapPageState extends State<MapPage> {
           ),
           _buildButtons(),
           _buildSearchBar(),
-          if (_tileServer.attributionLabel != null || _tileServer.attributionLogo != null)
+          if (attributionLabel != null || attributionLogo != null)
             RichAttributionWidget(
               attributions: [
-                if (_tileServer.attributionLogo != null)
+                if (attributionLogo != null)
                   LogoSourceAttribution(
-                    Image.asset(_tileServer.attributionLogo!),
+                    Image.asset(attributionLogo),
                     onTap: _openAttribution,
                   ),
-                if (_tileServer.attributionLabel != null)
+                if (attributionLabel != null)
                   TextSourceAttribution(
-                    _tileServer.attributionLabel!,
+                    attributionLabel,
                     onTap: _openAttribution,
                   ),
               ],
@@ -268,7 +270,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _openAttribution() {
-    final url = Uri.tryParse(_tileServer.attributionUrl ?? '');
+    final url = Uri.tryParse(_tileServer.attributionUrl?.call(context) ?? '');
     if (url != null) {
       launchUrl(url);
     }
