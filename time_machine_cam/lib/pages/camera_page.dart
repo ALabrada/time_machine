@@ -122,11 +122,15 @@ class _CameraPageState extends State<CameraPage> {
 
   Future<void> _savePicture(XFile file, {Picture? original}) async {
     final db = context.read<DatabaseService>();
+    final screenSize = MediaQuery.sizeOf(context);
     final record = await db.createRecord(
       file: file,
       original: original,
       position: controller.position.valueOrNull,
       heading: controller.heading.valueOrNull,
+      width: screenSize.width,
+      height: screenSize.height,
+      cacheManager: CachedNetworkImageProvider.defaultCacheManager
     );
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

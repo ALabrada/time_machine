@@ -21,11 +21,11 @@ class GalleryController {
   DatabaseService? databaseService;
 
   List<GallerySection> filter(List<GallerySection> sections, {String? criteria}) {
-    if (sections.isEmpty) {
+    final text = (criteria ?? searchController.text).trim();
+    if (sections.isEmpty || text.isEmpty) {
       return sections;
     }
-    final words = (criteria ?? searchController.text)
-        .trim()
+    final words = text
         .toLowerCase()
         .split(r'\s+');
     if (words.isEmpty) {

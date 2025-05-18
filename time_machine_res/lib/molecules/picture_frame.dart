@@ -69,7 +69,7 @@ class PictureFrame extends StatelessWidget {
     }
     final values = margin
         .split(RegExp(r'[\s,;]'))
-        .map((e) => double.tryParse)
+        .map(double.tryParse)
         .whereType<double>()
         .toList();
     print('Margin: $values');

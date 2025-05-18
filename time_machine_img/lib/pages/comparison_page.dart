@@ -26,6 +26,8 @@ class ComparisonPage extends StatefulWidget {
 }
 
 class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProviderStateMixin {
+  static const defaultAspectRatio = 4.0/3.0;
+
   late ComparisonController comparisonController;
   late AnimationController animationController;
 
@@ -68,6 +70,7 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
   }
 
   Widget? _buildComparison({Record? record, SliderDirection? direction}) {
+    final aspectRatio = record?.aspectRatio ?? defaultAspectRatio;
     final picture = record?.picture;
     final original = record?.original;
     if (picture == null || original == null) {
@@ -77,11 +80,11 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
       itemOne: Image(image: PictureFrame.imageFor(original.url)),
       itemTwo: Image(image: PictureFrame.imageFor(picture.url)),
       itemOneBuilder: (child, context) => PictureFrame(
-        aspectRatio: 4.0/3.0,
+        aspectRatio: aspectRatio,
         child: child,
       ),
       itemTwoBuilder: (child, context) => PictureFrame(
-        aspectRatio: 4.0/3.0,
+        aspectRatio: aspectRatio,
         child: child,
       ),
       handleColor: Theme.of(context).colorScheme.primary,
@@ -196,7 +199,7 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
     final loc = ImgLocalizations.of(context);
     switch (direction) {
       case SliderDirection.leftToRight:
-        return [];
+        return [ loc.comparisonLeft, loc.comparisonRight];
       case SliderDirection.topToBottom:
         return [loc.comparisonTop, loc.comparisonBottom];
       case SliderDirection.rightToLeft:

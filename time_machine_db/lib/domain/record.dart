@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:sembast/sembast.dart';
@@ -14,6 +16,10 @@ class Record {
     this.localId,
     this.original,
     this.picture,
+    this.height,
+    this.width,
+    this.originalViewPort,
+    this.pictureViewPort,
   });
 
   @JsonKey(includeToJson: false, includeFromJson: false)
@@ -27,6 +33,37 @@ class Record {
   Picture? original;
   @JsonKey(includeFromJson: false, includeToJson: false)
   Picture? picture;
+
+  double? height;
+  double? width;
+  String? originalViewPort;
+  String? pictureViewPort;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  double? get aspectRatio {
+    final originalViewPort = tryParseViewPort(this.originalViewPort);
+    final pictureViewPort = tryParseViewPort(this.pictureViewPort);
+    if (originalViewPort != null && pictureViewPort != null) {
+      final width = max(originalViewPort.width, pictureViewPort.width);
+      final height = max(originalViewPort.height, pictureViewPort.height);
+      return width / height;
+    } else {
+      final width = this.width;
+      final height = this.height;
+      return width == null || height == null ? null : width / height;
+    }
+  }
+
+  static Rectangle? tryParseViewPort(String? str) {
+    final values = str?.split(RegExp(r'[\s,;]'))
+        .map(double.tryParse)
+        .whereType<double>()
+        .toList();
+    if (values == null || values.length != 4) {
+      return null;
+    }
+    return Rectangle(values[0], values[1], values[2], values[3]);
+  }
 
   factory Record.fromJson(Map<String, dynamic> json) => _$RecordFromJson(json);
 
