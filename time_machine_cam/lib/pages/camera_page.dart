@@ -5,6 +5,7 @@ import 'package:camera_camera/camera_camera.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_cam/l10n/cam_localizations_en.dart';
@@ -55,7 +56,11 @@ class _CameraPageState extends State<CameraPage> {
       builder: (context, snapshot) {
         final picture = snapshot.data;
         return Scaffold(
-          body: _buildContent(picture: picture),
+          body: NativeDeviceOrientationReader(
+            builder: (context) {
+              return _buildContent(picture: picture);
+            },
+          ),
         );
       },
     );
