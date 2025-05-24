@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:camera_camera/camera_camera.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -8,6 +9,7 @@ import 'package:image/image.dart' as img;
 import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:osm_nominatim/osm_nominatim.dart';
 import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 import 'package:uuid/uuid.dart';
 
 extension CamDatabaseService on DatabaseService {
@@ -24,7 +26,7 @@ extension CamDatabaseService on DatabaseService {
     final time = DateTime.now();
     final id = Uuid().v4();
     String url;
-    var image = await _getImage(await file.readAsBytes(), orientation: orientation);
+    var image = await _getImage(await file.readAsBytes());
     final dirPath = filePath;
     if (dirPath == null) {
       final data = img.encodeJpg(image);
@@ -108,19 +110,13 @@ extension CamDatabaseService on DatabaseService {
   }
 
   String _getViewPort(double picHeight, double picWidth, double screenHeight, double screenWidth) {
-    final picAspectRatio = picWidth / picHeight;
-    final screenAspectRatio = screenWidth / screenHeight;
-    if (picAspectRatio >= screenAspectRatio) {
-      final height = screenHeight * picAspectRatio;
-      final top = (screenHeight - height) / 2;
-      assert (height >= 0 && top >= 0, "Invalid height: $height when picture: $picWidth X $picHeight and screen: $screenWidth X $screenHeight");
-      return '0,$top,$screenWidth,$height';
-    } else {
-      final width = screenWidth / picAspectRatio;
-      final left = (screenWidth - width) / 2;
-      assert (width >= 0 && left >= 0, "Invalid width: $width when picture: $picWidth X $picHeight and screen: $screenWidth X $screenHeight");
-      return '$left,0,$width,$screenHeight';
-    }
+    final (l, t, w, h) = aspectFitRect(
+      width: screenWidth,
+      height: screenHeight,
+      innerWidth: picWidth,
+      innerHeight: picHeight,
+    );
+    return '$l,$t,$w,$h';
   }
 }
 

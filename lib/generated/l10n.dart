@@ -55,9 +55,9 @@ class S {
     return Localizations.of<S>(context, S);
   }
 
-  /// `Time Lenses`
+  /// `History Lens`
   String get appTitle {
-    return Intl.message('Time Lenses', name: 'appTitle', desc: '', args: []);
+    return Intl.message('History Lens', name: 'appTitle', desc: '', args: []);
   }
 
   /// `Gallery`

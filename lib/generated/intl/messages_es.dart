@@ -22,7 +22,7 @@ class MessageLookup extends MessageLookupByLibrary {
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
-    "appTitle": MessageLookupByLibrary.simpleMessage("Lentes del Tiempo"),
+    "appTitle": MessageLookupByLibrary.simpleMessage("Lente de la Historia"),
     "homeTabsCamera": MessageLookupByLibrary.simpleMessage("Cámara"),
     "homeTabsConfig": MessageLookupByLibrary.simpleMessage("Opciones"),
     "homeTabsGallery": MessageLookupByLibrary.simpleMessage("Galería"),

@@ -40,6 +40,18 @@ class Record {
   String? pictureViewPort;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
+  double? get originalAspectRatio {
+    final viewPort = tryParseViewPort(originalViewPort);
+    return viewPort == null ? null : viewPort.width / viewPort.height;
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  double? get pictureAspectRatio {
+    final viewPort = tryParseViewPort(pictureViewPort);
+    return viewPort == null ? null : viewPort.width / viewPort.height;
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
   double? get aspectRatio {
     final originalViewPort = tryParseViewPort(this.originalViewPort);
     final pictureViewPort = tryParseViewPort(this.pictureViewPort);

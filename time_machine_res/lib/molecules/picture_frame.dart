@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 
 class PictureFrame extends StatelessWidget {
   const PictureFrame({
@@ -31,23 +33,24 @@ class PictureFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final aspectRatio = this.aspectRatio;
-    final content = Stack(
-      children: [
-        Positioned(
-          left: margin?.left ?? 0,
-          top: margin?.top ?? 0,
-          right: margin?.right ?? 0,
-          bottom: margin?.bottom ?? 0,
-          child: FittedBox(
-            fit: BoxFit.contain,
+    if (aspectRatio == null) {
+      return child;
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final (l, t, w, h) = fitRect(
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          aspectRatio: aspectRatio
+        );
+        return Center(
+          child: SizedBox(
+            width: w,
+            height: h,
             child: child,
           ),
-        ),
-      ],
-    );
-    return aspectRatio == null ? content : AspectRatio(
-      aspectRatio: aspectRatio,
-      child: content,
+        );
+      },
     );
   }
 
