@@ -33,8 +33,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  camera_camera:
-    path: ./camera_camera
   time_machine_cam:
     path: ./time_machine_cam
   time_machine_config:

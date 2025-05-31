@@ -1,6 +1,5 @@
 import 'dart:async';
-import 'package:camera/camera.dart';
-import 'package:camera_camera/camera_camera.dart';
+import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:rxdart/rxdart.dart';
@@ -15,21 +14,20 @@ class PhotoController {
 
   final position = BehaviorSubject<Position>();
   final heading = BehaviorSubject<double>();
-  final camera = BehaviorSubject<CameraDescription>();
 
   StreamSubscription? positionSubscription, headingSubscription;
 
   double get pictureOpacity => configurationService?.cameraPictureOpacity ?? ConfigurationService.defaultCameraPictureOpacity;
-  CameraMode get cameraMode {
+  CameraAspectRatios get cameraMode {
     final ratio =  configurationService?.cameraRatio ?? ConfigurationService.defaultCameraRatio;
     if (ratio == '16x9') {
-      return CameraMode.ratio16s9;
+      return CameraAspectRatios.ratio_16_9;
     } else if (ratio == '4x3') {
-      return CameraMode.ratio4s3;
+      return CameraAspectRatios.ratio_4_3;
     } else if (ratio == '1x1') {
-      return CameraMode.ratio1s1;
+      return CameraAspectRatios.ratio_1_1;
     } else {
-      return CameraMode.ratioFull;
+      return CameraAspectRatios.ratio_16_9;
     }
   }
 

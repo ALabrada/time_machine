@@ -13,8 +13,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  camera_camera:
-    path: ../camera_camera
   time_machine_config:
     path: ../time_machine_config
   time_machine_db:
@@ -28,9 +26,11 @@ dependencies:
   animated_transform: ^1.0.6
   ar_location_view: ^2.0.16
   cached_network_image: ^3.4.1
-  camera: ^0.11.0+2
+  camerawesome: ^2.4.0
+  cross_file: any
   flutter_cache_manager : ^3.4.1
   flutter_compass: ^0.8.1
+  font_awesome_flutter: any
   geolocator: any
   go_router: any
   image: ^4.5.2
