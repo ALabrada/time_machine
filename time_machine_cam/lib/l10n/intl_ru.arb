@@ -1,4 +1,5 @@
 {
+  "couldNotTakePhoto": "Не удалось сделать фотографию из-за непредвиденной ошибки",
   "distanceInMeters": "{distance} м",
   "distanceGreaterThan1Km": "+1 Км",
   "menuTitle": "Опций",

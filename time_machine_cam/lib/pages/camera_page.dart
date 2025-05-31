@@ -197,6 +197,10 @@ class _CameraPageState extends State<CameraPage> {
     Picture? original,
   }) async {
     if (file == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(CamLocalizations.of(context).couldNotTakePhoto),
+        backgroundColor: Theme.of(context).primaryColor,
+      ));
       return;
     }
     final db = context.read<DatabaseService>();

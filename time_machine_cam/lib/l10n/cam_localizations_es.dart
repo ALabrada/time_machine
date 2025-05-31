@@ -9,6 +9,10 @@ class CamLocalizationsEs extends CamLocalizations {
   CamLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get couldNotTakePhoto =>
+      'No se pudo obtener la foto debido a un error inesperado';
+
+  @override
   String distanceInMeters(Object distance) {
     return '$distance m';
   }

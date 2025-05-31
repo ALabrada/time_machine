@@ -100,6 +100,12 @@ abstract class CamLocalizations {
     Locale('ru')
   ];
 
+  /// No description provided for @couldNotTakePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not take the photo due to an unexpected error'**
+  String get couldNotTakePhoto;
+
   /// No description provided for @distanceInMeters.
   ///
   /// In en, this message translates to:
