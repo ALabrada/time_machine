@@ -9,5 +9,23 @@ class MapLocalizationsEn extends MapLocalizations {
   MapLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get menuTitle => 'Options';
+
+  @override
+  String get menuActionCamera => 'Take picture';
+
+  @override
+  String get menuActionCancel => 'Cancel';
+
+  @override
+  String get menuActionOpenSource => 'Open source';
+
+  @override
+  String get menuActionShare => 'Share picture';
+
+  @override
+  String get menuActionView => 'Show picture';
+
+  @override
   String get searchBarHint => 'Search...';
 }

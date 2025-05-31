@@ -1,6 +1,12 @@
 {
   "distanceInMeters": "{distance} м",
   "distanceGreaterThan1Km": "+1 Км",
+  "menuTitle": "Опций",
+  "menuActionCamera": "Сфотографировать",
+  "menuActionCancel": "Отменить",
+  "menuActionOpenSource": "Открыть источник",
+  "menuActionShare": "Поделиться фотографией",
+  "menuActionView": "Посмотреть фотографию",
   "pictureAddedToGallery": "Фотография добавлена в галерею",
   "viewPicture": "Посмотреть"
 }

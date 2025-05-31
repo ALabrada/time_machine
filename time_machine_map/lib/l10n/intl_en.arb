@@ -1,3 +1,9 @@
 {
+  "menuTitle": "Options",
+  "menuActionCamera": "Take picture",
+  "menuActionCancel": "Cancel",
+  "menuActionOpenSource": "Open source",
+  "menuActionShare": "Share picture",
+  "menuActionView": "Show picture",
   "searchBarHint": "Search..."
 }

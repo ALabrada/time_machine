@@ -17,6 +17,24 @@ class CamLocalizationsEs extends CamLocalizations {
   String get distanceGreaterThan1Km => '+1 Km';
 
   @override
+  String get menuTitle => 'Opciones';
+
+  @override
+  String get menuActionCamera => 'Tomar foto';
+
+  @override
+  String get menuActionCancel => 'Cancelar';
+
+  @override
+  String get menuActionOpenSource => 'Abrir fuente';
+
+  @override
+  String get menuActionShare => 'Compartir foto';
+
+  @override
+  String get menuActionView => 'Ver foto';
+
+  @override
   String get pictureAddedToGallery => 'Se añadió la foto a la galería';
 
   @override

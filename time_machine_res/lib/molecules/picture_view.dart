@@ -8,43 +8,55 @@ class PictureView extends StatelessWidget {
     this.title,
     this.time,
     this.image,
+    this.onLongPress,
+    this.onTap,
     this.onTapImage,
   });
 
   PictureView.model({
     Key? key,
     Picture? model,
+    VoidCallback? onLongPress,
+    VoidCallback? onTap,
     VoidCallback? onTapImage,
   }) : this(
     key: key,
     time: model?.time,
     title: model?.description,
     image: model == null ? null : CachedNetworkImageProvider(model.previewUrl ?? model.url),
+    onLongPress: onLongPress,
+    onTap: onTap,
     onTapImage: onTapImage,
   );
 
   final String? title;
   final String? time;
   final ImageProvider? image;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onTap;
   final VoidCallback? onTapImage;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.black, width: 1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildIcon(context),
-          SizedBox(width: 8),
-          Expanded(child: _buildText(context)),
-        ],
+    return InkWell(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Container(
+        padding: EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.black, width: 1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildIcon(context),
+            SizedBox(width: 8),
+            Expanded(child: _buildText(context)),
+          ],
+        ),
       ),
     );
   }

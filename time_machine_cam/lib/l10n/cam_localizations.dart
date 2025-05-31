@@ -63,7 +63,8 @@ import 'cam_localizations_ru.dart';
 /// be consistent with the languages listed in the CamLocalizations.supportedLocales
 /// property.
 abstract class CamLocalizations {
-  CamLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  CamLocalizations(String locale)
+      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -71,7 +72,8 @@ abstract class CamLocalizations {
     return Localizations.of<CamLocalizations>(context, CamLocalizations)!;
   }
 
-  static const LocalizationsDelegate<CamLocalizations> delegate = _CamLocalizationsDelegate();
+  static const LocalizationsDelegate<CamLocalizations> delegate =
+      _CamLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -83,7 +85,8 @@ abstract class CamLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
     delegate,
     GlobalMaterialLocalizations.delegate,
     GlobalCupertinoLocalizations.delegate,
@@ -109,6 +112,42 @@ abstract class CamLocalizations {
   /// **'+1 Km'**
   String get distanceGreaterThan1Km;
 
+  /// No description provided for @menuTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get menuTitle;
+
+  /// No description provided for @menuActionCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take picture'**
+  String get menuActionCamera;
+
+  /// No description provided for @menuActionCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get menuActionCancel;
+
+  /// No description provided for @menuActionOpenSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Open source'**
+  String get menuActionOpenSource;
+
+  /// No description provided for @menuActionShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share picture'**
+  String get menuActionShare;
+
+  /// No description provided for @menuActionView.
+  ///
+  /// In en, this message translates to:
+  /// **'Show picture'**
+  String get menuActionView;
+
   /// No description provided for @pictureAddedToGallery.
   ///
   /// In en, this message translates to:
@@ -122,7 +161,8 @@ abstract class CamLocalizations {
   String get viewPicture;
 }
 
-class _CamLocalizationsDelegate extends LocalizationsDelegate<CamLocalizations> {
+class _CamLocalizationsDelegate
+    extends LocalizationsDelegate<CamLocalizations> {
   const _CamLocalizationsDelegate();
 
   @override
@@ -131,26 +171,27 @@ class _CamLocalizationsDelegate extends LocalizationsDelegate<CamLocalizations> 
   }
 
   @override
-  bool isSupported(Locale locale) => <String>['en', 'es', 'ru'].contains(locale.languageCode);
+  bool isSupported(Locale locale) =>
+      <String>['en', 'es', 'ru'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_CamLocalizationsDelegate old) => false;
 }
 
 CamLocalizations lookupCamLocalizations(Locale locale) {
-
-
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'en': return CamLocalizationsEn();
-    case 'es': return CamLocalizationsEs();
-    case 'ru': return CamLocalizationsRu();
+    case 'en':
+      return CamLocalizationsEn();
+    case 'es':
+      return CamLocalizationsEs();
+    case 'ru':
+      return CamLocalizationsRu();
   }
 
   throw FlutterError(
-    'CamLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-    'an issue with the localizations generation tool. Please file an issue '
-    'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.'
-  );
+      'CamLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'an issue with the localizations generation tool. Please file an issue '
+      'on GitHub with a reproducible sample app and the gen-l10n configuration '
+      'that was used.');
 }

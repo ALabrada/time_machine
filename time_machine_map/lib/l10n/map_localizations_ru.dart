@@ -9,5 +9,23 @@ class MapLocalizationsRu extends MapLocalizations {
   MapLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get menuTitle => 'Опций';
+
+  @override
+  String get menuActionCamera => 'Сфотографировать';
+
+  @override
+  String get menuActionCancel => 'Отменить';
+
+  @override
+  String get menuActionOpenSource => 'Открыть источник';
+
+  @override
+  String get menuActionShare => 'Поделиться фотографией';
+
+  @override
+  String get menuActionView => 'Посмотреть фотографию';
+
+  @override
   String get searchBarHint => 'Поискать...';
 }

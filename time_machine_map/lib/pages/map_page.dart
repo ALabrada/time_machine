@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
@@ -11,15 +12,18 @@ import 'package:flutter_map_compass/flutter_map_compass.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_map/controllers/pictures_controller.dart';
+import 'package:time_machine_map/l10n/map_localizations.dart';
 import 'package:time_machine_map/molecules/map_search_bar.dart';
 import 'package:time_machine_map/molecules/picture_marker.dart';
 import 'package:time_machine_map/services/database_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({
@@ -227,7 +231,8 @@ class _MapPageState extends State<MapPage> {
                   constraints: BoxConstraints(maxWidth: 0.8 * MediaQuery.of(context).size.width),
                   child: PictureView.model(
                     model: picture,
-                    onTapImage: picture == null ? null :() => _showImage(picture),
+                    onLongPress: picture == null ? null : () => unawaited(_showMenu(picture)),
+                    onTapImage: picture == null ? null : () => _showImage(picture),
                   ),
                 );
               },
@@ -269,11 +274,69 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  Future<void> _showMenu(Picture model) async {
+    final title = model.description;
+    final site = model.site;
+    await showAdaptiveActionSheet<Picture>(
+      context: context,
+      title: title == null ? null : Text(title),
+      cancelAction: CancelAction(
+        title: Text(MapLocalizations.of(context).menuActionCancel),
+      ),
+      actions: [
+        BottomSheetAction(
+          leading: Icon(Icons.image_rounded),
+          title: Text(MapLocalizations.of(context).menuActionView),
+          onPressed: (context) {
+            _showImage(model);
+            context.pop();
+          },
+        ),
+        BottomSheetAction(
+          leading: Icon(Icons.camera_alt),
+          title: Text(MapLocalizations.of(context).menuActionCamera),
+          onPressed: (context) {
+            _takePicture(model);
+            context.pop();
+          },
+        ),
+        if (site != null && site.isNotEmpty)
+          BottomSheetAction(
+            leading: Icon(Icons.open_in_browser),
+            title: Text(MapLocalizations.of(context).menuActionOpenSource),
+            onPressed: (context) {
+              _openSite(site);
+              context.pop();
+            },
+          ),
+        BottomSheetAction(
+          leading: Icon(Icons.share),
+          title: Text(MapLocalizations.of(context).menuActionShare),
+          onPressed: (context) {
+            unawaited(_sharePicture(model));
+            context.pop();
+          },
+        ),
+      ],
+    );
+  }
+
   void _openAttribution() {
     final url = Uri.tryParse(_tileServer.attributionUrl?.call(context) ?? '');
     if (url != null) {
-      launchUrl(url);
+      unawaited(launchUrl(url));
     }
+  }
+
+  void _openSite(String site) {
+    unawaited(launchUrlString(site));
+  }
+
+  Future<void> _sharePicture(Picture picture) async {
+    final file = await CachedNetworkImageProvider.defaultCacheManager.getSingleFile(picture.url);
+    await Share.shareXFiles([
+      XFile(file.path),
+    ], text: picture.text);
   }
 
   Future<void> _takePicture(Picture model) async {

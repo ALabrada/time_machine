@@ -7,11 +7,13 @@ class AnnotationView extends StatelessWidget {
   const AnnotationView({
     super.key,
     required this.annotation,
+    this.onLongPress,
     this.onTap,
     this.onTapPicture,
   });
 
   final PictureAnnotation annotation;
+  final VoidCallback? onLongPress;
   final VoidCallback? onTap;
   final VoidCallback? onTapPicture;
 
@@ -21,6 +23,7 @@ class AnnotationView extends StatelessWidget {
     final time = annotation.picture.time ?? '';
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(5),

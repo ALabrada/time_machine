@@ -32,6 +32,7 @@ class CameraPage extends StatefulWidget {
 }
 
 class _CameraPageState extends State<CameraPage> {
+  final cameraKey = GlobalKey();
   late PhotoController controller;
 
   @override
@@ -71,22 +72,19 @@ class _CameraPageState extends State<CameraPage> {
       fit: StackFit.expand,
       children: [
         CameraCamera(
+          key: cameraKey,
           resolutionPreset: ResolutionPreset.max,
           enableAudio: false,
           mode: controller.cameraMode,
           onFile: (file) => _savePicture(file, original: picture),
           onChangeCamera: (camera) => controller.camera.value = camera,
+          onPreview: picture == null ? null : (context, child) => _buildPreview(context, child, _buildOverlay(picture)),
           triggerIcon: CameraTriggerButton(),
         ),
-        if (picture != null)
-          SafeArea(
-            child: IgnorePointer(
-              child: Opacity(
-                opacity: controller.pictureOpacity,
-                child: CachedNetworkImage(imageUrl: picture.url),
-              ),
-            ),
-          ),
+        // if (picture != null)
+        //   SafeArea(
+        //     child: _buildOverlay(picture),
+        //   ),
         Positioned(
           top: 0,
           left: 0,
@@ -115,6 +113,27 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 
+  Widget _buildOverlay(Picture picture) {
+    return IgnorePointer(
+      child: Opacity(
+        opacity: controller.pictureOpacity,
+        child: CachedNetworkImage(
+          imageUrl: picture.url,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreview(BuildContext context, Widget preview, Widget overlay) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        preview,
+        overlay,
+      ],
+    );
+  }
+
   Future<Picture?> _loadPicture() async {
     final id = widget.pictureId;
     if (id == null) {
@@ -128,6 +147,7 @@ class _CameraPageState extends State<CameraPage> {
   Future<void> _savePicture(XFile file, {Picture? original}) async {
     final db = context.read<DatabaseService>();
     final screenSize = MediaQuery.sizeOf(context);
+    print('Screen size: $screenSize');
     final record = await db.createRecord(
       file: file,
       original: original,
@@ -146,6 +166,20 @@ class _CameraPageState extends State<CameraPage> {
           onPressed: () => context.go('/gallery/${record.localId}'),
         ),
       ));
+    }
+  }
+}
+
+extension GlobalKeyExtension on GlobalKey {
+  Rect? get globalPaintBounds {
+    final renderObject = currentContext?.findRenderObject();
+    final matrix = renderObject?.getTransformTo(null);
+
+    if (matrix != null && renderObject?.paintBounds != null) {
+      final rect = MatrixUtils.transformRect(matrix, renderObject!.paintBounds);
+      return rect;
+    } else {
+      return null;
     }
   }
 }

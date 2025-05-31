@@ -1,6 +1,12 @@
 {
   "distanceInMeters": "{distance} m",
   "distanceGreaterThan1Km": "+1 Km",
+  "menuTitle": "Options",
+  "menuActionCamera": "Take picture",
+  "menuActionCancel": "Cancel",
+  "menuActionOpenSource": "Open source",
+  "menuActionShare": "Share picture",
+  "menuActionView": "Show picture",
   "pictureAddedToGallery": "Picture added to the gallery",
   "viewPicture": "View"
 }

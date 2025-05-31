@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:ar_location_view/ar_location_view.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:time_machine_cam/l10n/cam_localizations.dart';
 import 'package:time_machine_cam/services/database_service.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -11,6 +15,7 @@ import 'package:time_machine_cam/domain/picture_annotation.dart';
 import 'package:time_machine_cam/molecules/annotation_view.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class ScanningPage extends StatefulWidget {
   const ScanningPage({
@@ -57,8 +62,8 @@ class _ScanningPageState extends State<ScanningPage> {
               return AnnotationView(
                 key: ValueKey(annotation.uid),
                 annotation: model,
+                onLongPress: () => unawaited(_showMenu(model.picture)),
                 onTapPicture: () => unawaited(_showImage(model.picture)),
-                onTap: () => unawaited(_takePicture(model.picture)),
               );
             },
             onLocationChange: (p) {
@@ -79,6 +84,64 @@ class _ScanningPageState extends State<ScanningPage> {
     if (mounted && id != null) {
       context.go('/picture/$id');
     }
+  }
+
+  Future<void> _showMenu(Picture model) async {
+    final title = model.description;
+    final site = model.site;
+    await showAdaptiveActionSheet<Picture>(
+      context: context,
+      title: title == null ? null : Text(title),
+      cancelAction: CancelAction(
+        title: Text(CamLocalizations.of(context).menuActionCancel),
+      ),
+      actions: [
+        BottomSheetAction(
+          leading: Icon(Icons.image_rounded),
+          title: Text(CamLocalizations.of(context).menuActionView),
+          onPressed: (context) {
+            _showImage(model);
+            context.pop();
+          },
+        ),
+        BottomSheetAction(
+          leading: Icon(Icons.camera_alt),
+          title: Text(CamLocalizations.of(context).menuActionCamera),
+          onPressed: (context) {
+            _takePicture(model);
+            context.pop();
+          },
+        ),
+        if (site != null && site.isNotEmpty)
+          BottomSheetAction(
+            leading: Icon(Icons.open_in_browser),
+            title: Text(CamLocalizations.of(context).menuActionOpenSource),
+            onPressed: (context) {
+              _openSite(site);
+              context.pop();
+            },
+          ),
+        BottomSheetAction(
+          leading: Icon(Icons.share),
+          title: Text(CamLocalizations.of(context).menuActionShare),
+          onPressed: (context) {
+            unawaited(_sharePicture(model));
+            context.pop();
+          },
+        ),
+      ],
+    );
+  }
+
+  void _openSite(String site) {
+    unawaited(launchUrlString(site));
+  }
+
+  Future<void> _sharePicture(Picture picture) async {
+    final file = await CachedNetworkImageProvider.defaultCacheManager.getSingleFile(picture.url);
+    await Share.shareXFiles([
+      XFile(file.path),
+    ], text: picture.text);
   }
 
   Future<void> _takePicture(Picture model) async {

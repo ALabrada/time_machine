@@ -9,5 +9,23 @@ class MapLocalizationsEs extends MapLocalizations {
   MapLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get menuTitle => 'Opciones';
+
+  @override
+  String get menuActionCamera => 'Tomar foto';
+
+  @override
+  String get menuActionCancel => 'Cancelar';
+
+  @override
+  String get menuActionOpenSource => 'Abrir fuente';
+
+  @override
+  String get menuActionShare => 'Compartir foto';
+
+  @override
+  String get menuActionView => 'Ver foto';
+
+  @override
   String get searchBarHint => 'Buscar...';
 }

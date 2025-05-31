@@ -1,3 +1,9 @@
 {
+  "menuTitle": "Опций",
+  "menuActionCamera": "Сфотографировать",
+  "menuActionCancel": "Отменить",
+  "menuActionOpenSource": "Открыть источник",
+  "menuActionShare": "Поделиться фотографией",
+  "menuActionView": "Посмотреть фотографию",
   "searchBarHint": "Поискать..."
 }
