@@ -27,6 +27,7 @@ dependencies:
   ar_location_view: ^2.0.16
   cached_network_image: ^3.4.1
   camerawesome: ^2.4.0
+  cropperx: ^1.1.1
   cross_file: any
   flutter_cache_manager : ^3.4.1
   flutter_compass: ^0.8.1
@@ -34,8 +35,10 @@ dependencies:
   geolocator: any
   go_router: any
   image: ^4.5.2
+  image_picker: ^1.1.2
   intl: any
   native_device_orientation: ^2.0.3
+  native_exif: ^0.6.2
   osm_nominatim: ^3.0.1
   provider: ^6.1.2
   rxdart: ^0.28.0

@@ -144,6 +144,10 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 IconButton(
+                  onPressed: widget.pictureId == null ? null : _importPicture,
+                  icon: Icon(Icons.photo_library),
+                ),
+                IconButton(
                   onPressed: widget.pictureId == null ? null : _takePicture,
                   icon: Icon(Icons.camera_alt),
                 ),
@@ -173,6 +177,10 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
         );
       },
     );
+  }
+
+  void _importPicture() {
+    context.go('/import?pictureId=${widget.pictureId}');
   }
 
   void _takePicture() {

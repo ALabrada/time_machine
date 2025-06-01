@@ -3,6 +3,8 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:cross_file/cross_file.dart';
+import 'package:native_exif/native_exif.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image/image.dart' as img;
@@ -13,6 +15,50 @@ import 'package:time_machine_res/time_machine_res.dart';
 import 'package:uuid/uuid.dart';
 
 extension CamDatabaseService on DatabaseService {
+  Future<Picture> createPicture({
+    required XFile file,
+    Position? position,
+    double? heading,
+    Picture? original,
+  }) async {
+    final id = Uuid().v4();
+    String url;
+    var image = await _getImage(file);
+    final dirPath = filePath;
+    if (dirPath == null) {
+      final data = img.encodeJpg(image);
+      url = 'data:image/jpg;base64,${base64Encode(data)}';
+    } else {
+      final localPath = '$dirPath/pictures/$id.jpg';
+      await File(localPath).create(recursive: true);
+      await img.encodeJpgFile(localPath, image);
+      url = Uri.file(localPath).toString();
+    }
+    var (latitude, longitude, time) = await _readExif(file);
+    time = time ?? DateTime.now();
+    var picture = Picture(
+      id: id,
+      provider: '',
+      url: url,
+      latitude: position?.latitude ?? latitude ?? double.nan,
+      longitude: position?.longitude ?? longitude ?? double.nan,
+      description: original?.description,
+      altitude: position?.altitude ?? original?.altitude,
+      bearing: heading ?? position?.heading ?? original?.bearing,
+      time: '${time.year}-${time.month}-${time.day}',
+    );
+    try {
+      final place = await Nominatim.reverseSearch(
+        lat: picture.latitude,
+        lon: picture.longitude,
+      );
+      picture.description = place.displayName;
+    } catch(error) {
+      print("Error finding address: $error");
+    }
+    return await createRepository<Picture>().insert(picture);
+  }
+
   Future<Record> createRecord({
     required XFile file,
     Position? position,
@@ -22,11 +68,10 @@ extension CamDatabaseService on DatabaseService {
     double? width,
     BaseCacheManager? cacheManager,
   }) async {
-    final orientation = await NativeDeviceOrientationCommunicator().orientation();
     final time = DateTime.now();
     final id = Uuid().v4();
     String url;
-    var image = await _getImage(await file.readAsBytes());
+    var image = await _getImage(file);
     final dirPath = filePath;
     if (dirPath == null) {
       final data = img.encodeJpg(image);
@@ -46,7 +91,7 @@ extension CamDatabaseService on DatabaseService {
       provider: '',
       url: url,
       latitude: position?.latitude ?? original?.latitude ?? double.nan,
-      longitude: position?.longitude ?? original?.latitude ?? double.nan,
+      longitude: position?.longitude ?? original?.longitude ?? double.nan,
       description: original?.description,
       altitude: position?.altitude ?? original?.altitude,
       bearing: heading ?? position?.heading ?? original?.bearing,
@@ -67,7 +112,7 @@ extension CamDatabaseService on DatabaseService {
     String? originalViewPort;
     if (original != null && height != null && width != null) {
       final originalFile = await (cacheManager ?? DefaultCacheManager()).getSingleFile(original.url);
-      image = await _getImage(await originalFile.readAsBytes());
+      image = await _getImage(XFile(originalFile.path));
       originalViewPort = _getViewPort(image.height.toDouble(), image.width.toDouble(), height, width);
     }
 
@@ -91,8 +136,10 @@ extension CamDatabaseService on DatabaseService {
     return await repo.upsert(model);
   }
 
-  Future<img.Image> _getImage(Uint8List data, {NativeDeviceOrientation? orientation}) async {
-    final originalImage = img.decodeImage(data);
+  Future<img.Image> _getImage(XFile file, {NativeDeviceOrientation? orientation}) async {
+    final originalImage = kIsWeb
+        ? img.decodeImage(await file.readAsBytes())
+        : await img.decodeImageFile(file.path);
     if (originalImage == null) {
       throw Exception('Invalid image');
     }
@@ -117,6 +164,16 @@ extension CamDatabaseService on DatabaseService {
       innerHeight: picHeight,
     );
     return '$l,$t,$w,$h';
+  }
+
+  Future<(double? lat, double? lng, DateTime? dateTime)> _readExif(XFile file) async {
+    if (kIsWeb) {
+      return (null, null, null);
+    }
+    final tags = await Exif.fromPath(file.path);
+    final coord = await tags.getLatLong();
+    final dateTime = await tags.getOriginalDate();
+    return (coord?.latitude, coord?.longitude, dateTime);
   }
 }
 
