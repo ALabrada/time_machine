@@ -100,6 +100,12 @@ abstract class CamLocalizations {
     Locale('ru')
   ];
 
+  /// No description provided for @couldNotImportPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not import the photo due to an unexpected error'**
+  String get couldNotImportPhoto;
+
   /// No description provided for @couldNotTakePhoto.
   ///
   /// In en, this message translates to:
@@ -117,6 +123,12 @@ abstract class CamLocalizations {
   /// In en, this message translates to:
   /// **'+1 Km'**
   String get distanceGreaterThan1Km;
+
+  /// No description provided for @importPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Import picture'**
+  String get importPage;
 
   /// No description provided for @menuTitle.
   ///

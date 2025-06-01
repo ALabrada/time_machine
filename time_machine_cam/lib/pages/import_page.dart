@@ -1,10 +1,13 @@
 import 'dart:io';
-
+import 'dart:ui' as ui;
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cropperx/cropperx.dart';
+import 'package:custom_image_crop/custom_image_crop.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:time_machine_cam/domain/image_painter.dart';
+import 'package:time_machine_cam/l10n/cam_localizations.dart';
 import '../controllers/import_controller.dart';
 
 class ImportPage extends StatefulWidget {
@@ -43,54 +46,86 @@ class _ImportPageState extends State<ImportPage> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      title: Text( ''),
+      title: Text( CamLocalizations.of(context).importPage),
       backgroundColor: Theme.of(context).colorScheme.secondary,
       foregroundColor: Theme.of(context).colorScheme.onSecondary,
-    );
-  }
-
-  Widget _buildContent() {
-    return Stack(
-      children: [
-        _buildCropper(),
-        _buildOriginal(),
+      actions: [
+        IconButton(
+          onPressed: _savePicture,
+          icon: Icon(Icons.done),
+        ),
       ],
     );
   }
 
-  Widget _buildOriginal() {
+  Widget _buildContent() {
     return FutureBuilder(
-      future: controller.loadPicture(widget.pictureId),
+      future: _init(),
       builder: (context, snapshot) {
-        final picture = snapshot.data;
-        if (picture == null) {
+        final original = snapshot.data?.$1;
+        final imported = snapshot.data?.$2;
+        if (imported == null || original == null) {
           return SizedBox.shrink();
         }
-        return IgnorePointer(
-          child: Opacity(
-            opacity: controller.pictureOpacity,
-            child: CachedNetworkImage(
-              imageUrl: picture.url,
-            ),
-          ),
+
+        CustomPaint drawPath(Path path, {
+          Paint? pathPaint,
+          Color outlineColor = Colors.white,
+          double outlineStrokeWidth = 4.0,
+        }) {
+          return ImagePainter.create(
+            image: original,
+            imageOpacity: controller.pictureOpacity,
+            path: path,
+          );
+        }
+
+        return CustomImageCrop(
+          shape: CustomCropShape.Ratio,
+          ratio: Ratio(width: original.width.toDouble(), height: original.height.toDouble()),
+          cropController: controller.cropController,
+          drawPath: drawPath,
+          image: FileImage(imported),
         );
       },
     );
   }
 
-  Widget _buildCropper() {
-    return FutureBuilder(
-      future: ImagePicker().pickImage(source: ImageSource.gallery),
-      builder: (context, snapshot) {
-        final file = snapshot.data;
-        if (file == null) {
-          return SizedBox.shrink();
-        }
-        return Cropper(
-          cropperKey: _cropperKey, // Use your key here
-          image: Image.file(File(file.path)),
-        );
-      },
-    );
+  Future<(ui.Image? original, File? imported)> _init() async {
+    final original = await controller.loadPicture(widget.pictureId);
+    final originalFile = original == null
+        ? null
+        : await CachedNetworkImageProvider.defaultCacheManager.getSingleFile(original.url);
+    final originalImage = originalFile == null
+        ? null
+        : await decodeImageFromList(await originalFile.readAsBytes());
+    final selection = await controller.pickImage();
+    if (selection == null) {
+      return (originalImage, null);
+    }
+    final importedFile = File(selection.path);
+    return (originalImage, importedFile);
+  }
+
+  Future<void> _savePicture() async {
+    final screenSize = MediaQuery.sizeOf(context);
+    final record = await controller.importPicture(
+      width: screenSize.width,
+      height: screenSize.height,
+      cacheManager: CachedNetworkImageProvider.defaultCacheManager,
+    ).onError((error, _) {
+      return null;
+    });
+    if (!mounted) {
+      return;
+    }
+    if (record != null) {
+      context.go('/gallery/${record.localId}');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(CamLocalizations.of(context).couldNotImportPhoto),
+        backgroundColor: Theme.of(context).primaryColor,
+      ));
+    }
   }
 }

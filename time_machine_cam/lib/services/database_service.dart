@@ -15,52 +15,9 @@ import 'package:time_machine_res/time_machine_res.dart';
 import 'package:uuid/uuid.dart';
 
 extension CamDatabaseService on DatabaseService {
-  Future<Picture> createPicture({
-    required XFile file,
-    Position? position,
-    double? heading,
-    Picture? original,
-  }) async {
-    final id = Uuid().v4();
-    String url;
-    var image = await _getImage(file);
-    final dirPath = filePath;
-    if (dirPath == null) {
-      final data = img.encodeJpg(image);
-      url = 'data:image/jpg;base64,${base64Encode(data)}';
-    } else {
-      final localPath = '$dirPath/pictures/$id.jpg';
-      await File(localPath).create(recursive: true);
-      await img.encodeJpgFile(localPath, image);
-      url = Uri.file(localPath).toString();
-    }
-    var (latitude, longitude, time) = await _readExif(file);
-    time = time ?? DateTime.now();
-    var picture = Picture(
-      id: id,
-      provider: '',
-      url: url,
-      latitude: position?.latitude ?? latitude ?? double.nan,
-      longitude: position?.longitude ?? longitude ?? double.nan,
-      description: original?.description,
-      altitude: position?.altitude ?? original?.altitude,
-      bearing: heading ?? position?.heading ?? original?.bearing,
-      time: '${time.year}-${time.month}-${time.day}',
-    );
-    try {
-      final place = await Nominatim.reverseSearch(
-        lat: picture.latitude,
-        lon: picture.longitude,
-      );
-      picture.description = place.displayName;
-    } catch(error) {
-      print("Error finding address: $error");
-    }
-    return await createRepository<Picture>().insert(picture);
-  }
-
   Future<Record> createRecord({
     required XFile file,
+    DateTime? createdAt,
     Position? position,
     double? heading,
     Picture? original,
@@ -68,7 +25,7 @@ extension CamDatabaseService on DatabaseService {
     double? width,
     BaseCacheManager? cacheManager,
   }) async {
-    final time = DateTime.now();
+    final time = createdAt ?? DateTime.now();
     final id = Uuid().v4();
     String url;
     var image = await _getImage(file);
@@ -137,7 +94,7 @@ extension CamDatabaseService on DatabaseService {
   }
 
   Future<img.Image> _getImage(XFile file, {NativeDeviceOrientation? orientation}) async {
-    final originalImage = kIsWeb
+    final originalImage = kIsWeb || file.path.isEmpty
         ? img.decodeImage(await file.readAsBytes())
         : await img.decodeImageFile(file.path);
     if (originalImage == null) {
@@ -164,16 +121,6 @@ extension CamDatabaseService on DatabaseService {
       innerHeight: picHeight,
     );
     return '$l,$t,$w,$h';
-  }
-
-  Future<(double? lat, double? lng, DateTime? dateTime)> _readExif(XFile file) async {
-    if (kIsWeb) {
-      return (null, null, null);
-    }
-    final tags = await Exif.fromPath(file.path);
-    final coord = await tags.getLatLong();
-    final dateTime = await tags.getOriginalDate();
-    return (coord?.latitude, coord?.longitude, dateTime);
   }
 }
 

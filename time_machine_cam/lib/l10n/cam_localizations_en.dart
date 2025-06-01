@@ -9,6 +9,10 @@ class CamLocalizationsEn extends CamLocalizations {
   CamLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get couldNotImportPhoto =>
+      'Could not import the photo due to an unexpected error';
+
+  @override
   String get couldNotTakePhoto =>
       'Could not take the photo due to an unexpected error';
 
@@ -19,6 +23,9 @@ class CamLocalizationsEn extends CamLocalizations {
 
   @override
   String get distanceGreaterThan1Km => '+1 Km';
+
+  @override
+  String get importPage => 'Import picture';
 
   @override
   String get menuTitle => 'Options';

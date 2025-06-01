@@ -9,6 +9,10 @@ class CamLocalizationsRu extends CamLocalizations {
   CamLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get couldNotImportPhoto =>
+      'Не удалось импортировать фотографию из-за непредвиденной ошибки';
+
+  @override
   String get couldNotTakePhoto =>
       'Не удалось сделать фотографию из-за непредвиденной ошибки';
 
@@ -19,6 +23,9 @@ class CamLocalizationsRu extends CamLocalizations {
 
   @override
   String get distanceGreaterThan1Km => '+1 Км';
+
+  @override
+  String get importPage => 'Импортировать фотографию';
 
   @override
   String get menuTitle => 'Опций';

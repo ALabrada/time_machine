@@ -1,7 +1,9 @@
 {
+  "couldNotImportPhoto": "Could not import the photo due to an unexpected error",
   "couldNotTakePhoto": "Could not take the photo due to an unexpected error",
   "distanceInMeters": "{distance} m",
   "distanceGreaterThan1Km": "+1 Km",
+  "importPage": "Import picture",
   "menuTitle": "Options",
   "menuActionCamera": "Take picture",
   "menuActionCancel": "Cancel",

@@ -27,8 +27,8 @@ dependencies:
   ar_location_view: ^2.0.16
   cached_network_image: ^3.4.1
   camerawesome: ^2.4.0
-  cropperx: ^1.1.1
   cross_file: any
+  custom_image_crop: ^0.1.1
   flutter_cache_manager : ^3.4.1
   flutter_compass: ^0.8.1
   font_awesome_flutter: any

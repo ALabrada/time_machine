@@ -1,7 +1,9 @@
 {
+  "couldNotImportPhoto": "Не удалось импортировать фотографию из-за непредвиденной ошибки",
   "couldNotTakePhoto": "Не удалось сделать фотографию из-за непредвиденной ошибки",
   "distanceInMeters": "{distance} м",
   "distanceGreaterThan1Km": "+1 Км",
+  "importPage": "Импортировать фотографию",
   "menuTitle": "Опций",
   "menuActionCamera": "Сфотографировать",
   "menuActionCancel": "Отменить",
