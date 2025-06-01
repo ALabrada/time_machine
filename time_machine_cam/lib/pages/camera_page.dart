@@ -204,7 +204,7 @@ class _CameraPageState extends State<CameraPage> {
       return;
     }
     final db = context.read<DatabaseService>();
-    final screenSize = MediaQuery.sizeOf(context);
+    final screenSize = await _screenSize;
     final record = await db.createRecord(
       file: file,
       original: original,
@@ -224,6 +224,15 @@ class _CameraPageState extends State<CameraPage> {
         ),
       ));
     }
+  }
+
+  Future<Size> get _screenSize async {
+    final size = MediaQuery.sizeOf(context);
+    final orientation = await CamerawesomePlugin.getNativeOrientation()?.first;
+    if (orientation == null || orientation == CameraOrientations.portrait_up || orientation == CameraOrientations.portrait_down) {
+      return size;
+    }
+    return Size(size.height, size.width);
   }
 }
 
