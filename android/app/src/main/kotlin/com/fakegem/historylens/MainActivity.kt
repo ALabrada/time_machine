@@ -1,4 +1,4 @@
-package com.example.time_machine
+package com.fakegem.historylens
 
 import io.flutter.embedding.android.FlutterActivity
 
