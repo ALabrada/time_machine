@@ -284,9 +284,18 @@ class _MapPageState extends State<MapPage> {
         title: Text(MapLocalizations.of(context).menuActionCancel),
       ),
       actions: [
+
         BottomSheetAction(
-          leading: Icon(Icons.image_rounded),
+          leading: Icon(Icons.open_in_full),
           title: Text(MapLocalizations.of(context).menuActionView),
+          onPressed: (context) {
+            _showImage(model);
+            context.pop();
+          },
+        ),
+        BottomSheetAction(
+          leading: Icon(Icons.photo_library),
+          title: Text(MapLocalizations.of(context).menuActionImport),
           onPressed: (context) {
             _showImage(model);
             context.pop();

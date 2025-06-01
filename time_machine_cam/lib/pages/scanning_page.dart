@@ -97,8 +97,16 @@ class _ScanningPageState extends State<ScanningPage> {
       ),
       actions: [
         BottomSheetAction(
-          leading: Icon(Icons.image_rounded),
+          leading: Icon(Icons.open_in_full),
           title: Text(CamLocalizations.of(context).menuActionView),
+          onPressed: (context) {
+            _showImage(model);
+            context.pop();
+          },
+        ),
+        BottomSheetAction(
+          leading: Icon(Icons.photo_library),
+          title: Text(CamLocalizations.of(context).menuActionImport),
           onPressed: (context) {
             _showImage(model);
             context.pop();

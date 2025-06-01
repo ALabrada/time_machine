@@ -139,7 +139,7 @@ abstract class CamLocalizations {
   /// No description provided for @menuActionCamera.
   ///
   /// In en, this message translates to:
-  /// **'Take picture'**
+  /// **'Take replica of the picture'**
   String get menuActionCamera;
 
   /// No description provided for @menuActionCancel.
@@ -147,6 +147,12 @@ abstract class CamLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get menuActionCancel;
+
+  /// No description provided for @menuActionImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import replica of the picture'**
+  String get menuActionImport;
 
   /// No description provided for @menuActionOpenSource.
   ///

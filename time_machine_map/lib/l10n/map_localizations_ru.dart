@@ -12,10 +12,13 @@ class MapLocalizationsRu extends MapLocalizations {
   String get menuTitle => 'Опций';
 
   @override
-  String get menuActionCamera => 'Сфотографировать';
+  String get menuActionCamera => 'Сфотографировать реплику фотографии';
 
   @override
   String get menuActionCancel => 'Отменить';
+
+  @override
+  String get menuActionImport => 'Импортировать реплику фотографии';
 
   @override
   String get menuActionOpenSource => 'Открыть источник';

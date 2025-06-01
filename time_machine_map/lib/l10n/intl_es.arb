@@ -1,7 +1,8 @@
 {
   "menuTitle": "Opciones",
-  "menuActionCamera": "Tomar foto",
+  "menuActionCamera": "Tomar réplica de la foto",
   "menuActionCancel": "Cancelar",
+  "menuActionImport": "Importar réplica de la foto",
   "menuActionOpenSource": "Abrir fuente",
   "menuActionShare": "Compartir foto",
   "menuActionView": "Ver foto",

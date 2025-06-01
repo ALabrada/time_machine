@@ -12,10 +12,13 @@ class MapLocalizationsEn extends MapLocalizations {
   String get menuTitle => 'Options';
 
   @override
-  String get menuActionCamera => 'Take picture';
+  String get menuActionCamera => 'Take replica of the picture';
 
   @override
   String get menuActionCancel => 'Cancel';
+
+  @override
+  String get menuActionImport => 'Import replica of the picture';
 
   @override
   String get menuActionOpenSource => 'Open source';
