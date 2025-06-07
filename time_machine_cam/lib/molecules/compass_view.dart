@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:time_machine_db/time_machine_db.dart';
+import 'package:ar_location_view/ar_location_view.dart';
 
 import '../l10n/cam_localizations.dart';
 
@@ -23,12 +24,13 @@ class CompassView extends StatelessWidget {
   Widget build(BuildContext context) {
     final position = this.position;
     final target = this.target;
-    if (position == null || target == null) {
+    final heading = this.heading;
+    if (position == null || target == null || heading == null) {
       return SizedBox.shrink();
     }
-    final currentHeading = heading ?? position.heading;
-    final bearing = Geolocator.bearingBetween(position.latitude, position.longitude, target.lat, target.lng);
+    final azimuth = Geolocator.bearingBetween(position.latitude, position.longitude, target.lat, target.lng);
     final distance = Geolocator.distanceBetween(position.latitude, position.longitude, target.lat, target.lng).round();
+    final delta = -ArMath.deltaAngle(heading, azimuth);
 
     return Stack(
       alignment: Alignment.center,
@@ -36,7 +38,7 @@ class CompassView extends StatelessWidget {
         Transform.scale(
           scaleY: 0.5,
           child: Transform.rotate(
-            angle: (bearing - currentHeading) * math.pi / 180.0,
+            angle: delta.toRadians,
             child: Container(
               width: 100,
               height: 100,

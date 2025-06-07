@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'package:ar_location_view/ar_compass.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 
 class PhotoController {
@@ -54,8 +57,27 @@ class PhotoController {
       locationSettings: LocationSettings(accuracy: LocationAccuracy.bestForNavigation),
     ).listen(position.add);
 
-    headingSubscription = FlutterCompass.events?.mapNotNull((e) => e.heading)
-        .listen(heading.add);
+    final headingStream = FlutterCompass.events;
+    if (headingStream != null) {
+      headingSubscription = CombineLatestStream.combine2(
+          headingStream.mapNotNull((e) => e.heading),
+          NativeDeviceOrientationCommunicator().onOrientationChanged(useSensor: true),
+              (trueHeading, orientation) {
+            switch (orientation) {
+              case NativeDeviceOrientation.portraitUp:
+                return trueHeading;
+              case NativeDeviceOrientation.portraitDown:
+                return trueHeading + 180;
+              case NativeDeviceOrientation.landscapeRight:
+                return trueHeading + 90;
+              case NativeDeviceOrientation.landscapeLeft:
+                return trueHeading - 90;
+              default:
+                return trueHeading;
+            }
+          })
+          .listen(heading.add);
+    }
 
     return true;
   }
