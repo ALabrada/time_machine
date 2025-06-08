@@ -1,6 +1,6 @@
 {
-  "couldNotImportPhoto": "No se pudo obtener la foto debido a un error inesperado",
-  "couldNotTakePhoto": "No se pudo importar la foto debido a un error inesperado",
+  "couldNotImportPhoto": "No se pudo importar la foto debido a un error inesperado",
+  "couldNotTakePhoto": "No se pudo obtener la foto debido a un error inesperado",
   "distanceInMeters": "{distance} m",
   "distanceGreaterThan1Km": "+1 Km",
   "importPage": "Importar foto",

@@ -10,11 +10,11 @@ class CamLocalizationsEs extends CamLocalizations {
 
   @override
   String get couldNotImportPhoto =>
-      'No se pudo obtener la foto debido a un error inesperado';
+      'No se pudo importar la foto debido a un error inesperado';
 
   @override
   String get couldNotTakePhoto =>
-      'No se pudo importar la foto debido a un error inesperado';
+      'No se pudo obtener la foto debido a un error inesperado';
 
   @override
   String distanceInMeters(Object distance) {

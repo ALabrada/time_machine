@@ -4,6 +4,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:native_exif/native_exif.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_cam/services/database_service.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -11,6 +12,7 @@ import 'package:time_machine_net/time_machine_net.dart';
 
 class ImportController {
   ImportController({
+    this.cacheManager,
     this.configurationService,
     this.databaseService,
     this.networkService,
@@ -18,7 +20,9 @@ class ImportController {
   });
 
   final cropController = CustomImageCropController();
+  final isProcessing = BehaviorSubject<bool>.seeded(false);
 
+  final BaseCacheManager? cacheManager;
   final ConfigurationService? configurationService;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
@@ -38,34 +42,38 @@ class ImportController {
   Future<Record?> importPicture({
     double? height,
     double? width,
-    BaseCacheManager? cacheManager,
   }) async {
     final selection = this.selection;
-    final result = await cropController.onCropImage();
-    if (result == null || selection == null) {
-      return null;
+    isProcessing.value = true;
+    try {
+      final result = await cropController.onCropImage();
+      if (result == null || selection == null) {
+        return null;
+      }
+      final (lat, lng, time) = await _readExif(selection);
+      return await databaseService?.createRecord(
+        file: XFile.fromData(result.bytes),
+        original: original,
+        createdAt: time,
+        position: lat == null || lng == null ? null : Position(
+          longitude: lng,
+          latitude: lat,
+          timestamp: time ?? DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          altitudeAccuracy: 0,
+          heading: 0,
+          headingAccuracy: 0,
+          speed: 0,
+          speedAccuracy: 0,
+        ),
+        height: height,
+        width: width,
+        cacheManager: cacheManager,
+      );
+    } finally {
+      isProcessing.value = false;
     }
-    final (lat, lng, time) = await _readExif(selection);
-    return await databaseService?.createRecord(
-      file: XFile.fromData(result.bytes),
-      original: original,
-      createdAt: time,
-      position: lat == null || lng == null ? null : Position(
-        longitude: lng,
-        latitude: lat,
-        timestamp: time ?? DateTime.now(),
-        accuracy: 0,
-        altitude: 0,
-        altitudeAccuracy: 0,
-        heading: 0,
-        headingAccuracy: 0,
-        speed: 0,
-        speedAccuracy: 0,
-      ),
-      height: height,
-      width: width,
-      cacheManager: cacheManager,
-    );
   }
 
   Future<XFile?> pickImage() async {

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:intl/intl.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:native_exif/native_exif.dart';
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image/image.dart' as img;
 import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:osm_nominatim/osm_nominatim.dart';
+import 'package:path/path.dart' as p;
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'package:uuid/uuid.dart';
@@ -26,13 +28,16 @@ extension CamDatabaseService on DatabaseService {
     BaseCacheManager? cacheManager,
   }) async {
     final time = createdAt ?? DateTime.now();
-    final id = Uuid().v4();
+    var id = Uuid().v4();
     String url;
     var image = await _getImage(file);
     final dirPath = filePath;
-    if (dirPath == null) {
+    if (dirPath == null || dirPath.isEmpty) {
       final data = img.encodeJpg(image);
       url = 'data:image/jpg;base64,${base64Encode(data)}';
+    } else if (p.isWithin(dirPath, file.path)) {
+      id = p.basename(file.path);
+      url = Uri.file(file.path).toString();
     } else {
       final localPath = '$dirPath/pictures/$id.jpg';
       await File(localPath).create(recursive: true);
@@ -58,6 +63,7 @@ extension CamDatabaseService on DatabaseService {
       final place = await Nominatim.reverseSearch(
         lat: picture.latitude,
         lon: picture.longitude,
+        language: Intl.defaultLocale,
       );
       picture.description = place.displayName;
     } catch(error) {

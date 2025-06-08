@@ -23,12 +23,12 @@ class ImportPage extends StatefulWidget {
 }
 
 class _ImportPageState extends State<ImportPage> {
-  final _cropperKey = GlobalKey(debugLabel: 'cropperKey');
   late ImportController controller;
 
   @override
   void initState() {
     controller = ImportController(
+      cacheManager: CachedNetworkImageProvider.defaultCacheManager,
       configurationService: context.read(),
       databaseService: context.read(),
       networkService: context.read(),
@@ -50,9 +50,26 @@ class _ImportPageState extends State<ImportPage> {
       backgroundColor: Theme.of(context).colorScheme.secondary,
       foregroundColor: Theme.of(context).colorScheme.onSecondary,
       actions: [
-        IconButton(
-          onPressed: _savePicture,
-          icon: Icon(Icons.done),
+        StreamBuilder(
+          stream: controller.isProcessing,
+          initialData: false,
+          builder: (context, snapshot) {
+            if (snapshot.requireData) {
+              return Center(
+                heightFactor: 1,
+                widthFactor: 1,
+                child: SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            return IconButton(
+              onPressed: _savePicture,
+              icon: Icon(Icons.done),
+            );
+          },
         ),
       ],
     );
@@ -112,7 +129,6 @@ class _ImportPageState extends State<ImportPage> {
     final record = await controller.importPicture(
       width: screenSize.width,
       height: screenSize.height,
-      cacheManager: CachedNetworkImageProvider.defaultCacheManager,
     ).onError((error, _) {
       return null;
     });

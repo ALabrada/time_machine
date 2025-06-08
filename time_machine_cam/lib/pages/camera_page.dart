@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
+import 'package:camerawesome/pigeon.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -37,13 +38,15 @@ class CameraPage extends StatefulWidget {
 }
 
 class _CameraPageState extends State<CameraPage> {
-  final cameraKey = GlobalKey();
   late PhotoController controller;
 
   @override
   void initState() {
     controller = PhotoController(
-      configurationService: context.read<ConfigurationService>(),
+      cacheManager: CachedNetworkImageProvider.defaultCacheManager,
+      configurationService: context.read(),
+      databaseService: context.read(),
+      networkService: context.read(),
     );
     super.initState();
     unawaited(controller.init());
@@ -58,7 +61,7 @@ class _CameraPageState extends State<CameraPage> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: _loadPicture(),
+      future: controller.loadPicture(widget.pictureId),
       builder: (context, snapshot) {
         final picture = snapshot.data;
         return Scaffold(
@@ -75,19 +78,33 @@ class _CameraPageState extends State<CameraPage> {
 
   Widget _buildContent({Picture? picture}) {
     return CameraAwesomeBuilder.custom(
-      saveConfig: SaveConfig.photo(),
+      saveConfig: SaveConfig.photo(
+        pathBuilder: (s) async => SingleCaptureRequest(controller.targetPath, s[0]),
+        exifPreferences: ExifPreferences(saveGPSLocation: true),
+      ),
       sensorConfig: SensorConfig.single(
         aspectRatio: controller.cameraMode,
       ),
       enablePhysicalButton: true,
       previewFit: CameraPreviewFit.contain,
+
       onMediaCaptureEvent: (capture) {
-        capture.captureRequest.when(
-          single: (r) => _savePicture(
-            file: r.file,
-            original: picture,
-          ),
-        );
+        switch (capture.status) {
+          case MediaCaptureStatus.capturing:
+            controller.isProcessing.value = true;
+          case MediaCaptureStatus.success:
+            controller.isProcessing.value = false;
+            capture.captureRequest.when(
+              single: (r) => _savePicture(
+                file: r.file,
+              ),
+            );
+          case MediaCaptureStatus.failure:
+            controller.isProcessing.value = false;
+            _savePicture(
+              file: null,
+            );
+        }
       },
       builder: (state, preview) {
         return state.when(
@@ -134,7 +151,7 @@ class _CameraPageState extends State<CameraPage> {
           alignment: Alignment.bottomCenter,
           padding: const EdgeInsets.only(bottom: 32),
           child: AwesomeOrientedWidget(
-            child: AwesomeCaptureButton(state: state),
+            child: _buildTrigger(state),
           ),
         ),
         Container(
@@ -182,19 +199,26 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 
-  Future<Picture?> _loadPicture() async {
-    final id = widget.pictureId;
-    if (id == null) {
-      return null;
-    }
-    final db = context.read<DatabaseService>();
-    final picture = await db.createRepository<Picture>().getById(id);
-    return picture;
+  Widget _buildTrigger(PhotoCameraState state) {
+    return StreamBuilder(
+      stream: controller.isProcessing,
+      initialData: false,
+      builder: (context, snapshot) {
+        if (snapshot.requireData) {
+          return Container(
+            height: 80,
+            width: 80,
+            alignment: Alignment.center,
+            child: CircularProgressIndicator(),
+          );
+        }
+        return AwesomeCaptureButton(state: state);
+      },
+    );
   }
 
   Future<void> _savePicture({
     XFile? file,
-    Picture? original,
   }) async {
     if (file == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -203,18 +227,18 @@ class _CameraPageState extends State<CameraPage> {
       ));
       return;
     }
-    final db = context.read<DatabaseService>();
-    final screenSize = await _screenSize;
-    final record = await db.createRecord(
+    final screenSize = _screenSize;
+    final record = await controller.savePicture(
       file: file,
-      original: original,
-      position: controller.position.valueOrNull,
-      heading: controller.heading.valueOrNull,
-      width: screenSize.width,
       height: screenSize.height,
-      cacheManager: CachedNetworkImageProvider.defaultCacheManager
-    );
-    if (mounted) {
+      width: screenSize.width,
+    ).onError((e, _) => null);
+
+    if (!mounted) {
+      return;
+    }
+
+    if (record != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(CamLocalizations.of(context).pictureAddedToGallery),
         backgroundColor: Theme.of(context).primaryColor,
@@ -223,12 +247,17 @@ class _CameraPageState extends State<CameraPage> {
           onPressed: () => context.go('/gallery/${record.localId}'),
         ),
       ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(CamLocalizations.of(context).couldNotTakePhoto),
+        backgroundColor: Theme.of(context).primaryColor,
+      ));
     }
   }
 
-  Future<Size> get _screenSize async {
+  Size get _screenSize {
     final size = MediaQuery.sizeOf(context);
-    final orientation = await CamerawesomePlugin.getNativeOrientation()?.first;
+    final orientation = controller.orientation.valueOrNull;
     if (orientation == null || orientation == CameraOrientations.portrait_up || orientation == CameraOrientations.portrait_down) {
       return size;
     }
