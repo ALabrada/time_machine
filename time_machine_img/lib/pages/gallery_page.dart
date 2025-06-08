@@ -9,6 +9,8 @@ import 'package:time_machine_img/controllers/gallery_controller.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
+import '../molecules/gallery_search_bar.dart';
+
 class GalleryPage extends StatefulWidget {
   const GalleryPage({super.key});
 
@@ -30,7 +32,7 @@ class _GalleryPageState extends State<GalleryPage> {
     return SafeArea(
       child: Column(
         children: [
-          SearchBar(
+          GallerySearchBar(
             controller: galleryController.searchController,
             hintText: ImgLocalizations.of(context).searchBarHint,
           ),

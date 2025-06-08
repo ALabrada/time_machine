@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:time_machine_res/atoms/inputs.dart';
 import 'package:time_machine_res/tokens/colors.dart';
 
-class SearchBar extends StatelessWidget {
-  const SearchBar({
+class GallerySearchBar extends StatelessWidget {
+  const GallerySearchBar({
     super.key,
     required this.controller,
-    this.hint,
+    this.hintText,
   });
 
   final TextEditingController controller;
-  final String? hint;
+  final String? hintText;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +30,7 @@ class SearchBar extends StatelessWidget {
       child: TextField(
         controller: controller,
         decoration: InputDecoration(
-          hintText: hint,
+          hintText: hintText,
         ).applyDefaults(searchFieldDecoration),
       ),
     );
