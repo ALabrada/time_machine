@@ -297,7 +297,7 @@ class _MapPageState extends State<MapPage> {
           leading: Icon(Icons.photo_library),
           title: Text(MapLocalizations.of(context).menuActionImport),
           onPressed: (context) {
-            _showImage(model);
+            _importPicture(model);
             context.pop();
           },
         ),
@@ -339,6 +339,10 @@ class _MapPageState extends State<MapPage> {
 
   void _openSite(String site) {
     unawaited(launchUrlString(site));
+  }
+
+  void _importPicture(Picture picture) {
+    context.go('/import?pictureId=${picture.id}');
   }
 
   Future<void> _sharePicture(Picture picture) async {
