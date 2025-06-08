@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:rxdart/rxdart.dart';
@@ -23,6 +24,7 @@ class PicturesController {
         saveSettings(e.camera);
         unawaited(loadPictures(e.camera));
       });
+    unawaited(_subscribePositionIfAvailable());
   }
 
   final ConfigurationService? configurationService;
@@ -33,8 +35,9 @@ class PicturesController {
   final BehaviorSubject<bool> isProcessing = BehaviorSubject.seeded(false);
   final BehaviorSubject<List<Picture>> pictures = BehaviorSubject();
   final BehaviorSubject<Picture?> selection = BehaviorSubject.seeded(null);
+  final BehaviorSubject<Position?> position = BehaviorSubject.seeded(null);
 
-  StreamSubscription? _eventSubscription;
+  StreamSubscription? _eventSubscription, _positionSubscription;
 
   LatLng? get defaultCenter {
     final lat = preferences?.getDouble('map.lat');
@@ -50,6 +53,7 @@ class PicturesController {
   void dispose() {
     _eventSubscription?.cancel();
     _eventSubscription = null;
+    _positionSubscription?.cancel();
   }
 
   Future<void> reload() => loadPictures(mapController?.camera);
@@ -97,19 +101,29 @@ class PicturesController {
 
     isProcessing.value = true;
     try {
-      var permission = await Geolocator.checkPermission();
-      if (permission != LocationPermission.always && permission != LocationPermission.whileInUse) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      var position = this.position.valueOrNull;
+      if (position == null) {
+        var permission = await Geolocator.checkPermission();
+        if (permission != LocationPermission.always && permission != LocationPermission.whileInUse) {
+          permission = await Geolocator.requestPermission();
+          if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+            return false;
+          }
+        }
+
+        final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        _subscribePosition(serviceEnabled: serviceEnabled);
+
+        if (!serviceEnabled) {
+          await Geolocator.openLocationSettings();
           return false;
         }
+
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: LocationSettings(accuracy: LocationAccuracy.best),
+        );
       }
 
-      if (!await Geolocator.isLocationServiceEnabled()) {
-        return false;
-      }
-
-      final position = await Geolocator.getCurrentPosition();
       final coord = LatLng(position.latitude, position.longitude);
       if (mapController.move(coord, max(mapController.camera.zoom, 17.0))) {
         saveSettings(mapController.camera);
@@ -120,5 +134,30 @@ class PicturesController {
     } finally {
       isProcessing.value = false;
     }
+  }
+
+  Future<bool> _subscribePositionIfAvailable() async {
+    var permission = await Geolocator.checkPermission();
+    if (permission != LocationPermission.always && permission != LocationPermission.whileInUse) {
+      return false;
+    }
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    _subscribePosition(serviceEnabled: serviceEnabled);
+    return true;
+  }
+
+  void _subscribePosition({bool serviceEnabled=false}) {
+    _positionSubscription = Geolocator.getServiceStatusStream().mergeWith([
+      Stream.value(serviceEnabled ? ServiceStatus.enabled : ServiceStatus.disabled),
+    ])
+      .flatMap((s) {
+        if (s == ServiceStatus.enabled) {
+          return Geolocator.getPositionStream(
+            locationSettings: LocationSettings(accuracy: LocationAccuracy.best),
+          );
+        }
+        return Stream.value(null);
+      })
+      .listen(position.add);
   }
 }

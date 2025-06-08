@@ -152,7 +152,10 @@ class _MapPageState extends State<MapPage> {
             tileProvider: CancellableNetworkTileProvider(),
             subdomains: _tileServer.subdomains ?? const ['a', 'b', 'c'],
           ),
-          CurrentLocationLayer(),
+          CurrentLocationLayer(
+            positionStream: LocationMarkerDataStreamFactory()
+                .fromGeolocatorPositionStream(stream: _picturesController.position),
+          ),
           _buildMarkers(),
           const MapCompass.cupertino(
             hideIfRotatedNorth: true,
