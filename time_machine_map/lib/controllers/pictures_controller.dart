@@ -29,6 +29,8 @@ class PicturesController {
   final MapController? mapController;
   final NetworkService? networkService;
   final SharedPreferencesWithCache? preferences;
+
+  final BehaviorSubject<bool> isProcessing = BehaviorSubject.seeded(false);
   final BehaviorSubject<List<Picture>> pictures = BehaviorSubject();
   final BehaviorSubject<Picture?> selection = BehaviorSubject.seeded(null);
 
@@ -93,25 +95,30 @@ class PicturesController {
       return false;
     }
 
-    var permission = await Geolocator.checkPermission();
-    if (permission != LocationPermission.always && permission != LocationPermission.whileInUse) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    isProcessing.value = true;
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.always && permission != LocationPermission.whileInUse) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+          return false;
+        }
+      }
+
+      if (!await Geolocator.isLocationServiceEnabled()) {
         return false;
       }
-    }
 
-    if (!await Geolocator.isLocationServiceEnabled()) {
+      final position = await Geolocator.getCurrentPosition();
+      final coord = LatLng(position.latitude, position.longitude);
+      if (mapController.move(coord, max(mapController.camera.zoom, 17.0))) {
+        saveSettings(mapController.camera);
+        return true;
+      }
+
       return false;
+    } finally {
+      isProcessing.value = false;
     }
-
-    final position = await Geolocator.getCurrentPosition();
-    final coord = LatLng(position.latitude, position.longitude);
-    if (mapController.move(coord, max(mapController.camera.zoom, 17.0))) {
-      saveSettings(mapController.camera);
-      return true;
-    }
-
-    return false;
   }
 }

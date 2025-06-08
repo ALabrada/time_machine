@@ -301,10 +301,10 @@ packages:
     dependency: transitive
     description:
       name: ffi
-      sha256: "16ed7b077ef01ad6170a3d0c57caa4a112a38d7a2ed5602e0aca9ca6f3d98da6"
+      sha256: "289279317b4b16eb2bb7e271abccd4bf84ec9bdcbe999e278a94b804f5630418"
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.3"
+    version: "2.1.4"
   file:
     dependency: transitive
     description:
@@ -361,6 +361,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+  fk_user_agent:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "38fce4db3b1a799e101b601fba56acfbed2c802a"
+      url: "https://github.com/zzz199316/fk_user_agent.git"
+    source: git
+    version: "2.1.0"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -1511,10 +1520,10 @@ packages:
     dependency: transitive
     description:
       name: win32
-      sha256: "154360849a56b7b67331c21f09a386562d88903f90a1099c5987afc1912e1f29"
+      sha256: "329edf97fdd893e0f1e3b9e88d6a0e627128cc17cc316a8d67fda8f1451178ba"
       url: "https://pub.dev"
     source: hosted
-    version: "5.10.0"
+    version: "5.13.0"
   wkt_parser:
     dependency: transitive
     description:

@@ -16,7 +16,12 @@ import 'package:time_machine_res/time_machine_res.dart';
 import 'generated/l10n.dart';
 
 class TimeMachineApp extends StatelessWidget {
-  const TimeMachineApp({super.key});
+  const TimeMachineApp({
+    super.key,
+    this.userAgent,
+  });
+
+  final String? userAgent;
 
   // This widget is the root of your application.
   @override
@@ -101,16 +106,16 @@ class TimeMachineApp extends StatelessWidget {
             );
           },
         ),
-        FutureProvider<PackageInfo?>(
-          initialData: null,
-          create: (_) => PackageInfo.fromPlatform(),
-          lazy: false,
-        ),
         Provider<NetworkService>(
           create: (_) => NetworkService(
+            userAgent: userAgent,
             providers: {
-              'pastvu': PastVuProvider(),
-              'russiainphoto': RussiaInPhotoProvider(),
+              'pastvu': PastVuProvider(
+                userAgent: userAgent,
+              ),
+              'russiainphoto': RussiaInPhotoProvider(
+                userAgent: userAgent,
+              ),
             },
           ),
         ),
