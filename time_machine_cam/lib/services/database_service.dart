@@ -57,7 +57,7 @@ extension CamDatabaseService on DatabaseService {
       description: original?.description,
       altitude: position?.altitude ?? original?.altitude,
       bearing: heading ?? position?.heading ?? original?.bearing,
-      time: '${time.year}-${time.month}-${time.day}',
+      time: '${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')}',
     );
     try {
       final place = await Nominatim.reverseSearch(

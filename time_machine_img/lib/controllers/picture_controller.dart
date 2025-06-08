@@ -1,16 +1,17 @@
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/time_machine_net.dart';
-import 'package:path/path.dart' as p;
 
 class PictureController {
   PictureController({
+    this.cacheManager,
     this.databaseService,
     this.networkService,
     this.picture,
   });
 
+  final BaseCacheManager? cacheManager;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
   Picture? picture;
@@ -29,12 +30,11 @@ class PictureController {
       return;
     }
 
-    final dirPath = await getTemporaryDirectory();
-    final path = p.join(dirPath.path, 'picture.jpg');
-    await networkService?.download(picture.url, path);
+    final cache = cacheManager ?? DefaultCacheManager();
+    final file = await cache.getSingleFile(picture.url);
 
     await Share.shareXFiles([
-      XFile(path),
+      XFile(file.path),
     ], text: picture.text);
   }
 }

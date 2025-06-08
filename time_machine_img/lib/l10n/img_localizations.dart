@@ -100,6 +100,30 @@ abstract class ImgLocalizations {
     Locale('ru')
   ];
 
+  /// No description provided for @deleteCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get deleteCancel;
+
+  /// No description provided for @deleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteConfirm;
+
+  /// No description provided for @deleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting'**
+  String get deleteTitle;
+
+  /// No description provided for @deleteSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete the replica?'**
+  String get deleteSubtitle;
+
   /// No description provided for @errorLoadingPage.
   ///
   /// In en, this message translates to:

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_compare_slider/image_compare_slider.dart';
@@ -10,8 +11,11 @@ import 'package:provider/provider.dart';
 import 'package:time_machine_img/controllers/comparison_controller.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
+import 'package:time_machine_img/molecules/comparison_description.dart';
 import 'package:time_machine_img/molecules/full_screen_view.dart';
 import 'package:time_machine_res/time_machine_res.dart';
+
+import '../molecules/tool_bar.dart';
 
 class ComparisonPage extends StatefulWidget {
   const ComparisonPage({
@@ -40,6 +44,7 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
       duration: Duration(milliseconds: 300),
     );
     comparisonController = ComparisonController(
+      cacheManager: CachedNetworkImageProvider.defaultCacheManager,
       databaseService: context.read(),
       networkService: context.read(),
     );
@@ -102,111 +107,57 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
           record: record,
           direction: direction,
         );
-        final labels = _labelsFor(direction);
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            if (comparison != null)
-              comparison,
-            Positioned(
-              left: 0,
-              bottom: 0,
-              right: 0,
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                color: background02.withAlpha(127),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text.rich(
-                      TextSpan(
-                        text: "${labels[0]}: ",
-                        style: TextTheme.of(context).bodyLarge?.merge(TextStyle(
-                          fontWeight: FontWeight.w600,
-                        )),
-                        children: [
-                          TextSpan(
-                            text: record?.original?.text ?? '',
-                            style: TextTheme.of(context).bodyMedium,
-                          ),
-                        ],
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                if (comparison != null)
+                  comparison,
+                Positioned(
+                  left: 0,
+                  bottom: 0,
+                  right: 0,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: constraints.maxHeight / 3),
+                    child: SingleChildScrollView(
+                      child: ComparisonDescription(
+                        firstPicture: record?.original,
+                        secondPicture: record?.picture,
+                        direction: direction,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text.rich(
-                      TextSpan(
-                        text: "${labels[1]}: ",
-                        style: TextTheme.of(context).bodyLarge?.merge(TextStyle(
-                          fontWeight: FontWeight.w600,
-                        )),
-                        children: [
-                          TextSpan(
-                            text: record?.picture?.text ?? '',
-                            style: TextTheme.of(context).bodyMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
   }
 
   Widget _buildToolbar() {
-    return SafeArea(
-      child: Container(
-        color: Theme.of(context).colorScheme.secondary,
-        child: IconButtonTheme(
-          data: IconButtonThemeData(
-            style: IconButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.onSecondary,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              IconButton(
-                onPressed: _rotateClockwise,
-                icon: Icon(Icons.rotate_right),
-              ),
-              IconButton(
-                onPressed: widget.recordId == null ? null : () {
-                  unawaited(showSharingMenu());
-                },
-                icon: Icon(Icons.share),
-              ),
-              IconButton(
-                onPressed: widget.recordId == null ? null : () async {
-                  if (await comparisonController.removeRecord() && mounted) {
-                    Navigator.of(context).pop();
-                  }
-                },
-                icon: Icon(Icons.delete),
-              ),
-            ],
-          ),
+    return ToolBar(
+      children: [
+        IconButton(
+          onPressed: _rotateClockwise,
+          icon: Icon(Icons.rotate_right),
         ),
-      ),
+        IconButton(
+          onPressed: widget.recordId == null ? null : () {
+            unawaited(showSharingMenu());
+          },
+          icon: Icon(Icons.share),
+        ),
+        IconButton(
+          onPressed: widget.recordId == null ? null : () {
+            unawaited(delete());
+          },
+          icon: Icon(Icons.delete),
+        ),
+      ],
     );
-  }
-
-  List<String> _labelsFor(SliderDirection direction) {
-    final loc = ImgLocalizations.of(context);
-    switch (direction) {
-      case SliderDirection.leftToRight:
-        return [ loc.comparisonLeft, loc.comparisonRight];
-      case SliderDirection.topToBottom:
-        return [loc.comparisonTop, loc.comparisonBottom];
-      case SliderDirection.rightToLeft:
-        return [loc.comparisonRight, loc.comparisonLeft];
-      default:
-        return [loc.comparisonBottom, loc.comparisonTop];
-    }
   }
 
   void _rotateClockwise() {
@@ -219,6 +170,40 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
         sliderDirection.value = SliderDirection.bottomToTop;
       default:
         sliderDirection.value = SliderDirection.leftToRight;
+    }
+  }
+  
+  Future<void> delete() async {
+    final confirm = await showAdaptiveDialog<bool>(
+      context: context, 
+      builder: (context) {
+        return SimpleDialog(
+          title: Text(ImgLocalizations.of(context).deleteSubtitle),
+          children: [
+            SimpleDialogOption(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: Text(ImgLocalizations.of(context).deleteConfirm,
+                style: TextStyle(color: Colors.redAccent),
+              ),
+            ),
+            SimpleDialogOption(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: Text(ImgLocalizations.of(context).deleteCancel),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirm != true) {
+      return;
+    }
+
+    if (await comparisonController.removeRecord() && mounted) {
+      Navigator.of(context).pop();
     }
   }
 

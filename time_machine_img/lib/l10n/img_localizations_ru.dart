@@ -9,6 +9,18 @@ class ImgLocalizationsRu extends ImgLocalizations {
   ImgLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get deleteCancel => 'Отменить';
+
+  @override
+  String get deleteConfirm => 'Удалить';
+
+  @override
+  String get deleteTitle => 'Удаление';
+
+  @override
+  String get deleteSubtitle => 'Вы уверены, что хотите удалить реплику?';
+
+  @override
   String get errorLoadingPage => 'Не удалось подключиться к серверу';
 
   @override

@@ -1,4 +1,8 @@
 {
+  "deleteCancel": "Cancelar",
+  "deleteConfirm": "Borrar",
+  "deleteTitle": "Borrando",
+  "deleteSubtitle": "¿Está seguro de que desea borrar la réplica?",
   "errorLoadingPage": "No se pudo conectarse al servidor",
   "comparisonPage": "Comparación",
   "comparisonBottom": "Arriba",

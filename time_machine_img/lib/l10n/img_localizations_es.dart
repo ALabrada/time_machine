@@ -9,6 +9,18 @@ class ImgLocalizationsEs extends ImgLocalizations {
   ImgLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get deleteCancel => 'Cancelar';
+
+  @override
+  String get deleteConfirm => 'Borrar';
+
+  @override
+  String get deleteTitle => 'Borrando';
+
+  @override
+  String get deleteSubtitle => '¿Está seguro de que desea borrar la réplica?';
+
+  @override
   String get errorLoadingPage => 'No se pudo conectarse al servidor';
 
   @override

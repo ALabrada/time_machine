@@ -1,4 +1,8 @@
 {
+  "deleteCancel": "Cancel",
+  "deleteConfirm": "Delete",
+  "deleteTitle": "Deleting",
+  "deleteSubtitle": "Are you sure you want to delete the replica?",
   "errorLoadingPage": "Could not connect to the server",
   "comparisonPage": "Comparison",
   "comparisonBottom": "Bottom",

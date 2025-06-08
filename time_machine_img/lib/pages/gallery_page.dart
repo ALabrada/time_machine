@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:group_grid_view/group_grid_view.dart';
@@ -29,32 +30,12 @@ class _GalleryPageState extends State<GalleryPage> {
     return SafeArea(
       child: Column(
         children: [
-          _buildSearchBar(),
+          SearchBar(
+            controller: galleryController.searchController,
+            hintText: ImgLocalizations.of(context).searchBarHint,
+          ),
           Expanded(child: _buildGrid()),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        boxShadow: [
-          BoxShadow(
-            offset: Offset(0,2),
-            blurRadius: 10.0,
-            color: gray05.withValues(alpha: 0.5),
-          ),
-        ],
-      ),
-      margin: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: TextField(
-        controller: galleryController.searchController,
-        decoration: InputDecoration(
-          hintText: ImgLocalizations.of(context).searchBarHint,
-        ).applyDefaults(searchFieldDecoration),
       ),
     );
   }

@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_img/controllers/picture_controller.dart';
+import 'package:time_machine_img/molecules/tool_bar.dart';
 import 'package:time_machine_net/services/network_service.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -131,41 +132,28 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
   Widget _buildToolbar({Picture? picture}) {
     return AnimatedBuilder(
       animation: animationController,
-      child: SafeArea(
-        child: Container(
-          color: Theme.of(context).colorScheme.secondary.withAlpha(127),
-          child: IconButtonTheme(
-            data: IconButtonThemeData(
-              style: IconButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.onSecondary,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  onPressed: widget.pictureId == null ? null : _importPicture,
-                  icon: Icon(Icons.photo_library),
-                ),
-                IconButton(
-                  onPressed: widget.pictureId == null ? null : _takePicture,
-                  icon: Icon(Icons.camera_alt),
-                ),
-                if (picture?.site != null)
-                  IconButton(
-                    onPressed: () => _openSite(picture!.site!),
-                    icon: Icon(Icons.open_in_browser),
-                  ),
-                IconButton(
-                  onPressed: widget.pictureId == null ? null : () {
-                    unawaited(pictureController.sharePicture());
-                  },
-                  icon: Icon(Icons.share),
-                ),
-              ],
-            ),
+      child: ToolBar(
+        children: [
+          IconButton(
+            onPressed: widget.pictureId == null ? null : _importPicture,
+            icon: Icon(Icons.photo_library),
           ),
-        ),
+          IconButton(
+            onPressed: widget.pictureId == null ? null : _takePicture,
+            icon: Icon(Icons.camera_alt),
+          ),
+          if (picture?.site != null)
+            IconButton(
+              onPressed: () => _openSite(picture!.site!),
+              icon: Icon(Icons.open_in_browser),
+            ),
+          IconButton(
+            onPressed: widget.pictureId == null ? null : () {
+              unawaited(pictureController.sharePicture());
+            },
+            icon: Icon(Icons.share),
+          ),
+        ],
       ),
       builder: (context, child) {
         return Opacity(
