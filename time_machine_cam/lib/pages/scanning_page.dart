@@ -20,7 +20,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 class ScanningPage extends StatefulWidget {
   const ScanningPage({
     super.key,
-    this.maxDistanceInMeters=1000,
+    this.maxDistanceInMeters=1500,
   });
 
   final double maxDistanceInMeters;

@@ -16,6 +16,8 @@ dependencies:
 
   collection: any
   dio: ^5.7.0
+  flutter_map_math: ^0.2.1
+  latlong2: any
 
 dev_dependencies:
   flutter_test:

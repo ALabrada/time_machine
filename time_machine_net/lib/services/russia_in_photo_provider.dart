@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map_math/flutter_geo_math.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/domain/area.dart';
 
@@ -57,7 +60,23 @@ class RussiaInPhotoProvider implements DataProvider {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    throw Exception('Request not supported');
+    final math = FlutterMapMath();
+    final north = math.destinationPoint(location.lat, location.lng, radius, 0);
+    final east = math.destinationPoint(location.lat, location.lng, radius, 90);
+    final south = math.destinationPoint(location.lat, location.lng, radius, 180);
+    final west = math.destinationPoint(location.lat, location.lng, radius, -90);
+    assert(north.latitude >= south.latitude);
+    assert(east.longitude >= west.longitude);
+    final area = Area(
+      minLat: south.latitude,
+      minLng: west.longitude,
+      maxLat: north.latitude,
+      maxLng: east.longitude,
+    );
+    final isInBoundary = math.createBoundary(LatLng(location.lat, location.lng), radius);
+    final result = await findIn(area: area, startDate: startDate, endDate: endDate);
+    result.removeWhere((e) => !isInBoundary(LatLng(e.latitude, e.longitude)));
+    return result;
   }
 
   Picture _decode(dynamic obj) {

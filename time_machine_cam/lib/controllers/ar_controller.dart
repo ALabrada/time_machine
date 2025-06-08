@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:ar_location_view/ar_annotation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:rxdart/rxdart.dart';
@@ -40,7 +41,7 @@ class ARController {
     }
     final results = await net.findNear(
       location: Location(lat: position.latitude, lng: position.longitude),
-      radius: position.accuracy + 1000,
+      radius: max(maxDistanceInMeters, position.accuracy),
       startDate: DateTime(config?.minYear ?? ConfigurationService.defaultMinYear),
       endDate: DateTime(config?.maxYear ?? ConfigurationService.defaultMaxYear),
       sources: config?.providers,
