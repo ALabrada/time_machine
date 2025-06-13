@@ -21,6 +21,9 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
   String get sectionSearchOptions => 'Opciones de Búsqueda';
 
   @override
+  String get settingGeocoder => 'Base de Datos de Direcciones';
+
+  @override
   String get settingMapProvider => 'Servicio de Mapas';
 
   @override

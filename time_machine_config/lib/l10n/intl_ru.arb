@@ -3,6 +3,7 @@
   "sectionCamera": "Камера",
   "sectionMap": "Карта",
   "sectionSearchOptions": "Параметры Поиска",
+  "settingGeocoder": "База Данных Адресов",
   "settingMapProvider": "Картографический Сервис",
   "settingPictureRatio": "Соотношение Сторон Изображения",
   "settingReferenceOpacity": "Прозрачность Эталона",

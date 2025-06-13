@@ -21,6 +21,9 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
   String get sectionSearchOptions => 'Параметры Поиска';
 
   @override
+  String get settingGeocoder => 'База Данных Адресов';
+
+  @override
   String get settingMapProvider => 'Картографический Сервис';
 
   @override

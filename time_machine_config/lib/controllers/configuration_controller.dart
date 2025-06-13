@@ -14,6 +14,10 @@ final class ConfigurationController extends ChangeNotifier {
           value: configurationService.cameraRatio ?? ConfigurationService.defaultCameraRatio,
           elements: ['16x9', '4x3', '1x1'],
         ),
+        geocoder = _createGeocoders(
+          configurationService: configurationService,
+          networkService: networkService,
+        ),
         maxYear = SelectionController<int>(
           value: configurationService.maxYear ?? ConfigurationService.defaultMaxYear,
         ),
@@ -62,6 +66,7 @@ final class ConfigurationController extends ChangeNotifier {
   final ConfigurationService configurationService;
 
   final SelectionController<String> cameraRatio;
+  final SelectionController<String> geocoder;
   final SelectionController<int> maxYear;
   final SelectionController<int> minYear;
   final List<SelectableItem<String>> providers;
@@ -94,6 +99,18 @@ final class ConfigurationController extends ChangeNotifier {
     minYear.elements.value = List.generate(
       maxYear.value - ConfigurationService.defaultMinYear + 1,
           (idx) => ConfigurationService.defaultMinYear + idx,
+    );
+  }
+
+  static SelectionController<String> _createGeocoders({
+    required ConfigurationService configurationService,
+    NetworkService? networkService,
+  }) {
+    final services = networkService?.geocoders.keys.toList();
+    services?.sort();
+    return SelectionController<String>(
+      value: configurationService.geocoder ?? ConfigurationService.defaultGeocoder,
+      elements: services ?? [],
     );
   }
 

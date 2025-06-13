@@ -92,6 +92,14 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
             controller: controller.tileServer,
           ),
         ),
+        SettingsTile.navigation(
+          title: Text(ConfigLocalizations.of(context).settingGeocoder),
+          value: Text(controller.geocoder.value),
+          onPressed: (_) => _showSelectionDialog(
+            label: ConfigLocalizations.of(context).settingGeocoder,
+            controller: controller.geocoder,
+          ),
+        ),
       ],
     );
   }

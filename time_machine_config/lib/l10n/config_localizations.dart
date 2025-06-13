@@ -63,7 +63,8 @@ import 'config_localizations_ru.dart';
 /// be consistent with the languages listed in the ConfigLocalizations.supportedLocales
 /// property.
 abstract class ConfigLocalizations {
-  ConfigLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  ConfigLocalizations(String locale)
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -71,7 +72,8 @@ abstract class ConfigLocalizations {
     return Localizations.of<ConfigLocalizations>(context, ConfigLocalizations)!;
   }
 
-  static const LocalizationsDelegate<ConfigLocalizations> delegate = _ConfigLocalizationsDelegate();
+  static const LocalizationsDelegate<ConfigLocalizations> delegate =
+      _ConfigLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -83,18 +85,19 @@ abstract class ConfigLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('es'),
-    Locale('ru')
+    Locale('ru'),
   ];
 
   /// No description provided for @sectionDataBases.
@@ -120,6 +123,12 @@ abstract class ConfigLocalizations {
   /// In en, this message translates to:
   /// **'Search Options'**
   String get sectionSearchOptions;
+
+  /// No description provided for @settingGeocoder.
+  ///
+  /// In en, this message translates to:
+  /// **'Address Database'**
+  String get settingGeocoder;
 
   /// No description provided for @settingMapProvider.
   ///
@@ -152,35 +161,40 @@ abstract class ConfigLocalizations {
   String get settingSearchEnd;
 }
 
-class _ConfigLocalizationsDelegate extends LocalizationsDelegate<ConfigLocalizations> {
+class _ConfigLocalizationsDelegate
+    extends LocalizationsDelegate<ConfigLocalizations> {
   const _ConfigLocalizationsDelegate();
 
   @override
   Future<ConfigLocalizations> load(Locale locale) {
-    return SynchronousFuture<ConfigLocalizations>(lookupConfigLocalizations(locale));
+    return SynchronousFuture<ConfigLocalizations>(
+      lookupConfigLocalizations(locale),
+    );
   }
 
   @override
-  bool isSupported(Locale locale) => <String>['en', 'es', 'ru'].contains(locale.languageCode);
+  bool isSupported(Locale locale) =>
+      <String>['en', 'es', 'ru'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_ConfigLocalizationsDelegate old) => false;
 }
 
 ConfigLocalizations lookupConfigLocalizations(Locale locale) {
-
-
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'en': return ConfigLocalizationsEn();
-    case 'es': return ConfigLocalizationsEs();
-    case 'ru': return ConfigLocalizationsRu();
+    case 'en':
+      return ConfigLocalizationsEn();
+    case 'es':
+      return ConfigLocalizationsEs();
+    case 'ru':
+      return ConfigLocalizationsRu();
   }
 
   throw FlutterError(
     'ConfigLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.'
+    'that was used.',
   );
 }

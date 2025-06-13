@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 final class ConfigurationService {
   static const defaultCameraPictureOpacity = 0.5;
   static const defaultCameraRatio = '16x9';
-  static const defaultGeocoder = "osm";
+  static const defaultGeocoder = "OSM";
   static const defaultMaxYear = 2000;
   static const defaultMinYear = 1900;
 

@@ -3,6 +3,7 @@
   "sectionCamera": "Cámara",
   "sectionMap": "Mapa",
   "sectionSearchOptions": "Opciones de Búsqueda",
+  "settingGeocoder": "Base de Datos de Direcciones",
   "settingMapProvider": "Servicio de Mapas",
   "settingPictureRatio": "Relación de Aspecto",
   "settingReferenceOpacity": "Opacidad de la Referencia",
