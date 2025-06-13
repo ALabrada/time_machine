@@ -10,7 +10,6 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image/image.dart' as img;
 import 'package:native_device_orientation/native_device_orientation.dart';
-import 'package:osm_nominatim/osm_nominatim.dart';
 import 'package:path/path.dart' as p;
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_res/time_machine_res.dart';
@@ -19,6 +18,7 @@ import 'package:uuid/uuid.dart';
 extension CamDatabaseService on DatabaseService {
   Future<Record> createRecord({
     required XFile file,
+    String? address,
     DateTime? createdAt,
     Position? position,
     double? heading,
@@ -54,21 +54,11 @@ extension CamDatabaseService on DatabaseService {
       url: url,
       latitude: position?.latitude ?? original?.latitude ?? double.nan,
       longitude: position?.longitude ?? original?.longitude ?? double.nan,
-      description: original?.description,
+      description: address ?? original?.description,
       altitude: position?.altitude ?? original?.altitude,
       bearing: heading ?? position?.heading ?? original?.bearing,
       time: '${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')}',
     );
-    try {
-      final place = await Nominatim.reverseSearch(
-        lat: picture.latitude,
-        lon: picture.longitude,
-        language: Intl.defaultLocale,
-      );
-      picture.description = place.displayName;
-    } catch(error) {
-      print("Error finding address: $error");
-    }
 
     picture = await createRepository<Picture>().insert(picture);
 

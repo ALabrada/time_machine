@@ -3,13 +3,16 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/domain/area.dart';
+import 'package:time_machine_net/domain/place_info.dart';
 
 class NetworkService {
   NetworkService({
+    required this.geocoders,
     required this.providers,
     this.userAgent,
   });
-  
+
+  final Map<String, GeocodingService> geocoders;
   final Map<String, DataProvider> providers;
   String? userAgent;
 
@@ -91,6 +94,28 @@ class NetworkService {
           result.$1: result.$2!
     };
   }
+
+  Future<List<PlaceInfo>> searchAddress({
+    required String query,
+    String? source,
+  }) async {
+    final searchEngine = source == null ? geocoders.values.firstOrNull : geocoders[source];
+    if (searchEngine == null) {
+      throw Exception("Invalid source");
+    }
+    return await searchEngine.searchAddress(query);
+  }
+
+  Future<List<PlaceInfo>> searchCoordinates({
+    required Location coordinates,
+    String? source,
+  }) async {
+    final searchEngine = source == null ? geocoders.values.firstOrNull : geocoders[source];
+    if (searchEngine == null) {
+      throw Exception("Invalid source");
+    }
+    return await searchEngine.searchCoordinates(coordinates);
+  }
 }
 
 abstract class DataProvider {
@@ -106,4 +131,9 @@ abstract class DataProvider {
     DateTime? startDate,
     DateTime? endDate,
   });
+}
+
+abstract class GeocodingService {
+  Future<List<PlaceInfo>> searchAddress(String query);
+  Future<List<PlaceInfo>> searchCoordinates(Location location);
 }

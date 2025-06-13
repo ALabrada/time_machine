@@ -83,11 +83,13 @@ class PhotoController {
   }) async {
     isProcessing.value = true;
     try {
+      final position = this.position.valueOrNull;
       return await databaseService?.createRecord(
         file: file,
+        address: await _getAddress(position),
         original: original,
         createdAt: DateTime.now(),
-        position: position.valueOrNull,
+        position: position,
         heading: heading.valueOrNull,
         height: height,
         width: width,
@@ -136,5 +138,21 @@ class PhotoController {
     }
 
     return true;
+  }
+
+  Future<String?> _getAddress(Position? position) async {
+    if (position == null) {
+      return null;
+    }
+    final source = configurationService?.geocoder ?? ConfigurationService.defaultGeocoder;
+    try {
+      final places = await networkService?.searchCoordinates(
+        coordinates: Location(lat: position.latitude, lng: position.longitude),
+        source: source,
+      );
+      return places?.firstOrNull?.name;
+    } catch(error) {
+      return null;
+    }
   }
 }

@@ -34,7 +34,6 @@ dependencies:
   intl: any
   latlong2: ^0.9.1
   material_floating_search_bar_2: ^0.5.0
-  osm_nominatim: ^3.0.1
   provider: ^6.1.2
   rxdart: ^0.28.0
   share_plus: ^10.1.3

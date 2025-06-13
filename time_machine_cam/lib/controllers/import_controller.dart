@@ -53,6 +53,7 @@ class ImportController {
       final (lat, lng, time) = await _readExif(selection);
       return await databaseService?.createRecord(
         file: XFile.fromData(result.bytes),
+        address: await _getAddress(lat, lng),
         original: original,
         createdAt: time,
         position: lat == null || lng == null ? null : Position(
@@ -84,6 +85,22 @@ class ImportController {
       source: ImageSource.gallery,
     );
     return selection;
+  }
+
+  Future<String?> _getAddress(double? lat, double? lng) async {
+    if (lat == null || lng == null) {
+      return null;
+    }
+    final source = configurationService?.geocoder ?? ConfigurationService.defaultGeocoder;
+    try {
+      final places = await networkService?.searchCoordinates(
+        coordinates: Location(lat: lat, lng: lng),
+        source: source,
+      );
+      return places?.firstOrNull?.name;
+    } catch(error) {
+      return null;
+    }
   }
 
   Future<(double? latitude, double? longitude, DateTime? dateTime)> _readExif(XFile file) async {

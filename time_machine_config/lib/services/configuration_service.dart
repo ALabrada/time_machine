@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 final class ConfigurationService {
   static const defaultCameraPictureOpacity = 0.5;
   static const defaultCameraRatio = '16x9';
+  static const defaultGeocoder = "osm";
   static const defaultMaxYear = 2000;
   static const defaultMinYear = 1900;
 
@@ -27,6 +28,15 @@ final class ConfigurationService {
       preferences()?.remove('settings.cameraRatio');
     } else {
       preferences()?.setString('settings.cameraRatio', value);
+    }
+  }
+
+  String? get geocoder => preferences()?.getString('settings.geocoder');
+  set geocoder(String? value) {
+    if (value == null) {
+      preferences()?.remove('settings.geocoder');
+    } else {
+      preferences()?.setString('settings.geocoder', value);
     }
   }
 
