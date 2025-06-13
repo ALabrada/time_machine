@@ -7,6 +7,7 @@
   "comparisonPage": "Comparison",
   "comparisonBottom": "Bottom",
   "comparisonLeft": "Left",
+  "comparisonMetric": "Similarity",
   "comparisonRight": "Right",
   "comparisonTop": "Top",
   "galleryEmptyList": "The gallery is empty",

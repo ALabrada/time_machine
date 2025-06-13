@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:image/image.dart' as img;
+import 'package:image_compare_2/image_compare_2.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -78,5 +80,66 @@ class ComparisonController {
       if (originalFile != null)
         XFile(originalFile.path),
     ], text: picture.description);
+  }
+
+  Future<double?> comparePictures(Record? record) async {
+    final picture = record?.picture;
+    final original = record?.original;
+    final cache = cacheManager ?? DefaultCacheManager();
+    if (record == null || picture == null || original == null) {
+      return null;
+    }
+
+    final originalViewPort = Record.tryParseViewPort(record.originalViewPort);
+    final pictureViewPort = Record.tryParseViewPort(record.pictureViewPort);
+    final intersection = originalViewPort == null || pictureViewPort == null
+        ? null
+        : originalViewPort.intersection(pictureViewPort);
+
+    final originalFile = await cache.getSingleFile(original.url);
+    var originalImage = await img.decodeImageFile(originalFile.path);
+    if (originalImage == null) {
+      return null;
+    }
+    if (intersection != null && originalViewPort != null) {
+      final rect = cropImage(
+        width: originalImage.width,
+        height: originalImage.height,
+        viewPort: originalViewPort,
+        intersection: intersection,
+      );
+      originalImage = img.copyCrop(originalImage,
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+      );
+    }
+
+    final uri = Uri.tryParse(picture.url);
+    var ownImage = uri != null && uri.scheme == 'file' ? await img.decodeImageFile(uri.path) : null;
+    if (ownImage == null) {
+      return null;
+    }
+    if (intersection != null && pictureViewPort != null) {
+      final rect = cropImage(
+        width: ownImage.width,
+        height: ownImage.height,
+        viewPort: pictureViewPort,
+        intersection: intersection,
+      );
+      ownImage = img.copyCrop(ownImage,
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+      );
+    }
+
+    return 1.0 - await compareImages(
+      src1: originalImage,
+      src2: ownImage,
+      algorithm: MedianHash(),
+    );
   }
 }

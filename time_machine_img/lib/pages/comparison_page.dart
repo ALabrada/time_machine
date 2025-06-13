@@ -59,7 +59,12 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
         final record = snapshot.data;
         return Scaffold(
           appBar: _buildAppBar(),
-          body: _buildContent(record: record),
+          body: FutureBuilder(
+            future: comparisonController.comparePictures(record),
+            builder: (context, snapshot) {
+              return _buildContent(record: record, match: snapshot.data);
+            },
+          ),
           bottomNavigationBar: _buildToolbar(),
         );
       },
@@ -99,7 +104,7 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
     );
   }
 
-  Widget _buildContent({Record? record}) {
+  Widget _buildContent({Record? record, double? match}) {
     return ValueListenableBuilder(
       valueListenable: sliderDirection,
       builder: (context, direction, _) {
@@ -124,6 +129,7 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
                       child: ComparisonDescription(
                         firstPicture: record?.original,
                         secondPicture: record?.picture,
+                        match: match,
                         direction: direction,
                       ),
                     ),

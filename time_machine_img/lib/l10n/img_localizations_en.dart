@@ -33,6 +33,9 @@ class ImgLocalizationsEn extends ImgLocalizations {
   String get comparisonLeft => 'Left';
 
   @override
+  String get comparisonMetric => 'Similarity';
+
+  @override
   String get comparisonRight => 'Right';
 
   @override

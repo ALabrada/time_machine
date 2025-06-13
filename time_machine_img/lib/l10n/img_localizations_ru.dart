@@ -33,6 +33,9 @@ class ImgLocalizationsRu extends ImgLocalizations {
   String get comparisonLeft => 'Слева';
 
   @override
+  String get comparisonMetric => 'Сходство';
+
+  @override
   String get comparisonRight => 'Справа';
 
   @override

@@ -148,6 +148,12 @@ abstract class ImgLocalizations {
   /// **'Left'**
   String get comparisonLeft;
 
+  /// No description provided for @comparisonMetric.
+  ///
+  /// In en, this message translates to:
+  /// **'Similarity'**
+  String get comparisonMetric;
+
   /// No description provided for @comparisonRight.
   ///
   /// In en, this message translates to:

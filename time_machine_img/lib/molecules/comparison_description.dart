@@ -10,11 +10,13 @@ class ComparisonDescription extends StatelessWidget {
     super.key,
     this.firstPicture,
     this.secondPicture,
+    this.match,
     this.direction=SliderDirection.bottomToTop,
   });
 
   final Picture? firstPicture;
   final Picture? secondPicture;
+  final double? match;
   final SliderDirection direction;
 
   @override
@@ -55,6 +57,24 @@ class ComparisonDescription extends StatelessWidget {
               ],
             ),
           ),
+          if (match != null)
+            ...[
+              const SizedBox(height: 8),
+              Text.rich(
+                TextSpan(
+                  text: "${ImgLocalizations.of(context).comparisonMetric}: ",
+                  style: TextTheme.of(context).bodyLarge?.merge(TextStyle(
+                    fontWeight: FontWeight.w600,
+                  )),
+                  children: [
+                    TextSpan(
+                      text: "${(100.0 * match!).toStringAsFixed(0)}%",
+                      style: TextTheme.of(context).bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ]
         ],
       ),
     );
