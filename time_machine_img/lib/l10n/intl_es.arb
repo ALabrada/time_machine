@@ -18,8 +18,12 @@
   "shareMenuImages": "Compartir imágenes",
   "shareMenuUploadTo": "Subir a {site}",
   "uploadMenu": "¿Qué desea enviar?",
+  "uploadMenuCancel": "Cancelar",
   "uploadMenuFile": "Otro archivo",
+  "uploadMenuFileAligned": "Otro archivo (Alineado)",
   "uploadMenuOriginal": "La foto antigua",
+  "uploadMenuOriginalAligned": "La foto antigua (Alineado)",
   "uploadMenuPicture": "Su foto",
+  "uploadMenuPictureAligned": "Su foto (Alineado)",
   "uploadPage": "Subir a {site}"
 }

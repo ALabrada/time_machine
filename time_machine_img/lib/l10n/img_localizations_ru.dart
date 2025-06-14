@@ -68,13 +68,25 @@ class ImgLocalizationsRu extends ImgLocalizations {
   String get uploadMenu => 'Что вы хотите загрузить?';
 
   @override
+  String get uploadMenuCancel => 'Отменить';
+
+  @override
   String get uploadMenuFile => 'Другой файл';
+
+  @override
+  String get uploadMenuFileAligned => 'Другой файл (Выравнять)';
 
   @override
   String get uploadMenuOriginal => 'Давнюю фотографию';
 
   @override
+  String get uploadMenuOriginalAligned => 'Давнюю фотографию (Выравнять)';
+
+  @override
   String get uploadMenuPicture => 'Свою фотографию';
+
+  @override
+  String get uploadMenuPictureAligned => 'Свою фотографию (Выравнять)';
 
   @override
   String uploadPage(Object site) {

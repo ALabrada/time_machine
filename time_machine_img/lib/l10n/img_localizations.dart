@@ -214,11 +214,23 @@ abstract class ImgLocalizations {
   /// **'What to upload?'**
   String get uploadMenu;
 
+  /// No description provided for @uploadMenuCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get uploadMenuCancel;
+
   /// No description provided for @uploadMenuFile.
   ///
   /// In en, this message translates to:
   /// **'Another file'**
   String get uploadMenuFile;
+
+  /// No description provided for @uploadMenuFileAligned.
+  ///
+  /// In en, this message translates to:
+  /// **'Another file (Aligned)'**
+  String get uploadMenuFileAligned;
 
   /// No description provided for @uploadMenuOriginal.
   ///
@@ -226,11 +238,23 @@ abstract class ImgLocalizations {
   /// **'Old picture'**
   String get uploadMenuOriginal;
 
+  /// No description provided for @uploadMenuOriginalAligned.
+  ///
+  /// In en, this message translates to:
+  /// **'Old picture (Aligned)'**
+  String get uploadMenuOriginalAligned;
+
   /// No description provided for @uploadMenuPicture.
   ///
   /// In en, this message translates to:
   /// **'My picture'**
   String get uploadMenuPicture;
+
+  /// No description provided for @uploadMenuPictureAligned.
+  ///
+  /// In en, this message translates to:
+  /// **'My picture (Aligned)'**
+  String get uploadMenuPictureAligned;
 
   /// No description provided for @uploadPage.
   ///

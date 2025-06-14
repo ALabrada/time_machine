@@ -79,6 +79,15 @@ class TimeMachineApp extends StatelessWidget {
                         ),
                         routes: [
                           GoRoute(
+                            path: 'picture/:pictureId',
+                            builder: (context, state) => FixedOrientationView(
+                              orientations: DeviceOrientation.values,
+                              child: PicturePage(
+                                pictureId: int.tryParse(state.pathParameters['pictureId'] ?? ''),
+                              ),
+                            ),
+                          ),
+                          GoRoute(
                             path: 'upload',
                             builder: (context, state) => FixedOrientationView(
                               orientations: DeviceOrientation.values,

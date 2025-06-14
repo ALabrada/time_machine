@@ -131,6 +131,8 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
                         secondPicture: record?.picture,
                         match: match,
                         direction: direction,
+                        onTapFirstPicture: () => showPicture(record?.original),
+                        onTapSecondPicture: () => showPicture(record?.picture),
                       ),
                     ),
                   ),
@@ -211,6 +213,13 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
     if (await comparisonController.removeRecord() && mounted) {
       Navigator.of(context).pop();
     }
+  }
+
+  void showPicture(Picture? element) {
+    if (element == null) {
+      return;
+    }
+    context.go('/gallery/${widget.recordId}/picture/${element.localId}');
   }
 
   Future<void> showSharingMenu() async {

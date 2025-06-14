@@ -21,6 +21,7 @@ class ComparisonController {
   final DatabaseService? databaseService;
   final NetworkService? networkService;
   Record? record;
+  double? similarity;
 
   Future<Record?> loadRecord(int? id) async {
     if (id == null) {
@@ -83,6 +84,10 @@ class ComparisonController {
   }
 
   Future<double?> comparePictures(Record? record) async {
+    if (similarity != null) {
+      return similarity;
+    }
+
     final picture = record?.picture;
     final original = record?.original;
     final cache = cacheManager ?? DefaultCacheManager();
@@ -108,12 +113,12 @@ class ComparisonController {
         viewPort: originalViewPort,
         intersection: intersection,
       );
-      originalImage = img.copyCrop(originalImage,
+      originalImage = await Future.microtask(() => img.copyCrop(originalImage!,
         x: rect.left,
         y: rect.top,
         width: rect.width,
         height: rect.height,
-      );
+      ));
     }
 
     final uri = Uri.tryParse(picture.url);
@@ -128,18 +133,19 @@ class ComparisonController {
         viewPort: pictureViewPort,
         intersection: intersection,
       );
-      ownImage = img.copyCrop(ownImage,
+      ownImage = await Future.microtask(() => img.copyCrop(ownImage!,
         x: rect.left,
         y: rect.top,
         width: rect.width,
         height: rect.height,
-      );
+      ));
     }
 
-    return 1.0 - await compareImages(
+    similarity = 1.0 - await compareImages(
       src1: originalImage,
       src2: ownImage,
       algorithm: MedianHash(),
     );
+    return similarity;
   }
 }

@@ -68,13 +68,25 @@ class ImgLocalizationsEs extends ImgLocalizations {
   String get uploadMenu => '¿Qué desea enviar?';
 
   @override
+  String get uploadMenuCancel => 'Cancelar';
+
+  @override
   String get uploadMenuFile => 'Otro archivo';
+
+  @override
+  String get uploadMenuFileAligned => 'Otro archivo (Alineado)';
 
   @override
   String get uploadMenuOriginal => 'La foto antigua';
 
   @override
+  String get uploadMenuOriginalAligned => 'La foto antigua (Alineado)';
+
+  @override
   String get uploadMenuPicture => 'Su foto';
+
+  @override
+  String get uploadMenuPictureAligned => 'Su foto (Alineado)';
 
   @override
   String uploadPage(Object site) {

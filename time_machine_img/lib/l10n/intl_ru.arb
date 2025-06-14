@@ -18,8 +18,12 @@
   "shareMenuImages": "Делиться фотографиями",
   "shareMenuUploadTo": "Загрузить на {site}",
   "uploadMenu": "Что вы хотите загрузить?",
+  "uploadMenuCancel": "Отменить",
   "uploadMenuFile": "Другой файл",
+  "uploadMenuFileAligned": "Другой файл (Выравнять)",
   "uploadMenuOriginal": "Давнюю фотографию",
+  "uploadMenuOriginalAligned": "Давнюю фотографию (Выравнять)",
   "uploadMenuPicture": "Свою фотографию",
+  "uploadMenuPictureAligned": "Свою фотографию (Выравнять)",
   "uploadPage": "Загрузить на {site}"
 }

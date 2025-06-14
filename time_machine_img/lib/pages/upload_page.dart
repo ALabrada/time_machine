@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -29,12 +30,13 @@ class _UploadPageState extends State<UploadPage> {
   @override
   void initState() {
     uploadController = UploadController(
+      cacheManager: CachedNetworkImageProvider.defaultCacheManager,
       databaseService: context.read(),
       networkService: context.read(),
       preferences: context.read(),
       url: widget.webPage.isEmpty ? null : Uri.parse(widget.webPage),
       onUploadFile: () => showUploadMenu(),
-      onError: _showError
+      onError: _showError,
     );
     super.initState();
     unawaited(_loadPage());
@@ -93,35 +95,52 @@ class _UploadPageState extends State<UploadPage> {
     );
   }
 
-  Future<Picture?> showUploadMenu() async {
+  Future<(Picture, bool)?> showUploadMenu() async {
     final record = uploadController.record;
     if (record == null) {
       return null;
     }
     final picture = record.picture;
     final original = record.original;
-    return await showAdaptiveActionSheet<Picture>(
+    return await showAdaptiveActionSheet<(Picture, bool)>(
       context: context,
       title: Text(ImgLocalizations.of(context).uploadMenu),
+      cancelAction: CancelAction(
+        title: Text(ImgLocalizations.of(context).uploadMenuCancel),
+      ),
       actions: [
         if (picture != null)
           BottomSheetAction(
             title: Text(ImgLocalizations.of(context).uploadMenuPicture),
             onPressed: (context) {
-              context.pop(picture);
+              context.pop((picture, false));
+            },
+          ),
+        if (picture != null && record.pictureViewPort != null)
+          BottomSheetAction(
+            title: Text(ImgLocalizations.of(context).uploadMenuPictureAligned),
+            onPressed: (context) {
+              context.pop((picture, true));
             },
           ),
         if (original != null)
           BottomSheetAction(
             title: Text(ImgLocalizations.of(context).uploadMenuOriginal),
             onPressed: (context) {
-              context.pop(original);
+              context.pop((original, false));
+            },
+          ),
+        if (original != null && record.originalViewPort != null)
+          BottomSheetAction(
+            title: Text(ImgLocalizations.of(context).uploadMenuOriginalAligned),
+            onPressed: (context) {
+              context.pop((original, true));
             },
           ),
         BottomSheetAction(
           title: Text(ImgLocalizations.of(context).uploadMenuFile),
           onPressed: (context) {
-            context.pop();
+            context.pop((Picture(id: '', url: '', latitude: 0, longitude: 0), false));
           },
         ),
       ],

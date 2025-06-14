@@ -68,13 +68,25 @@ class ImgLocalizationsEn extends ImgLocalizations {
   String get uploadMenu => 'What to upload?';
 
   @override
+  String get uploadMenuCancel => 'Cancel';
+
+  @override
   String get uploadMenuFile => 'Another file';
+
+  @override
+  String get uploadMenuFileAligned => 'Another file (Aligned)';
 
   @override
   String get uploadMenuOriginal => 'Old picture';
 
   @override
+  String get uploadMenuOriginalAligned => 'Old picture (Aligned)';
+
+  @override
   String get uploadMenuPicture => 'My picture';
+
+  @override
+  String get uploadMenuPictureAligned => 'My picture (Aligned)';
 
   @override
   String uploadPage(Object site) {

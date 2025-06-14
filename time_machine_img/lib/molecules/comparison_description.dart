@@ -12,12 +12,16 @@ class ComparisonDescription extends StatelessWidget {
     this.secondPicture,
     this.match,
     this.direction=SliderDirection.bottomToTop,
+    this.onTapFirstPicture,
+    this.onTapSecondPicture,
   });
 
   final Picture? firstPicture;
   final Picture? secondPicture;
   final double? match;
   final SliderDirection direction;
+  final VoidCallback? onTapFirstPicture;
+  final VoidCallback? onTapSecondPicture;
 
   @override
   Widget build(BuildContext context) {
@@ -28,33 +32,43 @@ class ComparisonDescription extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text.rich(
-            TextSpan(
-              text: "${labels[0]}: ",
-              style: TextTheme.of(context).bodyLarge?.merge(TextStyle(
-                fontWeight: FontWeight.w600,
-              )),
-              children: [
-                TextSpan(
-                  text: firstPicture?.text ?? '',
-                  style: TextTheme.of(context).bodyMedium,
-                ),
-              ],
+          InkWell(
+            onTap: onTapFirstPicture,
+            child: Text.rich(
+              TextSpan(
+                text: "${labels[0]}: ",
+                style: TextTheme.of(context).bodyLarge?.merge(TextStyle(
+                  fontWeight: FontWeight.w600,
+                )),
+                children: [
+                  TextSpan(
+                    text: firstPicture?.text ?? '',
+                    style: TextTheme.of(context).bodyMedium?.merge(TextStyle(
+                      decoration: TextDecoration.underline,
+                    )),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          Text.rich(
-            TextSpan(
-              text: "${labels[1]}: ",
-              style: TextTheme.of(context).bodyLarge?.merge(TextStyle(
-                fontWeight: FontWeight.w600,
-              )),
-              children: [
-                TextSpan(
-                  text: secondPicture?.text ?? '',
-                  style: TextTheme.of(context).bodyMedium,
-                ),
-              ],
+          InkWell(
+            onTap: onTapSecondPicture,
+            child: Text.rich(
+              TextSpan(
+                text: "${labels[1]}: ",
+                style: TextTheme.of(context).bodyLarge?.merge(TextStyle(
+                  fontWeight: FontWeight.w600,
+                )),
+                children: [
+                  TextSpan(
+                    text: secondPicture?.text ?? '',
+                    style: TextTheme.of(context).bodyMedium?.merge(TextStyle(
+                      decoration: TextDecoration.underline,
+                    )),
+                  ),
+                ],
+              ),
             ),
           ),
           if (match != null)

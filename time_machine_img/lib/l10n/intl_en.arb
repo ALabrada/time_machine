@@ -18,8 +18,12 @@
   "shareMenuImages": "Share images",
   "shareMenuUploadTo": "Upload to {site}",
   "uploadMenu": "What to upload?",
+  "uploadMenuCancel": "Cancel",
   "uploadMenuFile": "Another file",
+  "uploadMenuFileAligned": "Another file (Aligned)",
   "uploadMenuOriginal": "Old picture",
+  "uploadMenuOriginalAligned": "Old picture (Aligned)",
   "uploadMenuPicture": "My picture",
+  "uploadMenuPictureAligned": "My picture (Aligned)",
   "uploadPage": "Upload to {site}"
 }

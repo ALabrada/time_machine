@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-
+import 'dart:math';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:rxdart/rxdart.dart';
@@ -18,6 +21,7 @@ final class UploadController extends ChangeNotifier {
   static const defaultPageUrl = 'https://www.re.photos/en/compilation/create/';
 
   UploadController({
+    this.cacheManager,
     this.databaseService,
     this.networkService,
     this.preferences,
@@ -43,12 +47,13 @@ final class UploadController extends ChangeNotifier {
   }
 
   final Uri url;
+  final BaseCacheManager? cacheManager;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
   final SharedPreferencesWithCache? preferences;
   final WebViewController webViewController = WebViewController()
     ..setJavaScriptMode(JavaScriptMode.unrestricted);
-  final FutureOr<Picture?> Function()? onUploadFile;
+  final FutureOr<(Picture picture, bool align)?> Function()? onUploadFile;
   final void Function(String? description)? onError;
 
   final BehaviorSubject<int?> loadingProgress = BehaviorSubject();
@@ -112,23 +117,131 @@ final class UploadController extends ChangeNotifier {
   }
 
   Future<String?> showUploadMenu() async {
-    final picture = await onUploadFile?.call();
-    if (picture == null) {
+    final result = await onUploadFile?.call();
+    if (result == null) {
       return null;
     }
+    final (picture, align) = result;
     final url = Uri.tryParse(picture.url);
-    if (url == null || url.isScheme('file')) {
+    if (picture.url.isEmpty || url == null || url.isScheme('file')) {
       return picture.url;
     }
 
-    final networkService = this.networkService;
-    if (networkService == null) {
-      throw Exception('No network service');
+    final cache = cacheManager ?? DefaultCacheManager();
+    final file = await cache.getSingleFile(picture.url);
+
+    if (!align) {
+      return Uri.file(file.path).toString();
     }
+
+    return await _cropPicture(
+      picture: picture,
+      path: file.path,
+    ) ?? Uri.file(file.path).toString();
+  }
+
+  Future<void> fillPage(String url) async {
+    final record = this.record;
+    final original = record?.original;
+    final picture = record?.picture;
+    if (record == null || original == null || picture == null) {
+      return;
+    }
+    if (url == defaultPageUrl) {
+      final title = original.description;
+      if (title != null) {
+        await _setInputFields({
+          'id_upload-working_title': title,
+        });
+      }
+    } else if (url.startsWith(defaultPageUrl)) {
+      final title = original.description;
+      final address = picture.description;
+      final originalTime = original.time?.split('-') ?? [];
+      final ownTime = picture.time?.split('-') ?? [];
+      final lat = picture.latitude;
+      final lng = picture.longitude;
+
+      await _setInputFields({
+        if (title != null && Intl.systemLocale.startsWith('en'))
+          'id_metadata-title_en': title
+        else if (title != null)
+          'id_metadata-title_other': title,
+        if (originalTime.isNotEmpty)
+          'id_metadata-before_creation_year': originalTime[0],
+        if (originalTime.length > 1)
+          'id_metadata-before_creation_month': originalTime[1],
+        if (originalTime.length > 2)
+          'id_metadata-before_creation_day': originalTime[2],
+        'id_metadata-before_creation_approximate': 'true',
+        if (ownTime.isNotEmpty)
+          'id_metadata-after_creation_year': ownTime[0],
+        if (ownTime.length > 1)
+          'id_metadata-after_creation_month': ownTime[1],
+        if (ownTime.length > 2)
+          'id_metadata-after_creation_day': ownTime[2],
+        'id_metadata-position_latitude': lat.toStringAsFixed(6),
+        'id_metadata-position_longitude': lng.toStringAsFixed(6),
+        if (address != null)
+          'id_metadata-location_text': address,
+      });
+    }
+  }
+
+  Future<String?> _cropPicture({
+    required Picture picture,
+    required String path,
+  }) async {
+    final record = this.record;
+    if (record == null) {
+      return null;
+    }
+
+    final originalViewPort = Record.tryParseViewPort(record.originalViewPort);
+    final pictureViewPort = Record.tryParseViewPort(record.pictureViewPort);
+    if (originalViewPort == null || pictureViewPort == null) {
+      return null;
+    }
+
+    final intersection = originalViewPort.intersection(pictureViewPort);
+    if (intersection == null) {
+      return null;
+    }
+
+    Rectangle? viewPort;
+    if (picture == record.picture && record.pictureViewPort != null) {
+      viewPort = pictureViewPort;
+    } else if (picture == record.original && record.originalViewPort != null) {
+      viewPort = originalViewPort;
+    } else {
+      return null;
+    }
+
+    var image = await img.decodeImageFile(path);
+    if (image == null) {
+      return null;
+    }
+
+    final rect = cropImage(
+      width: image.width,
+      height: image.height,
+      viewPort: viewPort,
+      intersection: intersection,
+    );
+    image = await Future.microtask(() => img.copyCrop(image!,
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height,
+    ));
+
     final dirPath = await getTemporaryDirectory();
-    final path = p.join(dirPath.path, 'picture.jpg');
-    await networkService.download(picture.url, path);
-    return Uri.file(path).toString();
+    final dstPath = p.join(dirPath.path, 'pictures', '${picture.id}.jpg');
+    if (!await img.encodeJpgFile(dstPath, image)) {
+      return null;
+    }
+
+    return Uri.file(dstPath).toString();
   }
 
   void _onPageStarted(String url) {
@@ -140,6 +253,7 @@ final class UploadController extends ChangeNotifier {
     debugPrint('[WEB] loaded: $url');
     loadingProgress.value = null;
     unawaited(saveCookies());
+    unawaited(fillPage(url));
   }
 
   void _onHttpError(HttpResponseError error) {
@@ -150,6 +264,14 @@ final class UploadController extends ChangeNotifier {
   void _onResourceError(WebResourceError error) {
     debugPrint('[WEB] error ${error.errorCode}: ${error.description}');
     onError?.call(error.description);
+  }
+
+  Future<void> _setInputFields(Map<String, String> fieldValues) async {
+    final script = [
+      for (final e in fieldValues.entries)
+        'document.getElementById("${e.key}").value = "${e.value.replaceAll('"', '\\"')}";'
+    ].join('\n');
+    await webViewController.runJavaScript(script);
   }
 
   FutureOr<NavigationDecision> _onNavigationRequest(NavigationRequest request) async {
@@ -164,7 +286,10 @@ final class UploadController extends ChangeNotifier {
     try {
       if (params.mode == FileSelectorMode.open) {
         final url = await showUploadMenu();
-        if (url != null) {
+        if (url == null) {
+          return [];
+        }
+        if (url.isNotEmpty) {
           return [url];
         }
       }
@@ -201,6 +326,7 @@ final class UploadController extends ChangeNotifier {
         return [Uri.file(result.files.single.path!).toString()];
       }
     } catch (e) {
+      onError?.call(e.toString());
       return [];
     }
   }
