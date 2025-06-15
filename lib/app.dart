@@ -6,9 +6,11 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_machine/pages/home_page.dart';
+import 'package:time_machine/secrets.dart' as secrets;
 import 'package:time_machine_cam/time_machine_cam.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/services/database_service.dart';
+import 'package:time_machine_img/services/telegram_service.dart';
 import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_map/time_machine_map.dart';
 import 'package:time_machine_net/time_machine_net.dart';
@@ -150,6 +152,13 @@ class TimeMachineApp extends StatelessWidget {
         Provider<ConfigurationService>(
           create: (context) => ConfigurationService(
             preferences: context.read,
+          ),
+        ),
+        Provider<TelegramService>(
+          create: (_) => TelegramService(
+            apiKey: secrets.TELEGRAM_BOT_TOKEN,
+            channelId: secrets.TELEGRAM_CHANNEL_ID,
+            channelName: 'history_lens_app',
           ),
         ),
       ],

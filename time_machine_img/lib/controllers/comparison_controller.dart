@@ -1,25 +1,30 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_compare_2/image_compare_2.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_img/services/database_service.dart';
+import 'package:time_machine_img/services/telegram_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
-import 'package:path/path.dart' as p;
+import 'package:url_launcher/url_launcher.dart';
 
 class ComparisonController {
   ComparisonController({
     this.cacheManager,
     this.databaseService,
     this.networkService,
+    this.telegramService,
     this.record,
   });
 
   final BaseCacheManager? cacheManager;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
+  final TelegramService? telegramService;
   Record? record;
   double? similarity;
 
@@ -64,6 +69,48 @@ class ComparisonController {
       await File(url.path).delete();
     }
 
+    return true;
+  }
+
+  Future<void> exportRecord() async {
+    final record = this.record;
+    final databaseService = this.databaseService;
+    final id = record?.localId;
+    if (record == null || id == null || databaseService == null) {
+      return;
+    }
+    final data = await databaseService.export(record: record);
+    if (data == null) {
+      return;
+    }
+    await FilePicker.platform.saveFile(
+      dialogTitle: "Exporting pictures",
+      fileName: 'hl_$id',
+      bytes: data,
+    );
+  }
+
+  Future<bool> publishToTelegram() async {
+    final record = this.record;
+    final original = record?.original;
+    final picture = record?.picture;
+    final telegramService = this.telegramService;
+    if (record == null || original == null || picture == null || telegramService == null) {
+      return false;
+    }
+
+    final caption = [
+      if (original.description != null)
+        original.description!,
+      '${original.time ?? '?'} <--> ${picture.time ?? '?'}',
+      'geo:${picture.latitude.toStringAsFixed(6)},${picture.longitude.toStringAsFixed(6)}',
+    ].join('\n');
+
+    await telegramService.publish(
+      pictures: [original, picture],
+      caption: caption,
+      cacheManager: cacheManager,
+    );
     return true;
   }
 

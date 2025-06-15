@@ -196,11 +196,23 @@ abstract class ImgLocalizations {
   /// **'Cancel'**
   String get shareMenuCancel;
 
+  /// No description provided for @shareMenuExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export data'**
+  String get shareMenuExport;
+
   /// No description provided for @shareMenuImages.
   ///
   /// In en, this message translates to:
   /// **'Share images'**
   String get shareMenuImages;
+
+  /// No description provided for @shareMenuPublishTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish in {site}'**
+  String shareMenuPublishTo(Object site);
 
   /// No description provided for @shareMenuUploadTo.
   ///

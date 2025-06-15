@@ -85,17 +85,17 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: "assets/images/favicon.png"
-    background_color: "#8B4513"
+    background_color: "#77413C"
     theme_color: "#FFD700"
 
 flutter_native_splash:
   image: "assets/images/favicon.png"
-  color: "#8B4513"
+  color: "#77413C"
   #branding: assets/dart.png
   #branding_mode: bottom
   android_12:
     image: "assets/images/favicon.png"
-    color: "#8B4513"
+    color: "#77413C"
     #branding: assets/dart.png
 
 flutter_app_name_localization:

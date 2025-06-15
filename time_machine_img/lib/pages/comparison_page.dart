@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -14,6 +12,8 @@ import 'package:time_machine_img/l10n/img_localizations.dart';
 import 'package:time_machine_img/molecules/comparison_description.dart';
 import 'package:time_machine_img/molecules/full_screen_view.dart';
 import 'package:time_machine_res/time_machine_res.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../molecules/tool_bar.dart';
 
@@ -47,6 +47,7 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
       cacheManager: CachedNetworkImageProvider.defaultCacheManager,
       databaseService: context.read(),
       networkService: context.read(),
+      telegramService: context.read(),
     );
     super.initState();
   }
@@ -222,6 +223,18 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
     context.go('/gallery/${widget.recordId}/picture/${element.localId}');
   }
 
+  Future<void> publishToTelegram() async {
+    if (!await comparisonController.publishToTelegram()) {
+      return;
+    }
+    final channelName = comparisonController.telegramService?.channelName;
+    if (channelName != null) {
+      await launchUrlString('https://t.me/$channelName',
+          mode: LaunchMode.externalNonBrowserApplication,
+      );
+    }
+  }
+
   Future<void> showSharingMenu() async {
     await showAdaptiveActionSheet(
       context: context,
@@ -233,6 +246,18 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
           onPressed: (context) {
             context.go('/gallery/${widget.recordId}/upload');
             context.pop();
+          },
+        ),
+        BottomSheetAction(
+          title: Text(ImgLocalizations.of(context).shareMenuPublishTo('Telegram')),
+          onPressed: (context) {
+            unawaited(publishToTelegram());
+          },
+        ),
+        BottomSheetAction(
+          title: Text(ImgLocalizations.of(context).shareMenuExport),
+          onPressed: (context) {
+            unawaited(comparisonController.exportRecord());
           },
         ),
         BottomSheetAction(

@@ -66,11 +66,7 @@ class _MapPageState extends State<MapPage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Stack(
-        children: [
-          _buildMap(),
-        ],
-      ),
+      child: _buildMap(),
     );
   }
 

@@ -57,7 +57,15 @@ class ImgLocalizationsEn extends ImgLocalizations {
   String get shareMenuCancel => 'Cancel';
 
   @override
+  String get shareMenuExport => 'Export data';
+
+  @override
   String get shareMenuImages => 'Share images';
+
+  @override
+  String shareMenuPublishTo(Object site) {
+    return 'Publish in $site';
+  }
 
   @override
   String shareMenuUploadTo(Object site) {

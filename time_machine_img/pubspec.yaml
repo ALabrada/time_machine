@@ -23,6 +23,7 @@ dependencies:
     path: ../time_machine_res
 
   adaptive_action_sheet: ^2.0.4
+  archive: ^4.0.7
   cached_network_image: ^3.4.1
   collection: any
   extended_text: ^15.0.2
@@ -42,6 +43,7 @@ dependencies:
   rxdart: ^0.28.0
   share_plus: ^10.1.3
   shared_preferences: any
+  televerse: any
   url_launcher: ^6.3.1
   webview_cookie_manager_plus: ^2.0.16
   webview_flutter: ^4.11.0
