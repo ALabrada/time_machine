@@ -12,6 +12,8 @@
   "comparisonTop": "Выше",
   "galleryEmptyList": "Галерея пуста",
   "galleryNoSearchResults": "Нет результатов поиска",
+  "importError": "Не удалось импортировать файл",
+  "importSuccessful": "Файл успешно импортирован",
   "searchBarHint": "Поискать...",
   "shareMenu": "Как вы хотите поделиться?",
   "shareMenuCancel": "Отменить",

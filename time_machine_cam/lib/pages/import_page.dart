@@ -139,7 +139,11 @@ class _ImportPageState extends State<ImportPage> {
       context.go('/gallery/${record.localId}');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(CamLocalizations.of(context).couldNotImportPhoto),
+        content: Text(CamLocalizations.of(context).couldNotImportPhoto,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
+        ),
         backgroundColor: Theme.of(context).primaryColor,
       ));
     }

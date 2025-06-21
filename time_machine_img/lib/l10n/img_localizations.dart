@@ -178,6 +178,18 @@ abstract class ImgLocalizations {
   /// **'No search results'**
   String get galleryNoSearchResults;
 
+  /// No description provided for @importError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not import the provided file'**
+  String get importError;
+
+  /// No description provided for @importSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'File imported successfully'**
+  String get importSuccessful;
+
   /// No description provided for @searchBarHint.
   ///
   /// In en, this message translates to:

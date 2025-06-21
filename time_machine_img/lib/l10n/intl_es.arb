@@ -12,6 +12,8 @@
   "comparisonTop": "Encima",
   "galleryEmptyList": "La galería está vacía",
   "galleryNoSearchResults": "No se encontraron resultados",
+  "importError": "No se pudo importar el archivo",
+  "importSuccessful": "Archivo importado correctamente",
   "searchBarHint": "Buscar...",
   "shareMenu": "¿Cómo desea compartir?",
   "shareMenuCancel": "Cancelar",

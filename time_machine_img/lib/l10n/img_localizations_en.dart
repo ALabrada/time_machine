@@ -48,6 +48,12 @@ class ImgLocalizationsEn extends ImgLocalizations {
   String get galleryNoSearchResults => 'No search results';
 
   @override
+  String get importError => 'Could not import the provided file';
+
+  @override
+  String get importSuccessful => 'File imported successfully';
+
+  @override
   String get searchBarHint => 'Search...';
 
   @override

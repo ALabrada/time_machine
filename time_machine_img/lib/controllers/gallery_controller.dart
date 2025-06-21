@@ -6,14 +6,16 @@ import 'package:intl/intl.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/domain/gallery_section.dart';
+import 'package:time_machine_img/services/sharing_service.dart';
 
 class GalleryController {
-  GalleryController() {
+  GalleryController({this.sharingService}) {
     searchController.addListener(() {
       _searchCriteria.value = searchController.text;
     });
   }
 
+  final SharingService? sharingService;
   final searchController = TextEditingController();
   final _searchCriteria = BehaviorSubject.seeded('');
 
@@ -44,11 +46,13 @@ class GalleryController {
 
   Stream<List<GallerySection>> loadAndFilterElements({
     DatabaseService? databaseService,
-  }) {
-    return CombineLatestStream.combine2(
+  }) async* {
+    await sharingService?.init(databaseService: databaseService);
+    yield* CombineLatestStream.combine3(
         reloadElements(databaseService: databaseService),
         _searchCriteria.throttleTime(Duration(milliseconds: 200)).distinct(),
-        (a, b) => filter(a, criteria: b),
+        sharingService?.importedRecords ?? Stream.value([]),
+        (a, b, _) => filter(a, criteria: b),
     );
   }
 

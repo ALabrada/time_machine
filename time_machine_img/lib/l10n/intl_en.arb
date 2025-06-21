@@ -12,6 +12,8 @@
   "comparisonTop": "Top",
   "galleryEmptyList": "The gallery is empty",
   "galleryNoSearchResults": "No search results",
+  "importError": "Could not import the provided file",
+  "importSuccessful": "File imported successfully",
   "searchBarHint": "Search...",
   "shareMenu": "How to share?",
   "shareMenuCancel": "Cancel",

@@ -23,7 +23,9 @@ class _GalleryPageState extends State<GalleryPage> {
 
   @override
   void initState() {
-    galleryController = GalleryController();
+    galleryController = GalleryController(
+      sharingService: context.read(),
+    );
     super.initState();
   }
 

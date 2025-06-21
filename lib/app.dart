@@ -142,6 +142,9 @@ class TimeMachineApp extends StatelessWidget {
           create: (_) => DatabaseService.load(),
           lazy: false,
         ),
+        Provider<SharingService>(
+          create: (_) => SharingService(),
+        ),
         FutureProvider<SharedPreferencesWithCache?>(
           initialData: null,
           create: (_) => SharedPreferencesWithCache.create(
