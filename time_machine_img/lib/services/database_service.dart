@@ -116,7 +116,7 @@ extension DatabaseExtensions on DatabaseService {
   }) async {
     final url = Uri.tryParse(picture.url);
     final mainFile = ArchiveFile.string('$name.json', jsonEncode(picture.toJson()));
-    if (url == null || url.scheme != 'files') {
+    if (url == null || url.scheme != 'file') {
       return [mainFile];
     }
     final attachment = File(url.path);

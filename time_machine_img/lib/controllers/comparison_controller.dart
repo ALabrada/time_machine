@@ -10,9 +10,10 @@ import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/services/database_service.dart';
 import 'package:time_machine_img/services/telegram_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class ComparisonController {
+class ComparisonController with TaskManager {
   ComparisonController({
     this.cacheManager,
     this.databaseService,
@@ -79,7 +80,7 @@ class ComparisonController {
     if (record == null || id == null || databaseService == null) {
       return;
     }
-    final data = await databaseService.export(record: record);
+    final data = await execute(() => databaseService.export(record: record));
     if (data == null) {
       return;
     }
@@ -103,14 +104,15 @@ class ComparisonController {
       if (original.description != null)
         original.description!,
       '${original.time ?? '?'} <--> ${picture.time ?? '?'}',
-      'geo:${picture.latitude.toStringAsFixed(6)},${picture.longitude.toStringAsFixed(6)}',
+      if (original.site != null)
+        original.site!,
     ].join('\n');
 
-    await telegramService.publish(
+    await execute(() => telegramService.publish(
       pictures: [original, picture],
       caption: caption,
       cacheManager: cacheManager,
-    );
+    ));
     return true;
   }
 
@@ -122,7 +124,9 @@ class ComparisonController {
     if (record == null || picture == null) {
       return;
     }
-    final originalFile = original == null ? null : await cache.getSingleFile(original.url);
+    final originalFile = original == null
+        ? null
+        : await execute(() => cache.getSingleFile(original.url));
     await Share.shareXFiles([
       XFile(Uri.parse(picture.url).path),
       if (originalFile != null)

@@ -75,8 +75,10 @@ class TimeMachineApp extends StatelessWidget {
                         path: 'gallery/:recordId',
                         builder: (context, state) => FixedOrientationView(
                           orientations: DeviceOrientation.values,
-                          child: ComparisonPage(
-                            recordId: int.tryParse(state.pathParameters['recordId'] ?? ''),
+                          child: LoadingContainer(
+                            child: ComparisonPage(
+                              recordId: int.tryParse(state.pathParameters['recordId'] ?? ''),
+                            ),
                           ),
                         ),
                         routes: [

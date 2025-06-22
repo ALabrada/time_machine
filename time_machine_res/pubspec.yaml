@@ -16,6 +16,7 @@ dependencies:
 
   cached_network_image: ^3.4.1
   provider: ^6.1.2
+  rxdart: any
 
 dev_dependencies:
   flutter_test:

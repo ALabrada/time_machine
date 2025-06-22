@@ -21,6 +21,10 @@ final class TelegramService {
     String? caption,
     BaseCacheManager? cacheManager,
   }) async {
+    if (pictures.isEmpty) {
+      return false;
+    }
+
     final files = await Stream.fromIterable(pictures)
       .asyncMap((p) => _openFile(
         picture: p,
@@ -39,7 +43,16 @@ final class TelegramService {
           caption: index == 0 ? caption : null,
         ),
     ]);
-    return messages.isNotEmpty;
+
+    if (messages.isEmpty) {
+      return false;
+    }
+
+    await bot.api.sendLocation(chatId,pictures.last.latitude, pictures.last.longitude,
+      replyParameters: ReplyParameters(messageId: messages.last.messageId),
+    );
+
+    return true;
   }
 
   Future<InputFile?> _openFile({

@@ -147,25 +147,36 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
   }
 
   Widget _buildToolbar() {
-    return ToolBar(
-      children: [
-        IconButton(
-          onPressed: _rotateClockwise,
-          icon: Icon(Icons.rotate_right),
-        ),
-        IconButton(
-          onPressed: widget.recordId == null ? null : () {
-            unawaited(showSharingMenu());
-          },
-          icon: Icon(Icons.share),
-        ),
-        IconButton(
-          onPressed: widget.recordId == null ? null : () {
-            unawaited(delete());
-          },
-          icon: Icon(Icons.delete),
-        ),
-      ],
+    return StreamBuilder(
+      stream: comparisonController.isProcessing,
+      builder: (context, snapshot) {
+        return ToolBar(
+          children: [
+            IconButton(
+              onPressed: _rotateClockwise,
+              icon: Icon(Icons.rotate_right),
+            ),
+            if (snapshot.requireData)
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(),
+              )
+            else IconButton(
+              onPressed: widget.recordId == null ? null : () {
+                unawaited(showSharingMenu());
+              },
+              icon: Icon(Icons.share),
+            ),
+            IconButton(
+              onPressed: widget.recordId == null ? null : () {
+                unawaited(delete());
+              },
+              icon: Icon(Icons.delete),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -242,7 +253,7 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
       cancelAction: CancelAction(title: Text(ImgLocalizations.of(context).shareMenuCancel)),
       actions: [
         BottomSheetAction(
-          title: Text(ImgLocalizations.of(context).shareMenuUploadTo('re.photos')),
+          title: Text(ImgLocalizations.of(context).shareMenuPublishTo('re.photos')),
           onPressed: (context) {
             context.go('/gallery/${widget.recordId}/upload');
             context.pop();
@@ -252,12 +263,14 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
           title: Text(ImgLocalizations.of(context).shareMenuPublishTo('Telegram')),
           onPressed: (context) {
             unawaited(publishToTelegram());
+            context.pop();
           },
         ),
         BottomSheetAction(
           title: Text(ImgLocalizations.of(context).shareMenuExport),
           onPressed: (context) {
             unawaited(comparisonController.exportRecord());
+            context.pop();
           },
         ),
         BottomSheetAction(
