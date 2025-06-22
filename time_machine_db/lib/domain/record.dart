@@ -81,3 +81,16 @@ class Record {
 
   Map<String, dynamic> toJson() => _$RecordToJson(this);
 }
+
+extension RecordRepository on Repository<Record> {
+  Future<List<Record>> findRecordsWithPictures(List<int> pictureIds) async {
+    final finder = Finder(
+      filter: Filter.or([
+        Filter.inList('originalId', pictureIds),
+        Filter.inList('pictureId', pictureIds),
+      ]),
+    );
+    final result = await find(finder);
+    return result;
+  }
+}

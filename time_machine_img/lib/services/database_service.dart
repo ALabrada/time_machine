@@ -4,13 +4,24 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:uuid/uuid.dart';
-import 'package:uuid/v4.dart';
 
 extension DatabaseExtensions on DatabaseService {
+  Future<List<Record>> findRecords(List<String> words) async {
+    if (words.isEmpty) {
+      return await createRepository<Record>().list();
+    }
+
+    final pictures = await createRepository<Picture>().findPicturesWithText(words);
+    final pictureIds = List.generate(pictures.length, (i) => pictures[i].localId!);
+    final records = await createRepository<Record>().findRecordsWithPictures(pictureIds);
+    return records;
+  }
+
   Future<Uint8List?> export({
     required Record record,
     String? targetPath,
@@ -38,7 +49,9 @@ extension DatabaseExtensions on DatabaseService {
     }
 
     final stream = OutputMemoryStream();
-    await Future.microtask(() => encoder.encodeStream(archive, stream));
+    await Future.microtask(() => encoder.encodeStream(archive, stream,
+      level: DeflateLevel.defaultCompression,
+    ));
     return stream.getBytes();
   }
 
@@ -77,7 +90,9 @@ extension DatabaseExtensions on DatabaseService {
     }
 
     final stream = OutputMemoryStream();
-    await Future.microtask(() => encoder.encodeStream(archive, stream));
+    await Future.microtask(() => encoder.encodeStream(archive, stream,
+      level: DeflateLevel.defaultCompression,
+    ));
     return stream.getBytes();
   }
 

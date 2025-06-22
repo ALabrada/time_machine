@@ -67,4 +67,18 @@ extension PictureRepository on Repository<Picture> {
     final result = await findFirst(finder);
     return result;
   }
+
+  Future<List<Picture>> findPicturesWithText(List<String> keywords, {
+    int limit = 20,
+  }) async {
+    final finder = Finder(
+      filter: Filter.and([
+        for (final word in keywords)
+          Filter.matches('description', word),
+      ]),
+      limit: limit,
+    );
+    final result = await find(finder);
+    return result;
+  }
 }

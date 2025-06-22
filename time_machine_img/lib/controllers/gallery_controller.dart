@@ -27,6 +27,15 @@ class GalleryController with TaskManager {
   final BehaviorSubject<Set<Record>> selection = BehaviorSubject.seeded({});
   DatabaseService? databaseService;
 
+  StreamSubscription? _searchSubscription, _importSubscription;
+
+  void dispose() {
+    _searchSubscription?.cancel();
+    _searchSubscription = null;
+    _importSubscription?.cancel();
+    _importSubscription = null;
+  }
+
   void cancelEditing() {
     selection.value = {};
     isEditing.value = false;
@@ -58,12 +67,15 @@ class GalleryController with TaskManager {
       files: selection.paths.nonNulls,
       databaseService: databaseService,
     );
+    await _reloadElements();
   }
 
   Future<void> removeRecords() async {
     for (final record in selection.value) {
-      await databaseService?.removeRecord(record);
+      final dbRecord = await loadRecord(record.localId);
+      await databaseService?.removeRecord(dbRecord ?? record);
     }
+    await _reloadElements();
   }
 
   Future<void> export({String? dialogTitle}) async {
@@ -71,8 +83,11 @@ class GalleryController with TaskManager {
     if (selection.value.isEmpty || databaseService == null) {
       return;
     }
-    final data = await execute(() => databaseService.exportMany(
-      records: selection.value.toList(),
+    final data = await execute(() async => await databaseService.exportMany(
+      records: [
+        for (final item in selection.value)
+          await loadRecord(item.localId) ?? item,
+      ],
     ));
     if (data == null) {
       return;
@@ -84,54 +99,60 @@ class GalleryController with TaskManager {
     );
   }
 
-  List<GallerySection> filter(List<GallerySection> sections, {String? criteria}) {
-    final text = (criteria ?? searchController.text).trim();
-    if (sections.isEmpty || text.isEmpty) {
-      return sections;
-    }
-    final words = text
-        .toLowerCase()
-        .split(r'\s+');
-    if (words.isEmpty) {
-      return sections;
-    }
-    return sections
-        .map((s) {
-          return GallerySection(
-            title: s.title,
-            elements: s.elements.where((e) => e.matches(words)).toList(),
-          );
-        })
-        .where((s) => s.elements.isNotEmpty)
-        .toList();
-  }
-
   Stream<List<GallerySection>> loadAndFilterElements({
     DatabaseService? databaseService,
   }) async* {
     await sharingService?.init(databaseService: databaseService);
-    yield* CombineLatestStream.combine3(
-        reloadElements(databaseService: databaseService),
-        _searchCriteria.throttleTime(Duration(milliseconds: 200)).distinct(),
-        sharingService?.importedRecords ?? Stream.value([]),
-        (a, b, _) => filter(a, criteria: b),
-    );
+
+    _searchSubscription?.cancel();
+    _searchSubscription = _searchCriteria.throttleTime(Duration(milliseconds: 200)).distinct()
+      .listen((q) {
+        unawaited(_reloadElements(query: q));
+      });
+
+    _importSubscription?.cancel();
+    _importSubscription = sharingService?.importedRecords
+      .listen((q) {
+        unawaited(_reloadElements());
+      });
+
+    this.databaseService = databaseService;
+    await _reloadElements();
+    yield* sections;
   }
 
-  Stream<List<GallerySection>> reloadElements({
-    DatabaseService? databaseService,
-  }) async* {
-    this.databaseService = databaseService;
-    final items = await databaseService?.createRepository<Record>().list();
-    if (items == null) {
-      return;
+  Future<Record?> loadRecord(int? id) async {
+    if (id == null) {
+      return null;
     }
-    _updateSections(items);
-    yield* sections;
+    final record = await databaseService?.createRepository<Record>().getById(id);
+    if (record == null) {
+      return null;
+    }
+
+    record.picture = await databaseService?.createRepository<Picture>().getById(record.pictureId);
+
+    final originalId = record.originalId;
+    if (originalId != null) {
+      record.original = await databaseService?.createRepository<Picture>().getById(originalId);
+    }
+
+    return record;
   }
 
   Future<Picture?> loadPicture(int id) async {
     return await databaseService?.createRepository<Picture>().getById(id);
+  }
+
+  Future<void> _reloadElements({String? query}) async {
+    final text = (query ?? searchController.text).trim();
+    final words = text.split(r'\s+');
+    words.removeWhere((e) => e.length < 2);    
+    final items = await databaseService?.findRecords(words);
+    if (items == null) {
+      return;
+    }
+    _updateSections(items);
   }
 
   void _updateSections(List<Record> records) {
@@ -145,21 +166,5 @@ class GalleryController with TaskManager {
           elements: e.value,
         ))
         .toList();
-  }
-}
-
-extension SearchExtension on Record {
-  bool matches(List<String> words) {
-    final original = this.original;
-    final picture = this.picture;
-    return words.every((w) {
-      if (original != null && original.text.toLowerCase().contains(w)) {
-        return true;
-      }
-      if (picture != null && picture.text.toLowerCase().contains(w)) {
-        return true;
-      }
-      return false;
-    });
   }
 }

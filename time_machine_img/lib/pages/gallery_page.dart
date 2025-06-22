@@ -92,7 +92,7 @@ class _GalleryPageState extends State<GalleryPage> {
                     databaseService: context.read(),
                   ));
                 },
-                icon: Icon(Icons.file_open),
+                icon: Icon(Icons.unarchive),
               ),
               StreamBuilder(
                 stream: galleryController.isProcessing,
@@ -111,7 +111,7 @@ class _GalleryPageState extends State<GalleryPage> {
                         dialogTitle: ImgLocalizations.of(context).shareMenuExport,
                       ));
                     },
-                    icon: Icon(Icons.save_as),
+                    icon: Icon(Icons.archive),
                   );
                 },
               ),
