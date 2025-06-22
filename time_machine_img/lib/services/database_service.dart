@@ -59,18 +59,23 @@ extension DatabaseExtensions on DatabaseService {
       return Record.fromJson(jsonDecode(text));
     });
 
-    if (record == null) {
+    final picture = await _decodePicture(
+      archive: archive,
+      name: 'now',
+    );
+
+    if (record == null || picture == null) {
       return [];
     }
+
+    record.picture = picture;
+    record.pictureId = picture.localId!;
 
     record.original = await _decodePicture(
       archive: archive,
       name: 'then',
     );
-    record.picture = await _decodePicture(
-      archive: archive,
-      name: 'now',
-    );
+    record.originalId = record.original?.localId;
 
     record = await createRepository<Record>().upsert(record);
     return [record];
