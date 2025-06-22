@@ -1,7 +1,7 @@
 {
   "appTitle": "History Lens",
   "homeTabsGallery": "Gallery",
-  "homeTabsCamera": "Camera",
+  "homeTabsCamera": "Nearby",
   "homeTabsMap": "Map",
   "homeTabsConfig": "Settings"
 }

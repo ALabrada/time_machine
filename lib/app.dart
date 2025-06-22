@@ -15,14 +15,16 @@ import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_map/time_machine_map.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
-import 'generated/l10n.dart';
+import 'l10n/app_localizations.dart';
 
 class TimeMachineApp extends StatelessWidget {
   const TimeMachineApp({
     super.key,
+    this.packageInfo,
     this.userAgent,
   });
 
+  final PackageInfo? packageInfo;
   final String? userAgent;
 
   // This widget is the root of your application.
@@ -139,6 +141,8 @@ class TimeMachineApp extends StatelessWidget {
             },
           ),
         ),
+        if (packageInfo != null)
+          Provider.value(value: packageInfo!),
         FutureProvider<DatabaseService?>(
           initialData: null,
           create: (_) => DatabaseService.load(),
@@ -171,7 +175,7 @@ class TimeMachineApp extends StatelessWidget {
         return MaterialApp.router(
           title: context.read<PackageInfo?>()?.appName,
           localizationsDelegates: [
-            S.delegate,
+            AppLocalizations.delegate,
             CamLocalizations.delegate,
             ConfigLocalizations.delegate,
             ImgLocalizations.delegate,
@@ -180,7 +184,7 @@ class TimeMachineApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: S.delegate.supportedLocales,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: ThemeData.from(
             colorScheme: colorScheme,
             useMaterial3: true,

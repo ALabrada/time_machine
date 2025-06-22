@@ -14,6 +14,7 @@ Future<void> main() async {
     final packageInfo = await PackageInfo.fromPlatform();
     runApp(TimeMachineApp(
       userAgent: "HistoryLens/${packageInfo.version} $userAgent",
+      packageInfo: packageInfo,
     ));
   }
 }

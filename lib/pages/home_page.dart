@@ -9,7 +9,7 @@ import 'package:time_machine_map/time_machine_map.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
 import '../app.dart';
-import '../generated/l10n.dart';
+import '../l10n/app_localizations.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -51,22 +51,22 @@ class _HomePageState extends State<HomePage> {
           NavigationDestination(
             selectedIcon: Icon(Icons.photo_album),
             icon: Icon(Icons.photo_album_outlined),
-            label: S.of(context).homeTabsGallery,
+            label: AppLocalizations.of(context).homeTabsGallery,
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.camera_alt),
-            icon: Icon(Icons.camera_alt_outlined),
-            label: S.of(context).homeTabsCamera,
+            selectedIcon: Icon(Icons.radar),
+            icon: Icon(Icons.radar_outlined),
+            label: AppLocalizations.of(context).homeTabsCamera,
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.map),
             icon: Icon(Icons.map_outlined),
-            label: S.of(context).homeTabsMap,
+            label: AppLocalizations.of(context).homeTabsMap,
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.settings),
             icon: Icon(Icons.settings_outlined),
-            label: S.of(context).homeTabsConfig,
+            label: AppLocalizations.of(context).homeTabsConfig,
           ),
         ],
       ),

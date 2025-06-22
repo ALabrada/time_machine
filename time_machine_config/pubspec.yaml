@@ -24,6 +24,7 @@ dependencies:
   geolocator: any
   go_router: any
   intl: any
+  package_info_plus: ^8.3.0
   select_dialog: ^2.0.2
   settings_ui: ^2.0.2
   shared_preferences: any

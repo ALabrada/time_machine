@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:select_dialog/select_dialog.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:time_machine_config/controllers/configuration_controller.dart';
@@ -47,9 +48,22 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
               _buildMapSection(),
               _buildProvidersSection(),
               _buildSearchOptions(),
+              _buildFooter(),
             ],
           );
         },
+      ),
+    );
+  }
+
+  AbstractSettingsSection _buildFooter() {
+    final packageInfo = context.watch<PackageInfo?>();
+    return CustomSettingsSection(
+      child: Container(
+        alignment: Alignment.center,
+        color: Theme.of(context).colorScheme.surface,
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: packageInfo == null ? null : Text('${packageInfo.appName} v${packageInfo.version}'),
       ),
     );
   }
