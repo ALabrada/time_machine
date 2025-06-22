@@ -5,7 +5,10 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_db/time_machine_db.dart';
+import 'package:uuid/uuid.dart';
+import 'package:uuid/v4.dart';
 
 extension DatabaseExtensions on DatabaseService {
   Future<Uint8List?> export({
@@ -39,46 +42,78 @@ extension DatabaseExtensions on DatabaseService {
     return stream.getBytes();
   }
 
+  Future<Uint8List?> exportMany({
+    required List<Record> records,
+    String? targetPath,
+  }) async {
+    final archive = Archive();
+    final encoder = ZipEncoder();
+    if (records.isEmpty) {
+      return null;
+    }
+
+    for (final record in records) {
+      final original = record.original;
+      final picture = record.picture;
+      final path = Uuid().v4();
+      archive.add(ArchiveFile.directory(path));
+      if (original != null) {
+        for (final entry in await _encodePicture(picture: original, name: '$path/then')) {
+          archive.add(entry);
+        }
+      }
+      if (picture != null) {
+        for (final entry in await _encodePicture(picture: picture, name: '$path/now')) {
+          archive.add(entry);
+        }
+      }
+      final mainFile = ArchiveFile.string('$path/meta.json', jsonEncode(record.toJson()));
+      archive.add(mainFile);
+    }
+
+    if (targetPath != null) {
+      await Future.microtask(() => encoder.encodeStream(archive, OutputFileStream(targetPath)));
+      return File(targetPath).readAsBytes();
+    }
+
+    final stream = OutputMemoryStream();
+    await Future.microtask(() => encoder.encodeStream(archive, stream));
+    return stream.getBytes();
+  }
+
   Future<List<Record>> importFile({
     required String sourcePath,
   }) async {
     final decoder = ZipDecoder();
     final archive = decoder.decodeStream(InputFileStream(sourcePath));
 
-    final meta = archive.findFile('meta.json');
-    if (meta == null) {
-      return [];
+    var record = await _importRecord(archive: archive);
+    if (record != null) {
+      return [record];
     }
 
-    var record = await Future.microtask(() {
-      final data = meta.readBytes();
-      if (data == null) {
-        return null;
-      }
-      final text = utf8.decode(data);
-      return Record.fromJson(jsonDecode(text));
-    });
+    return await Stream.fromIterable(archive.files)
+      .where((e) => e.isDirectory)
+      .asyncMap((e) => _importRecord(archive: archive, path: e.name))
+      .whereNotNull()
+      .toList();
+  }
 
-    final picture = await _decodePicture(
-      archive: archive,
-      name: 'now',
-    );
-
-    if (record == null || picture == null) {
-      return [];
+  Future<bool> removeRecord(Record record) async {
+    final recordId = record.localId;
+    if (recordId == null || !await createRepository<Record>().delete(recordId)) {
+      return false;
     }
 
-    record.picture = picture;
-    record.pictureId = picture.localId!;
+    if (!await createRepository<Picture>().delete(record.pictureId)) {
+      return false;
+    }
 
-    record.original = await _decodePicture(
-      archive: archive,
-      name: 'then',
-    );
-    record.originalId = record.original?.localId;
-
-    record = await createRepository<Record>().upsert(record);
-    return [record];
+    final url = Uri.tryParse(record.picture?.url ?? '');
+    if (url != null) {
+      await File(url.path).delete();
+    }
+    return true;
   }
 
   Future<Picture?> _decodePicture({
@@ -132,5 +167,45 @@ extension DatabaseExtensions on DatabaseService {
       mainFile,
       attachmentFile,
     ];
+  }
+
+  Future<Record?> _importRecord({
+    required Archive archive,
+    String path = '',
+  }) async {
+    final meta = archive.findFile('${path}meta.json');
+    if (meta == null) {
+      return null;
+    }
+
+    var record = await Future.microtask(() {
+      final data = meta.readBytes();
+      if (data == null) {
+        return null;
+      }
+      final text = utf8.decode(data);
+      return Record.fromJson(jsonDecode(text));
+    });
+
+    final picture = await _decodePicture(
+      archive: archive,
+      name: '${path}now',
+    );
+
+    if (record == null || picture == null) {
+      return null;
+    }
+
+    record.picture = picture;
+    record.pictureId = picture.localId!;
+
+    record.original = await _decodePicture(
+      archive: archive,
+      name: '${path}then',
+    );
+    record.originalId = record.original?.localId;
+
+    record = await createRepository<Record>().upsert(record);
+    return record;
   }
 }

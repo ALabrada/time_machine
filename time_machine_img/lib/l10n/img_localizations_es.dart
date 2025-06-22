@@ -15,10 +15,20 @@ class ImgLocalizationsEs extends ImgLocalizations {
   String get deleteConfirm => 'Borrar';
 
   @override
-  String get deleteTitle => 'Borrando';
+  String get deleteManySubtitle =>
+      '¿Está seguro de que desea borrar las réplicas?';
 
   @override
-  String get deleteSubtitle => '¿Está seguro de que desea borrar la réplica?';
+  String deleteManyTitle(Object count) {
+    return 'Borrando $count';
+  }
+
+  @override
+  String get deleteOneSubtitle =>
+      '¿Está seguro de que desea borrar la réplica?';
+
+  @override
+  String get deleteOneTitle => 'Borrando';
 
   @override
   String get errorLoadingPage => 'No se pudo conectarse al servidor';

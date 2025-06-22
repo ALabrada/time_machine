@@ -1,15 +1,19 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:group_grid_view/group_grid_view.dart';
 import 'package:provider/provider.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/controllers/gallery_controller.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
+import 'package:time_machine_img/molecules/gallery_cell.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
 import '../molecules/gallery_search_bar.dart';
+import '../molecules/tool_bar.dart';
 
 class GalleryPage extends StatefulWidget {
   const GalleryPage({super.key});
@@ -38,9 +42,93 @@ class _GalleryPageState extends State<GalleryPage> {
             controller: galleryController.searchController,
             hintText: ImgLocalizations.of(context).searchBarHint,
           ),
-          Expanded(child: _buildGrid()),
+          Expanded(
+            child: Stack(
+              children: [
+                _buildGrid(),
+                Positioned(
+                  bottom: 40,
+                  left: 40,
+                  right: 40,
+                  child: _buildToolbar(),
+                )
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildToolbar() {
+    return StreamBuilder(
+      stream: CombineLatestStream.combine2(
+          galleryController.isEditing,
+          galleryController.selection,
+          (editing, selection) => editing ? selection.length : null,
+      ),
+      initialData: null,
+      builder: (context, snapshot) {
+        final selection = snapshot.data ?? 0;
+        return AnimatedOpacity(
+          duration: Duration(milliseconds: 300),
+          opacity: snapshot.data != null ? 1 : 0,
+          child: ToolBar(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondary,
+              borderRadius: BorderRadius.circular(100),
+              boxShadow: [
+                BoxShadow(
+                  offset: Offset(0,2),
+                  blurRadius: 10.0,
+                  color: gray06.withValues(alpha: 0.5),
+                ),
+              ],
+            ),
+            children: [
+              IconButton(
+                onPressed: () {
+                  unawaited(galleryController.importRecords(
+                    databaseService: context.read(),
+                  ));
+                },
+                icon: Icon(Icons.file_open),
+              ),
+              StreamBuilder(
+                stream: galleryController.isProcessing,
+                initialData: false,
+                builder: (context, snapshot) {
+                  if (snapshot.requireData) {
+                    return SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+                  return IconButton(
+                    onPressed: selection == 0 ? null : () {
+                      unawaited(galleryController.export(
+                        dialogTitle: ImgLocalizations.of(context).shareMenuExport,
+                      ));
+                    },
+                    icon: Icon(Icons.save_as),
+                  );
+                },
+              ),
+              IconButton(
+                onPressed: selection == 0 ? null : () {
+                  unawaited(_deleteSelection());
+                },
+                icon: Icon(Icons.delete),
+              ),
+              IconButton(
+                onPressed: galleryController.cancelEditing,
+                icon: Icon(Icons.cancel),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -94,20 +182,65 @@ class _GalleryPageState extends State<GalleryPage> {
       future: galleryController.loadPicture(record.pictureId),
       builder: (context, snapshot) {
         final picture = snapshot.data;
-        return AspectRatio(
-          aspectRatio: 1,
-          child: picture == null ? null : InkWell(
-            onTap: () => _select(record),
-            child: Image.file(File.fromUri(Uri.parse(picture.url)),
-              fit: BoxFit.cover,
-            ),
+        return StreamBuilder(
+          stream: CombineLatestStream.combine2(
+              galleryController.isEditing,
+              galleryController.selection,
+              (editing, selection) => editing ? selection.contains(record) : null
           ),
+          builder: (context, snapshot) {
+            final isSelected = snapshot.data;
+            return GalleryCell(
+              uri: picture == null ? null : Uri.tryParse(picture.url),
+              isSelected: isSelected,
+              onTap: () => _select(record),
+              onLongPress: () => galleryController.toggleSelection(record),
+            );
+          },
         );
       },
     );
   }
 
+  Future<void> _deleteSelection() async {
+    final confirm = await showAdaptiveDialog<bool>(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: Text(galleryController.selection.value.length == 1
+              ? ImgLocalizations.of(context).deleteOneSubtitle
+              : ImgLocalizations.of(context).deleteManySubtitle),
+          children: [
+            SimpleDialogOption(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: Text(ImgLocalizations.of(context).deleteConfirm,
+                style: TextStyle(color: Colors.redAccent),
+              ),
+            ),
+            SimpleDialogOption(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: Text(ImgLocalizations.of(context).deleteCancel),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirm != true) {
+      return;
+    }
+
+    await galleryController.removeRecords();
+  }
+
   void _select(Record element) {
-    context.go('/gallery/${element.localId}');
+    if (galleryController.isEditing.value) {
+      galleryController.toggleSelection(element);
+    } else {
+      context.go('/gallery/${element.localId}');
+    }
   }
 }

@@ -1,8 +1,10 @@
 {
   "deleteCancel": "Отменить",
   "deleteConfirm": "Удалить",
-  "deleteTitle": "Удаление",
-  "deleteSubtitle": "Вы уверены, что хотите удалить реплику?",
+  "deleteManySubtitle": "Вы уверены, что хотите удалить реплики?",
+  "deleteManyTitle": "Удалить {count}",
+  "deleteOneSubtitle": "Вы уверены, что хотите удалить реплику?",
+  "deleteOneTitle": "Удалить",
   "errorLoadingPage": "Не удалось подключиться к серверу",
   "comparisonPage": "Сравнение",
   "comparisonBottom": "Ниже",

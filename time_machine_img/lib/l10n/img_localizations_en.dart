@@ -15,10 +15,20 @@ class ImgLocalizationsEn extends ImgLocalizations {
   String get deleteConfirm => 'Delete';
 
   @override
-  String get deleteTitle => 'Deleting';
+  String get deleteManySubtitle =>
+      'Are you sure you want to delete the replicas?';
 
   @override
-  String get deleteSubtitle => 'Are you sure you want to delete the replica?';
+  String deleteManyTitle(Object count) {
+    return 'Deleting $count';
+  }
+
+  @override
+  String get deleteOneSubtitle =>
+      'Are you sure you want to delete the replica?';
+
+  @override
+  String get deleteOneTitle => 'Deleting';
 
   @override
   String get errorLoadingPage => 'Could not connect to the server';

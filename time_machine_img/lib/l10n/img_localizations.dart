@@ -112,17 +112,29 @@ abstract class ImgLocalizations {
   /// **'Delete'**
   String get deleteConfirm;
 
-  /// No description provided for @deleteTitle.
+  /// No description provided for @deleteManySubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Deleting'**
-  String get deleteTitle;
+  /// **'Are you sure you want to delete the replicas?'**
+  String get deleteManySubtitle;
 
-  /// No description provided for @deleteSubtitle.
+  /// No description provided for @deleteManyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting {count}'**
+  String deleteManyTitle(Object count);
+
+  /// No description provided for @deleteOneSubtitle.
   ///
   /// In en, this message translates to:
   /// **'Are you sure you want to delete the replica?'**
-  String get deleteSubtitle;
+  String get deleteOneSubtitle;
+
+  /// No description provided for @deleteOneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting'**
+  String get deleteOneTitle;
 
   /// No description provided for @errorLoadingPage.
   ///

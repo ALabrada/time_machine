@@ -1,8 +1,10 @@
 {
   "deleteCancel": "Cancel",
   "deleteConfirm": "Delete",
-  "deleteTitle": "Deleting",
-  "deleteSubtitle": "Are you sure you want to delete the replica?",
+  "deleteManySubtitle": "Are you sure you want to delete the replicas?",
+  "deleteManyTitle": "Deleting {count}",
+  "deleteOneSubtitle": "Are you sure you want to delete the replica?",
+  "deleteOneTitle": "Deleting",
   "errorLoadingPage": "Could not connect to the server",
   "comparisonPage": "Comparison",
   "comparisonBottom": "Bottom",

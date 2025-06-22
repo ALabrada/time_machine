@@ -149,6 +149,7 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
   Widget _buildToolbar() {
     return StreamBuilder(
       stream: comparisonController.isProcessing,
+      initialData: false,
       builder: (context, snapshot) {
         return ToolBar(
           children: [
@@ -198,7 +199,7 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
       context: context, 
       builder: (context) {
         return SimpleDialog(
-          title: Text(ImgLocalizations.of(context).deleteSubtitle),
+          title: Text(ImgLocalizations.of(context).deleteOneSubtitle),
           children: [
             SimpleDialogOption(
               onPressed: () {
@@ -269,7 +270,9 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
         BottomSheetAction(
           title: Text(ImgLocalizations.of(context).shareMenuExport),
           onPressed: (context) {
-            unawaited(comparisonController.exportRecord());
+            unawaited(comparisonController.exportRecord(
+              dialogTitle: ImgLocalizations.of(context).shareMenuExport,
+            ));
             context.pop();
           },
         ),

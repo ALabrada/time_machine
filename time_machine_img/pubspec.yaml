@@ -46,6 +46,7 @@ dependencies:
   shared_preferences: any
   televerse: any
   url_launcher: ^6.3.1
+  uuid: any
   webview_cookie_manager_plus: ^2.0.16
   webview_flutter: ^4.11.0
   webview_flutter_android: any

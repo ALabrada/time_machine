@@ -15,10 +15,18 @@ class ImgLocalizationsRu extends ImgLocalizations {
   String get deleteConfirm => 'Удалить';
 
   @override
-  String get deleteTitle => 'Удаление';
+  String get deleteManySubtitle => 'Вы уверены, что хотите удалить реплики?';
 
   @override
-  String get deleteSubtitle => 'Вы уверены, что хотите удалить реплику?';
+  String deleteManyTitle(Object count) {
+    return 'Удалить $count';
+  }
+
+  @override
+  String get deleteOneSubtitle => 'Вы уверены, что хотите удалить реплику?';
+
+  @override
+  String get deleteOneTitle => 'Удалить';
 
   @override
   String get errorLoadingPage => 'Не удалось подключиться к серверу';

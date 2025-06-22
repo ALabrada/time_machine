@@ -34,8 +34,8 @@ final class SharingService {
     _intentSub = null;
   }
 
-  Future<void> _import({
-    required List<SharedMediaFile> files,
+  Future<void> import({
+    required Iterable<String> files,
     DatabaseService? databaseService,
   }) async {
     final db = databaseService;
@@ -44,7 +44,7 @@ final class SharingService {
     }
     for (final file in files) {
       try {
-        final records = await db.importFile(sourcePath: file.path);
+        final records = await db.importFile(sourcePath: file);
         if (records.isNotEmpty) {
           importedRecords.sink.add(records);
           imported.sink.add(true);
@@ -55,5 +55,15 @@ final class SharingService {
         imported.sink.add(false);
       }
     }
+  }
+
+  Future<void> _import({
+    required List<SharedMediaFile> files,
+    DatabaseService? databaseService,
+  }) async {
+    await import(
+      files: files.map((e) => e.path),
+      databaseService: databaseService,
+    );
   }
 }

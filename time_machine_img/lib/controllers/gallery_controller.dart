@@ -1,14 +1,17 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/domain/gallery_section.dart';
+import 'package:time_machine_img/services/database_service.dart';
 import 'package:time_machine_img/services/sharing_service.dart';
+import 'package:time_machine_res/controllers/task_manager.dart';
 
-class GalleryController {
+class GalleryController with TaskManager {
   GalleryController({this.sharingService}) {
     searchController.addListener(() {
       _searchCriteria.value = searchController.text;
@@ -19,8 +22,67 @@ class GalleryController {
   final searchController = TextEditingController();
   final _searchCriteria = BehaviorSubject.seeded('');
 
+  final BehaviorSubject<bool> isEditing = BehaviorSubject.seeded(false);
   final BehaviorSubject<List<GallerySection>> sections = BehaviorSubject();
+  final BehaviorSubject<Set<Record>> selection = BehaviorSubject.seeded({});
   DatabaseService? databaseService;
+
+  void cancelEditing() {
+    selection.value = {};
+    isEditing.value = false;
+  }
+
+  void clearSelection() {
+    selection.value = {};
+  }
+
+  void toggleSelection(Record record) {
+    final selection = this.selection.value;
+    if (!selection.add(record)) {
+      selection.remove(record);
+    }
+    this.selection.value = selection;
+    if (!isEditing.value) {
+      isEditing.value = true;
+    }
+  }
+
+  Future<void> importRecords({
+    DatabaseService? databaseService,
+  }) async {
+    final selection = await FilePicker.platform.pickFiles();
+    if (selection == null) {
+      return;
+    }
+    await sharingService?.import(
+      files: selection.paths.nonNulls,
+      databaseService: databaseService,
+    );
+  }
+
+  Future<void> removeRecords() async {
+    for (final record in selection.value) {
+      await databaseService?.removeRecord(record);
+    }
+  }
+
+  Future<void> export({String? dialogTitle}) async {
+    final databaseService = this.databaseService;
+    if (selection.value.isEmpty || databaseService == null) {
+      return;
+    }
+    final data = await execute(() => databaseService.exportMany(
+      records: selection.value.toList(),
+    ));
+    if (data == null) {
+      return;
+    }
+    await FilePicker.platform.saveFile(
+      dialogTitle: dialogTitle,
+      fileName: 'export',
+      bytes: data,
+    );
+  }
 
   List<GallerySection> filter(List<GallerySection> sections, {String? criteria}) {
     final text = (criteria ?? searchController.text).trim();

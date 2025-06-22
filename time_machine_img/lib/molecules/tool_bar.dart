@@ -4,14 +4,18 @@ class ToolBar extends StatelessWidget {
   const ToolBar({
     super.key,
     required this.children,
+    this.decoration,
   });
 
   final List<Widget> children;
+  final BoxDecoration? decoration;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.secondary,
+      decoration: decoration ?? BoxDecoration(
+        color: Theme.of(context).colorScheme.secondary,
+      ),
       child: IconButtonTheme(
         data: IconButtonThemeData(
           style: IconButton.styleFrom(

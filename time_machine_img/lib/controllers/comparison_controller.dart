@@ -53,27 +53,10 @@ class ComparisonController with TaskManager {
     final record = this.record;
     final recordId = record?.localId;
     final db = databaseService;
-    if (record == null || recordId == null || db == null) {
-      return false;
-    }
-
-    if (!await db.createRepository<Record>().delete(recordId)) {
-      return false;
-    }
-
-    if (!await db.createRepository<Picture>().delete(record.pictureId)) {
-      return false;
-    }
-
-    final url = Uri.tryParse(record.picture?.url ?? '');
-    if (url != null) {
-      await File(url.path).delete();
-    }
-
-    return true;
+    return record != null && db != null && await db.removeRecord(record);
   }
 
-  Future<void> exportRecord() async {
+  Future<void> exportRecord({String? dialogTitle}) async {
     final record = this.record;
     final databaseService = this.databaseService;
     final id = record?.localId;
@@ -85,8 +68,8 @@ class ComparisonController with TaskManager {
       return;
     }
     await FilePicker.platform.saveFile(
-      dialogTitle: "Exporting pictures",
-      fileName: 'hl_$id',
+      dialogTitle: dialogTitle,
+      fileName: 'export',
       bytes: data,
     );
   }
