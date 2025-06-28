@@ -102,7 +102,7 @@ flutter_app_name_localization:
   default: "History Lens"
   locales:
     - locale: "es"
-      name: "Lente de la Historia"
+      name: "Lentes de la Historia"
     - locale: "ru"
       name: "Линзы Истории"
 

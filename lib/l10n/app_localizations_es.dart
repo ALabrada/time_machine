@@ -9,7 +9,7 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get appTitle => 'Lente de la Historia';
+  String get appTitle => 'Lentes de la Historia';
 
   @override
   String get homeTabsGallery => 'Galería';

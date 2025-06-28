@@ -100,6 +100,96 @@ abstract class ConfigLocalizations {
     Locale('ru'),
   ];
 
+  /// No description provided for @helpPage.
+  ///
+  /// In en, this message translates to:
+  /// **'FAQs'**
+  String get helpPage;
+
+  /// No description provided for @questionHowToFindPicturesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You can find pictures either in your vicinity (**Nearby** tab) or in the map (**Map** tab). The application will load the pictures from online databases, so you will need an active internet connection. You can choose which databases to use, among other parameters, in the configuration (**Settings** tab).'**
+  String get questionHowToFindPicturesBody;
+
+  /// No description provided for @questionHowToFindPicturesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How to find historic pictures?'**
+  String get questionHowToFindPicturesTitle;
+
+  /// No description provided for @questionHowToImportPicturesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When you select the option to import a photo, you will be asked to find the picture in your phone. When you select it, the photo will appear overlaid with the historic picture. Align the pictures as closely as possible, and then press the **Save** button. You will be taken to the **Comparison** page.'**
+  String get questionHowToImportPicturesBody;
+
+  /// No description provided for @questionHowToImportPicturesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How to import replicas of historic pictures?'**
+  String get questionHowToImportPicturesTitle;
+
+  /// No description provided for @questionHowToReplicatePictureBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Once you found a historic picture in your vicinity or in the map, you can either take a picture in the application, or import an existing picture from your phone. First, tap or long press the historic picture, and then select the desired option from the toolbar or context menu, accordingly.'**
+  String get questionHowToReplicatePictureBody;
+
+  /// No description provided for @questionHowToReplicatePictureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How to replicate an historic picture?'**
+  String get questionHowToReplicatePictureTitle;
+
+  /// No description provided for @questionHowToSharePicturesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You can share a historic picture and its replica from the **Comparison** view, by pressing the corresponding button. The context menu allows publishing pictures in the [Re.Photos](https://www.re.photos) website, in our [Telegram channel](https://t.me/history_lens_app), among other methods. In order to publish to [Re.Photos](https://www.re.photos), you will be taken to their website and will have to complete the creation form, but first you will need to login to your account (or create an account if you haven`t one). \n\nIt is better to share the original versions of the historic pictures, obtained from their website, to avoid watermarks. You can access the website by selecting the historical picture and pressing the **Browser** button.'**
+  String get questionHowToSharePicturesBody;
+
+  /// No description provided for @questionHowToSharePicturesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How to share my pictures?'**
+  String get questionHowToSharePicturesTitle;
+
+  /// No description provided for @questionHowToTakePictureBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When you open the camera to take a picture, the historic picture will appear overlaid with the camera preview. If you are far from the location of the historic picture, the top left corner will show instructions to reach it. Then, align the historic picture with the camera preview as closely as possible and take the photo. When the picture is saved, you will be able to open the **Comparison** screen or continue taking pictures.'**
+  String get questionHowToTakePictureBody;
+
+  /// No description provided for @questionHowToTakePictureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How to take a picture in the application?'**
+  String get questionHowToTakePictureTitle;
+
+  /// No description provided for @questionWhatDataIsCollectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'All the data collected by the application is stored locally in the phone. The data is shared only when you explicitly choose the share the pictures. The recorded photos will also contain their corresponding geo-coordinates.'**
+  String get questionWhatDataIsCollectedBody;
+
+  /// No description provided for @questionWhatDataIsCollectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What data does the application collect on me?'**
+  String get questionWhatDataIsCollectedTitle;
+
+  /// No description provided for @questionWhatIsAppPurposeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The application allows discovering historic pictures and recreating them, in order to compare them with the present. Then, you can share those pictures in [Re.Photos](https://www.re.photos) or in our [Telegram channel](https://t.me/history_lens_app).'**
+  String get questionWhatIsAppPurposeBody;
+
+  /// No description provided for @questionWhatIsAppPurposeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What is the purpose of the History Lens application?'**
+  String get questionWhatIsAppPurposeTitle;
+
   /// No description provided for @sectionDataBases.
   ///
   /// In en, this message translates to:
@@ -111,6 +201,12 @@ abstract class ConfigLocalizations {
   /// In en, this message translates to:
   /// **'Camera'**
   String get sectionCamera;
+
+  /// No description provided for @sectionInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Information'**
+  String get sectionInformation;
 
   /// No description provided for @sectionMap.
   ///
@@ -129,6 +225,12 @@ abstract class ConfigLocalizations {
   /// In en, this message translates to:
   /// **'Address Database'**
   String get settingGeocoder;
+
+  /// No description provided for @settingHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'FAQs'**
+  String get settingHelp;
 
   /// No description provided for @settingMapProvider.
   ///

@@ -21,6 +21,8 @@ dependencies:
     path: ../time_machine_res
 
   cached_network_image: ^3.4.1
+  expandable: ^5.0.1
+  flutter_markdown_plus: ^1.0.3
   geolocator: any
   go_router: any
   intl: any

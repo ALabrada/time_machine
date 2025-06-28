@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:select_dialog/select_dialog.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -48,6 +49,7 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
               _buildMapSection(),
               _buildProvidersSection(),
               _buildSearchOptions(),
+              _buildInfo(),
               _buildFooter(),
             ],
           );
@@ -89,6 +91,18 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
             max: 1,
             onChanged: (v) => controller.cameraPictureOpacity = v,
           ),
+        ),
+      ],
+    );
+  }
+
+  AbstractSettingsSection _buildInfo() {
+    return SettingsSection(
+      title: Text(ConfigLocalizations.of(context).sectionInformation),
+      tiles: [
+        SettingsTile.navigation(
+          title: Text(ConfigLocalizations.of(context).settingHelp),
+          onPressed: (context) => context.go('/help'),
         ),
       ],
     );

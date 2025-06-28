@@ -106,10 +106,10 @@ class TimeMachineApp extends StatelessWidget {
                         ],
                       ),
                       GoRoute(
-                        path: 'settings',
+                        path: 'help',
                         builder: (context, state) => FixedOrientationView(
-                          orientations: [DeviceOrientation.portraitUp],
-                          child: ConfigurationPage(),
+                          orientations: DeviceOrientation.values,
+                          child: HelpPage(),
                         ),
                       ),
                     ]
