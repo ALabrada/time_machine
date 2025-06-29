@@ -61,7 +61,9 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
         return Scaffold(
           appBar: _buildAppBar(),
           body: FutureBuilder(
-            future: comparisonController.comparePictures(record),
+            future: comparisonController.comparePictures(record).onError((e, _) {
+              print("comparePictures error: $e");
+            }),
             builder: (context, snapshot) {
               return _buildContent(record: record, match: snapshot.data);
             },
