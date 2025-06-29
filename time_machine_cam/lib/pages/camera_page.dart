@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/pigeon.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:provider/provider.dart';
@@ -38,7 +40,16 @@ class CameraPage extends StatefulWidget {
 }
 
 class _CameraPageState extends State<CameraPage> {
+  final audioPlayer = AudioPlayer()
+    ..setAudioContext(AudioContextConfig(
+      focus: AudioContextConfigFocus.mixWithOthers,
+    ).build())
+    ..setSource(AssetSource('sounds/camera-shutter.mp3',
+      mimeType: 'audio/mpeg',
+    ))
+    ..setReleaseMode(ReleaseMode.stop);
   late PhotoController controller;
+  late Timer timer;
 
   @override
   void initState() {
@@ -54,6 +65,7 @@ class _CameraPageState extends State<CameraPage> {
 
   @override
   void dispose() {
+    audioPlayer.dispose();
     controller.dispose();
     super.dispose();
   }
@@ -92,6 +104,7 @@ class _CameraPageState extends State<CameraPage> {
         switch (capture.status) {
           case MediaCaptureStatus.capturing:
             controller.isProcessing.value = true;
+            unawaited(_playShutterSound());
           case MediaCaptureStatus.success:
             controller.isProcessing.value = false;
             capture.captureRequest.when(
@@ -215,6 +228,15 @@ class _CameraPageState extends State<CameraPage> {
         return AwesomeCaptureButton(state: state);
       },
     );
+  }
+
+  Future<void> _playShutterSound() async {
+    try {
+      await audioPlayer.seek(Duration());
+      await audioPlayer.resume();
+    } catch (e) {
+      print("Error playing sound: $e");
+    }
   }
 
   Future<void> _savePicture({

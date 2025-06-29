@@ -117,7 +117,13 @@ class PhotoController {
     final headingStream = FlutterCompass.events;
     if (headingStream != null) {
       headingSubscription = CombineLatestStream.combine2(
-          headingStream.mapNotNull((e) => e.heading),
+          headingStream.mapNotNull((e) {
+            final accuracy = e.accuracy;
+            if (accuracy != null && accuracy <= 30) {
+              return null;
+            }
+            return e.heading;
+          }),
           CamerawesomePlugin.getNativeOrientation() ?? Stream.value(CameraOrientations.portrait_up),
               (trueHeading, orientation) {
             switch (orientation) {
