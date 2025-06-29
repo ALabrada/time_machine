@@ -15,6 +15,7 @@ import 'package:time_machine_cam/domain/picture_annotation.dart';
 import 'package:time_machine_cam/molecules/annotation_view.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:go_router/go_router.dart';
+import 'package:time_machine_res/molecules/context_menu.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class ScanningPage extends StatefulWidget {
@@ -87,81 +88,21 @@ class _ScanningPageState extends State<ScanningPage> {
   }
 
   Future<void> _showMenu(Picture model) async {
-    final title = model.description;
-    final site = model.site;
-    await showAdaptiveActionSheet<Picture>(
-      context: context,
-      title: title == null ? null : Text(title),
-      cancelAction: CancelAction(
-        title: Text(CamLocalizations.of(context).menuActionCancel),
-      ),
-      actions: [
-        BottomSheetAction(
-          leading: Icon(Icons.open_in_full),
-          title: Text(CamLocalizations.of(context).menuActionView),
-          onPressed: (context) {
-            _showImage(model);
-            context.pop();
-          },
-        ),
-        BottomSheetAction(
-          leading: Icon(Icons.photo_library),
-          title: Text(CamLocalizations.of(context).menuActionImport),
-          onPressed: (context) {
-            _importPicture(model);
-            context.pop();
-          },
-        ),
-        BottomSheetAction(
-          leading: Icon(Icons.camera_alt),
-          title: Text(CamLocalizations.of(context).menuActionCamera),
-          onPressed: (context) {
-            _takePicture(model);
-            context.pop();
-          },
-        ),
-        if (site != null && site.isNotEmpty)
-          BottomSheetAction(
-            leading: Icon(Icons.open_in_browser),
-            title: Text(CamLocalizations.of(context).menuActionOpenSource),
-            onPressed: (context) {
-              _openSite(site);
-              context.pop();
-            },
-          ),
-        BottomSheetAction(
-          leading: Icon(Icons.share),
-          title: Text(CamLocalizations.of(context).menuActionShare),
-          onPressed: (context) {
-            unawaited(_sharePicture(model));
-            context.pop();
-          },
-        ),
-      ],
+    await context.showContextMenu(
+      model: model,
+      databaseService: context.read(),
+      navigateTo: (url) {
+        if (!url.startsWith('/')) {
+          launchUrlString(url);
+        } else if (mounted) {
+          context.go(url);
+        }
+      },
+      shareFile: (path) {
+        Share.shareXFiles([
+          XFile(path),
+        ], text: model.text);
+      }
     );
-  }
-
-  void _openSite(String site) {
-    unawaited(launchUrlString(site));
-  }
-
-  void _importPicture(Picture picture) {
-    context.go('/import?pictureId=${picture.id}');
-  }
-
-  Future<void> _sharePicture(Picture picture) async {
-    final file = await CachedNetworkImageProvider.defaultCacheManager.getSingleFile(picture.url);
-    await Share.shareXFiles([
-      XFile(file.path),
-    ], text: picture.text);
-  }
-
-  Future<void> _takePicture(Picture model) async {
-    final db = context.read<DatabaseService?>();
-    final newModel = await db?.savePicture(model);
-    final id = newModel?.localId;
-    if (mounted && id != null) {
-      context.go('/camera?pictureId=$id');
-    }
   }
 }

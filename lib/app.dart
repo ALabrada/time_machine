@@ -43,7 +43,10 @@ class TimeMachineApp extends StatelessWidget {
                     path: '/',
                     builder: (context, state) => FixedOrientationView(
                       orientations: [DeviceOrientation.portraitUp],
-                      child: HomePage(),
+                      child: HomePage(
+                        initialTab: state.uri.queryParameters['tab'],
+                        pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
+                      ),
                     ),
                     routes: [
                       GoRoute(
@@ -180,6 +183,7 @@ class TimeMachineApp extends StatelessWidget {
             ConfigLocalizations.delegate,
             ImgLocalizations.delegate,
             MapLocalizations.delegate,
+            ResLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,

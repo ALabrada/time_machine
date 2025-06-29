@@ -25,6 +25,7 @@ dependencies:
   adaptive_action_sheet: ^2.0.4
   animated_transform: ^1.0.6
   ar_location_view: ^2.0.16
+  audioplayers: ^6.5.0
   cached_network_image: ^3.4.1
   camerawesome: ^2.4.0
   cross_file: any

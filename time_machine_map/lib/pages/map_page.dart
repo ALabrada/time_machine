@@ -20,6 +20,7 @@ import 'package:time_machine_map/molecules/map_search_bar.dart';
 import 'package:time_machine_map/molecules/picture_marker_layer.dart';
 import 'package:time_machine_map/services/database_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
+import 'package:time_machine_res/molecules/context_menu.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -27,9 +28,11 @@ class MapPage extends StatefulWidget {
   const MapPage({
     super.key,
     this.stepZoom=1.0,
+    this.pictureId,
   });
 
   final double stepZoom;
+  final int? pictureId;
 
   @override
   _MapPageState createState() => _MapPageState();
@@ -54,6 +57,21 @@ class _MapPageState extends State<MapPage> {
     );
     _picturesController.pictures.listen((_) => _popupController.hideAllPopups());
     super.initState();
+    unawaited(_picturesController.show(
+      pictureId: widget.pictureId,
+      databaseService: context.read(),
+    ));
+  }
+
+  @override
+  void didUpdateWidget(covariant MapPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pictureId != widget.pictureId) {
+      unawaited(_picturesController.show(
+        pictureId: widget.pictureId,
+        databaseService: context.read(),
+      ));
+    }
   }
 
   @override
@@ -140,6 +158,9 @@ class _MapPageState extends State<MapPage> {
           onTap: (_, __) {
             _popupController.hideAllPopups();
           }, // Hide popup when the map is tapped.
+          onMapReady: () {
+            _picturesController.mapReady.value = true;
+          }
         ),
         children: [
           TileLayer( // Display map tiles from any source
@@ -221,58 +242,21 @@ class _MapPageState extends State<MapPage> {
   }
 
   Future<void> _showMenu(Picture model) async {
-    final title = model.description;
-    final site = model.site;
-    await showAdaptiveActionSheet<Picture>(
-      context: context,
-      title: title == null ? null : Text(title),
-      cancelAction: CancelAction(
-        title: Text(MapLocalizations.of(context).menuActionCancel),
-      ),
-      actions: [
-
-        BottomSheetAction(
-          leading: Icon(Icons.open_in_full),
-          title: Text(MapLocalizations.of(context).menuActionView),
-          onPressed: (context) {
-            _showImage(model);
-            context.pop();
-          },
-        ),
-        BottomSheetAction(
-          leading: Icon(Icons.photo_library),
-          title: Text(MapLocalizations.of(context).menuActionImport),
-          onPressed: (context) {
-            _importPicture(model);
-            context.pop();
-          },
-        ),
-        BottomSheetAction(
-          leading: Icon(Icons.camera_alt),
-          title: Text(MapLocalizations.of(context).menuActionCamera),
-          onPressed: (context) {
-            _takePicture(model);
-            context.pop();
-          },
-        ),
-        if (site != null && site.isNotEmpty)
-          BottomSheetAction(
-            leading: Icon(Icons.open_in_browser),
-            title: Text(MapLocalizations.of(context).menuActionOpenSource),
-            onPressed: (context) {
-              _openSite(site);
-              context.pop();
-            },
-          ),
-        BottomSheetAction(
-          leading: Icon(Icons.share),
-          title: Text(MapLocalizations.of(context).menuActionShare),
-          onPressed: (context) {
-            unawaited(_sharePicture(model));
-            context.pop();
-          },
-        ),
-      ],
+    await context.showContextMenu(
+        model: model,
+        databaseService: context.read(),
+        navigateTo: (url) {
+          if (!url.startsWith('/')) {
+            launchUrlString(url);
+          } else if (mounted) {
+            context.go(url);
+          }
+        },
+        shareFile: (path) {
+          Share.shareXFiles([
+            XFile(path),
+          ], text: model.text);
+        }
     );
   }
 
@@ -280,30 +264,6 @@ class _MapPageState extends State<MapPage> {
     final url = Uri.tryParse(_tileServer.attributionUrl?.call(context) ?? '');
     if (url != null) {
       unawaited(launchUrl(url));
-    }
-  }
-
-  void _openSite(String site) {
-    unawaited(launchUrlString(site));
-  }
-
-  void _importPicture(Picture picture) {
-    context.go('/import?pictureId=${picture.id}');
-  }
-
-  Future<void> _sharePicture(Picture picture) async {
-    final file = await CachedNetworkImageProvider.defaultCacheManager.getSingleFile(picture.url);
-    await Share.shareXFiles([
-      XFile(file.path),
-    ], text: picture.text);
-  }
-
-  Future<void> _takePicture(Picture model) async {
-    final db = context.read<DatabaseService?>();
-    final newModel = await db?.savePicture(model);
-    final id = newModel?.localId;
-    if (mounted && id != null) {
-      context.go('/camera?pictureId=$id');
     }
   }
 }

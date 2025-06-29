@@ -14,7 +14,12 @@ import '../l10n/app_localizations.dart';
 class HomePage extends StatefulWidget {
   const HomePage({
     super.key,
+    this.initialTab,
+    this.pictureId,
   });
+
+  final String? initialTab;
+  final int? pictureId;
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -28,8 +33,17 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _selectTab(widget.initialTab);
     _importSubscription = context.read<SharingService>().imported
       .listen((v) => _onImported(success: v));
+  }
+
+  @override
+  void didUpdateWidget(covariant HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialTab != oldWidget.initialTab) {
+      _selectTab(widget.initialTab);
+    }
   }
 
   @override
@@ -73,10 +87,27 @@ class _HomePageState extends State<HomePage> {
       body: <Widget>[
         GalleryPage(),
         ScanningPage(),
-        MapPage(),
+        MapPage(
+          pictureId: widget.pictureId,
+        ),
         ConfigurationPage()
       ][currentPageIndex],
     );
+  }
+
+  void _selectTab(String? name) {
+    if (name == null) {
+      return;
+    }
+    setState(() {
+      switch (name.toLowerCase()) {
+        case "gallery": currentPageIndex = 0;
+        case "nearby": currentPageIndex = 1;
+        case "map": currentPageIndex = 2;
+        case "settings": currentPageIndex = 3;
+        default: break;
+      }
+    });
   }
 
   void _onImported({bool success=false}) {

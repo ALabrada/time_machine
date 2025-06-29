@@ -10,10 +10,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   time_machine_db:
     path: ../time_machine_db
 
+  adaptive_action_sheet: ^2.0.4
   cached_network_image: ^3.4.1
   provider: ^6.1.2
   rxdart: any
@@ -28,6 +31,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
 
   # To add assets to your package, add an assets section, like this:
   # assets:

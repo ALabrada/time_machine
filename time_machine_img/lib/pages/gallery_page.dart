@@ -34,6 +34,12 @@ class _GalleryPageState extends State<GalleryPage> {
   }
 
   @override
+  void dispose() {
+    galleryController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Column(

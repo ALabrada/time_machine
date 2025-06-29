@@ -47,6 +47,12 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
   }
 
   @override
+  void dispose() {
+    animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder(
       future: pictureController.loadPicture(widget.pictureId),
@@ -55,6 +61,7 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
         return Scaffold(
           // appBar: _buildAppBar(picture: picture),
           // extendBodyBehindAppBar: true,
+          extendBody: true,
           body: _buildContent(picture: picture),
         );
       },

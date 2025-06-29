@@ -5,6 +5,8 @@ export 'atoms/inputs.dart';
 export 'atoms/labels.dart';
 export 'atoms/themes.dart';
 export 'controllers/task_manager.dart';
+export 'l10n/res_localizations.dart';
+export 'molecules/context_menu.dart';
 export 'molecules/fixed_orientation_view.dart';
 export 'molecules/loading_container.dart';
 export 'molecules/picture_frame.dart';

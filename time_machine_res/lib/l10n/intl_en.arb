@@ -1,0 +1,9 @@
+{
+  "menuTitle": "Options",
+  "menuActionCamera": "Take replica of the picture",
+  "menuActionCancel": "Cancel",
+  "menuActionImport": "Import replica of the picture",
+  "menuActionOpenSource": "Open source",
+  "menuActionShare": "Share picture",
+  "menuActionView": "Show picture"
+}

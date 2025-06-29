@@ -1,0 +1,9 @@
+{
+  "menuTitle": "Опций",
+  "menuActionCamera": "Сфотографировать реплику фотографии",
+  "menuActionCancel": "Отменить",
+  "menuActionImport": "Импортировать реплику фотографии",
+  "menuActionOpenSource": "Открыть источник",
+  "menuActionShare": "Поделиться фотографией",
+  "menuActionView": "Посмотреть фотографию"
+}

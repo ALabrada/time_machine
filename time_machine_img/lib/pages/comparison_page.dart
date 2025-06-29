@@ -157,6 +157,10 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
               onPressed: _rotateClockwise,
               icon: Icon(Icons.rotate_right),
             ),
+            IconButton(
+              onPressed: openMap,
+              icon: Icon(Icons.location_pin),
+            ),
             if (snapshot.requireData)
               SizedBox(
                 width: 24,
@@ -233,6 +237,14 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
       return;
     }
     context.go('/gallery/${widget.recordId}/picture/${element.localId}');
+  }
+
+  void openMap() {
+    final pictureId = comparisonController.record?.originalId;
+    if (pictureId == null) {
+      return;
+    }
+    context.go('/?tab=map&pictureId=$pictureId');
   }
 
   Future<void> publishToTelegram() async {

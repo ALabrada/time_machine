@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:rxdart/rxdart.dart';
@@ -33,6 +34,7 @@ class PicturesController {
   final SharedPreferencesWithCache? preferences;
 
   final BehaviorSubject<bool> isProcessing = BehaviorSubject.seeded(false);
+  final BehaviorSubject<bool> mapReady = BehaviorSubject.seeded(false);
   final BehaviorSubject<List<Picture>> pictures = BehaviorSubject();
   final BehaviorSubject<Picture?> selection = BehaviorSubject.seeded(null);
   final BehaviorSubject<Position?> position = BehaviorSubject.seeded(null);
@@ -54,6 +56,7 @@ class PicturesController {
     _eventSubscription?.cancel();
     _eventSubscription = null;
     _positionSubscription?.cancel();
+    _positionSubscription = null;
   }
 
   Future<void> reload() => loadPictures(mapController?.camera);
@@ -91,6 +94,32 @@ class PicturesController {
         for (final item in result)
           item,
     ];
+  }
+
+  Future<bool> show({
+    int? pictureId,
+    DatabaseService? databaseService,
+  }) async {
+    final mapController = this.mapController;
+    if (pictureId == null || databaseService == null || mapController == null) {
+      return false;
+    }
+
+    final picture = await databaseService.createRepository<Picture>().getById(pictureId);
+    if (picture == null) {
+      return false;
+    }
+
+    await mapReady.firstWhere((v) => v);
+
+    final center = LatLng(picture.latitude, picture.longitude);
+    if (!mapController.move(center, 18)) {
+      return false;
+    }
+
+    saveSettings(mapController.camera);
+    await loadPictures(mapController.camera);
+    return true;
   }
 
   Future<bool> moveToCurrentLocation() async {
