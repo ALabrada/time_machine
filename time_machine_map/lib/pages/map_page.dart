@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_compass/flutter_map_compass.dart';
-import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
+import 'package:flutter_map_marker_cluster_plus/flutter_map_marker_cluster_plus.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -206,6 +206,7 @@ class _MapPageState extends State<MapPage> {
       builder: (context, snapshot) {
         return PictureMarkerLayer(
           pictures: snapshot.data,
+          popupController: _popupController,
           onTap: (picture) => _showImage(picture),
           onLongPress: (picture) => unawaited(_showMenu(picture)),
         );

@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
-import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:rxdart/rxdart.dart';
@@ -21,6 +19,7 @@ class PicturesController {
   }) {
     _eventSubscription = mapController?.mapEventStream
       .throttleTime(Duration(seconds: 1))
+      .distinct((x, y) => x.camera == y.camera)
       .listen((e) {
         saveSettings(e.camera);
         unawaited(loadPictures(e.camera));

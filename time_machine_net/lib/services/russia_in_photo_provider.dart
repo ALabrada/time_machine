@@ -60,11 +60,10 @@ class RussiaInPhotoProvider implements DataProvider {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final math = FlutterMapMath();
-    final north = math.destinationPoint(location.lat, location.lng, radius, 0);
-    final east = math.destinationPoint(location.lat, location.lng, radius, 90);
-    final south = math.destinationPoint(location.lat, location.lng, radius, 180);
-    final west = math.destinationPoint(location.lat, location.lng, radius, -90);
+    final north = FlutterMapMath.destinationPoint(location.lat, location.lng, radius, 0.0);
+    final east = FlutterMapMath.destinationPoint(location.lat, location.lng, radius, 90.0);
+    final south = FlutterMapMath.destinationPoint(location.lat, location.lng, radius, 180.0);
+    final west = FlutterMapMath.destinationPoint(location.lat, location.lng, radius, -90.0);
     assert(north.latitude >= south.latitude);
     assert(east.longitude >= west.longitude);
     final area = Area(
@@ -73,7 +72,7 @@ class RussiaInPhotoProvider implements DataProvider {
       maxLat: north.latitude,
       maxLng: east.longitude,
     );
-    final isInBoundary = math.createBoundary(LatLng(location.lat, location.lng), radius);
+    final isInBoundary = FlutterMapMath.createBoundary(LatLng(location.lat, location.lng), radius);
     final result = await findIn(area: area, startDate: startDate, endDate: endDate);
     result.removeWhere((e) => !isInBoundary(LatLng(e.latitude, e.longitude)));
     return result;

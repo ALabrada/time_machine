@@ -16,7 +16,7 @@ dependencies:
 
   collection: any
   dio: ^5.7.0
-  flutter_map_math: ^0.2.1
+  flutter_map_math: ^0.2.4
   geocoding: ^4.0.0
   intl: any
   latlong2: any

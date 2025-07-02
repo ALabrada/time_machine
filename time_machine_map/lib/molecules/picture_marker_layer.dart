@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
+import 'package:flutter_map_marker_cluster_plus/flutter_map_marker_cluster_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_map/molecules/picture_marker.dart';
 import 'package:time_machine_res/time_machine_res.dart';

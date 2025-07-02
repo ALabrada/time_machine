@@ -40,7 +40,6 @@ class GalleryCell extends StatelessWidget {
         image: FileImage(File.fromUri(uri)),
         fit: BoxFit.cover,
       ),
-      color: uri == null ? Colors.redAccent : null,
     );
   }
 
