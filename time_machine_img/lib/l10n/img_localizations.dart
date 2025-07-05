@@ -178,11 +178,18 @@ abstract class ImgLocalizations {
   /// **'Top'**
   String get comparisonTop;
 
-  /// No description provided for @galleryEmptyList.
+  /// No description provided for @galleryEmptyListBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You can start by looking for historical pictures [nearby]({nearbyLink}) or in the [map]({mapLink}). When you replicate a historic picture, your photo will appear here. You can also press {importIcon} to import your pictures from a file, if you previously exported them using the App.'**
+  String galleryEmptyListBody(
+      Object importIcon, Object mapLink, Object nearbyLink);
+
+  /// No description provided for @galleryEmptyListTitle.
   ///
   /// In en, this message translates to:
   /// **'The gallery is empty'**
-  String get galleryEmptyList;
+  String get galleryEmptyListTitle;
 
   /// No description provided for @galleryNoSearchResults.
   ///

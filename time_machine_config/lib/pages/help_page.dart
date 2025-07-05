@@ -4,6 +4,7 @@ import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_config/l10n/config_localizations.dart';
 import 'package:time_machine_config/molecules/question_cell.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 
 class HelpPage extends StatefulWidget {
   const HelpPage({super.key});
@@ -13,7 +14,7 @@ class HelpPage extends StatefulWidget {
 }
 
 class _HelpPageState extends State<HelpPage> {
-  static const TELEGRAM_CHANNEL = 'https://t.me/history_lens_app';
+  static const telegramChannel = 'https://t.me/history_lens_app';
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +38,7 @@ class _HelpPageState extends State<HelpPage> {
         QuestionCell(
           key: ValueKey(1),
           title: ConfigLocalizations.of(context).questionWhatIsAppPurposeTitle,
-          body: ConfigLocalizations.of(context).questionWhatIsAppPurposeBody(TELEGRAM_CHANNEL),
+          body: ConfigLocalizations.of(context).questionWhatIsAppPurposeBody(telegramChannel),
         ),
         QuestionCell(
           key: ValueKey(2),
@@ -62,7 +63,7 @@ class _HelpPageState extends State<HelpPage> {
         QuestionCell(
           key: ValueKey(6),
           title: ConfigLocalizations.of(context).questionHowToSharePicturesTitle,
-          body: ConfigLocalizations.of(context).questionHowToSharePicturesBody(TELEGRAM_CHANNEL, Icons.open_in_browser.md),
+          body: ConfigLocalizations.of(context).questionHowToSharePicturesBody(telegramChannel, Icons.open_in_browser.md),
         ),
         QuestionCell(
           key: ValueKey(7),
@@ -71,12 +72,5 @@ class _HelpPageState extends State<HelpPage> {
         ),
       ],
     );
-  }
-}
-
-extension IconMarkdown on IconData {
-  String get md {
-    final name = String.fromCharCode(codePoint);
-    return "`$name`";
   }
 }

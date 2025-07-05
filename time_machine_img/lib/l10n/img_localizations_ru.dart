@@ -50,7 +50,13 @@ class ImgLocalizationsRu extends ImgLocalizations {
   String get comparisonTop => 'Выше';
 
   @override
-  String get galleryEmptyList => 'Галерея пуста';
+  String galleryEmptyListBody(
+      Object importIcon, Object mapLink, Object nearbyLink) {
+    return 'Вы можете начать с поиска исторических фотографий [поблизости]($nearbyLink) или на [карте]($mapLink). Когда вы создадите реплику исторической фотографии, ваша фотография появится здесь. Также, можете нажать $importIcon, чтобы импортировать свои фотографии из файла, если вы ранее экспортировали их с помощью приложения';
+  }
+
+  @override
+  String get galleryEmptyListTitle => 'Галерея пуста';
 
   @override
   String get galleryNoSearchResults => 'Нет результатов поиска';

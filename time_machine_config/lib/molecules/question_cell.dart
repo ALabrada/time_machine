@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class QuestionCell extends StatelessWidget {
@@ -34,14 +35,9 @@ class QuestionCell extends StatelessWidget {
                 ),
               ),
               collapsed: SizedBox.shrink(),
-              expanded: MarkdownBody(
-                data: body,
-                styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                  code: TextStyle(
-                    fontFamily: 'MaterialIcons',
-                    fontSize: 14,
-                  ),
-                ),
+              expanded: RichLocalization(
+                text: body,
+                textAlign: TextAlign.justify,
                 onTapLink: (_, href, _) {
                   if (href != null) {
                     unawaited(launchUrlString(href));

@@ -11,6 +11,7 @@ export 'molecules/fixed_orientation_view.dart';
 export 'molecules/loading_container.dart';
 export 'molecules/picture_frame.dart';
 export 'molecules/picture_view.dart';
+export 'molecules/rich_localization.dart';
 export 'tokens/colors.dart';
 export 'tokens/typography.dart';
 

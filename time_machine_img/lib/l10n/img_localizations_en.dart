@@ -52,7 +52,13 @@ class ImgLocalizationsEn extends ImgLocalizations {
   String get comparisonTop => 'Top';
 
   @override
-  String get galleryEmptyList => 'The gallery is empty';
+  String galleryEmptyListBody(
+      Object importIcon, Object mapLink, Object nearbyLink) {
+    return 'You can start by looking for historical pictures [nearby]($nearbyLink) or in the [map]($mapLink). When you replicate a historic picture, your photo will appear here. You can also press $importIcon to import your pictures from a file, if you previously exported them using the App.';
+  }
+
+  @override
+  String get galleryEmptyListTitle => 'The gallery is empty';
 
   @override
   String get galleryNoSearchResults => 'No search results';

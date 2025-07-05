@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:group_grid_view/group_grid_view.dart';
 import 'package:intl/intl.dart';
@@ -158,14 +159,7 @@ class _GalleryPageState extends State<GalleryPage> {
           );
         }
         if (sections.isEmpty) {
-          final criteria = galleryController.searchController.text.trim();
-          return Center(
-            child: Text(criteria.isEmpty
-                ? ImgLocalizations.of(context).galleryEmptyList
-                : ImgLocalizations.of(context).galleryNoSearchResults,
-              style: TextTheme.of(context).headlineMedium,
-            ),
-          );
+          return _buildEmpty();
         }
         return GroupGridView(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -185,6 +179,40 @@ class _GalleryPageState extends State<GalleryPage> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildEmpty() {
+    final criteria = galleryController.searchController.text.trim();
+    if (criteria.isEmpty) {
+      return Container(
+        alignment: Alignment.center,
+        padding: EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(ImgLocalizations.of(context).galleryEmptyListTitle,
+              style: TextTheme.of(context).headlineMedium,
+            ),
+            SizedBox(height: 12),
+            RichLocalization(
+              text: ImgLocalizations.of(context).galleryEmptyListBody(Icons.unarchive_outlined.md, '/?tab=map', '/?tab=nearby'),
+              textAlign: TextAlign.center,
+              onTapLink: (_, href, __) {
+                if (href != null) {
+                  context.go(href);
+                }
+              },
+            ),
+          ],
+        ),
+      );
+    }
+    return Center(
+      child: Text(ImgLocalizations.of(context).galleryNoSearchResults,
+        style: TextTheme.of(context).headlineMedium,
+      ),
     );
   }
 
