@@ -189,6 +189,7 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
     required SelectionController<T> controller,
   }) async {
     await SelectDialog.showModal<T>(context,
+      showSearchBox: false,
       label: label,
       selectedValue: controller.value,
       items: controller.elements.value,

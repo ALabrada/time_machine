@@ -4,10 +4,12 @@ import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:group_grid_view/group_grid_view.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/controllers/gallery_controller.dart';
+import 'package:time_machine_img/domain/gallery_section.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
 import 'package:time_machine_img/molecules/gallery_cell.dart';
 import 'package:time_machine_res/time_machine_res.dart';
@@ -166,7 +168,7 @@ class _GalleryPageState extends State<GalleryPage> {
           );
         }
         return GroupGridView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
             mainAxisSpacing: 0,
@@ -175,9 +177,7 @@ class _GalleryPageState extends State<GalleryPage> {
           sectionCount: sections.length,
           headerForSection: (section) => Padding(
             padding: EdgeInsets.only(top: 8, bottom: 4),
-            child: Text(sections[section].title,
-              style: TextTheme.of(context).headlineSmall,
-            ),
+            child: _buildSectionHeader(sections[section]),
           ),
           itemInSectionCount: (section) => sections[section].elements.length,
           itemInSectionBuilder: (context, index) {
@@ -185,6 +185,13 @@ class _GalleryPageState extends State<GalleryPage> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildSectionHeader(GallerySection section) {
+    final dateFormat = DateFormat.yMEd(ImgLocalizations.of(context).localeName);
+    return Text(dateFormat.format(section.date),
+      style: TextTheme.of(context).headlineSmall,
     );
   }
 

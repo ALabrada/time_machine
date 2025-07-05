@@ -156,13 +156,12 @@ class GalleryController with TaskManager {
   }
 
   void _updateSections(List<Record> records) {
-    final dateFormat = DateFormat.yMEd();
     sections.value = records
-        .groupListsBy((x) => dateFormat.format(x.createdAt))
+        .groupListsBy((x) => DateTime(x.createdAt.year, x.createdAt.month, x.createdAt.day))
         .entries
         .sortedByCompare((e) => e.value.first.createdAt, (x, y) => -x.compareTo(y))
         .map((e) => GallerySection(
-          title: e.key,
+          date: e.key,
           elements: e.value,
         ))
         .toList();
