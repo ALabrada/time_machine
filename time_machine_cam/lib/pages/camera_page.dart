@@ -245,7 +245,6 @@ class _CameraPageState extends State<CameraPage> {
     if (file == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(CamLocalizations.of(context).couldNotTakePhoto),
-        backgroundColor: Theme.of(context).primaryColor,
       ));
       return;
     }
@@ -263,7 +262,6 @@ class _CameraPageState extends State<CameraPage> {
     if (record != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(CamLocalizations.of(context).pictureAddedToGallery),
-        backgroundColor: Theme.of(context).primaryColor,
         action: SnackBarAction(
           label: CamLocalizations.of(context).viewPicture,
           onPressed: () => context.go('/gallery/${record.localId}'),
@@ -272,7 +270,6 @@ class _CameraPageState extends State<CameraPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(CamLocalizations.of(context).couldNotTakePhoto),
-        backgroundColor: Theme.of(context).primaryColor,
       ));
     }
   }

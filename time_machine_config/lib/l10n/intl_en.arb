@@ -1,18 +1,55 @@
 {
   "helpPage": "FAQs",
-  "questionHowToFindPicturesBody": "You can find pictures either in your vicinity (**Nearby** tab) or in the map (**Map** tab). The application will load the pictures from online databases, so you will need an active internet connection. You can choose which databases to use, among other parameters, in the configuration (**Settings** tab).",
+  "questionHowToFindPicturesBody": "You can find pictures either in your vicinity ({nearbyIcon} **Nearby** tab) or in the map ({mapIcon} **Map** tab). The application will load the pictures from online databases, so you will need an active internet connection. You can choose which databases to use, among other parameters, in the configuration ({settingsIcon} **Settings** tab).",
+  "@questionHowToFindPicturesBody": {
+    "placeholders": {
+      "nearbyIcon": {
+        "type": "String"
+      },
+      "mapIcon": {
+        "type": "String"
+      },
+      "settingsIcon": {
+        "type": "String"
+      }
+    }
+  },
   "questionHowToFindPicturesTitle": "How to find historic pictures?",
-  "questionHowToImportPicturesBody": "When you select the option to import a photo, you will be asked to find the picture in your phone. When you select it, the photo will appear overlaid with the historic picture. Align the pictures as closely as possible, and then press the **Save** button. You will be taken to the **Comparison** page.",
+  "questionHowToImportPicturesBody": "When you select the option to import a photo, you will be asked to find the picture in your phone. When you select it, the photo will appear overlaid with the historic picture. Align the pictures as closely as possible, and then press the {saveIcon} **Save** button. You will be taken to the **Comparison** page.",
+  "@questionHowToImportPicturesBody": {
+    "placeholders": {
+      "saveIcon": {
+        "type": "String"
+      }
+    }
+  },
   "questionHowToImportPicturesTitle": "How to import replicas of historic pictures?",
   "questionHowToReplicatePictureBody": "Once you found a historic picture in your vicinity or in the map, you can either take a picture in the application, or import an existing picture from your phone. First, tap or long press the historic picture, and then select the desired option from the toolbar or context menu, accordingly.",
   "questionHowToReplicatePictureTitle": "How to replicate an historic picture?",
-  "questionHowToSharePicturesBody": "You can share a historic picture and its replica from the **Comparison** view, by pressing the corresponding button. The context menu allows publishing pictures in the [Re.Photos](https://www.re.photos) website, in our [Telegram channel](https://t.me/history_lens_app), among other methods. In order to publish to [Re.Photos](https://www.re.photos), you will be taken to their website and will have to complete the creation form, but first you will need to login to your account (or create an account if you haven`t one). \n\nIt is better to share the original versions of the historic pictures, obtained from their website, to avoid watermarks. You can access the website by selecting the historical picture and pressing the **Browser** button.",
+  "questionHowToSharePicturesBody": "You can share a historic picture and its replica from the **Comparison** view, by pressing the corresponding button. The context menu allows publishing pictures in the [Re.Photos](https://www.re.photos) website, in our [Telegram channel]({telegramChannel}), among other methods. In order to publish to [Re.Photos](https://www.re.photos), you will be taken to their website and will have to complete the creation form, but first you will need to login to your account (or create an account if you haven`t one). \n\nIt is better to share the original versions of the historic pictures, obtained from their website, to avoid watermarks. You can access the website by selecting the historical picture and pressing the {browserIcon} **Browser** button.",
+  "@questionHowToSharePicturesBody": {
+    "placeholders": {
+      "telegramChannel": {
+        "type": "String"
+      },
+      "browserIcon": {
+        "type": "String"
+      }
+    }
+  },
   "questionHowToSharePicturesTitle": "How to share my pictures?",
   "questionHowToTakePictureBody": "When you open the camera to take a picture, the historic picture will appear overlaid with the camera preview. If you are far from the location of the historic picture, the top left corner will show instructions to reach it. Then, align the historic picture with the camera preview as closely as possible and take the photo. When the picture is saved, you will be able to open the **Comparison** screen or continue taking pictures.",
   "questionHowToTakePictureTitle": "How to take a picture in the application?",
   "questionWhatDataIsCollectedBody": "All the data collected by the application is stored locally in the phone. The data is shared only when you explicitly choose the share the pictures. The recorded photos will also contain their corresponding geo-coordinates.",
   "questionWhatDataIsCollectedTitle": "What data does the application collect on me?",
-  "questionWhatIsAppPurposeBody": "The application allows discovering historic pictures and recreating them, in order to compare them with the present. Then, you can share those pictures in [Re.Photos](https://www.re.photos) or in our [Telegram channel](https://t.me/history_lens_app).",
+  "questionWhatIsAppPurposeBody": "The application allows discovering historic pictures and recreating them, in order to compare them with the present. Then, you can share those pictures in [Re.Photos](https://www.re.photos) or in our [Telegram channel]({telegramChannel}).",
+  "@questionWhatIsAppPurposeBody": {
+    "placeholders": {
+      "telegramChannel": {
+        "type": "String"
+      }
+    }
+  },
   "questionWhatIsAppPurposeTitle": "What is the purpose of the History Lens application?",
   "sectionDataBases": "Picture DataBases",
   "sectionCamera": "Camera",

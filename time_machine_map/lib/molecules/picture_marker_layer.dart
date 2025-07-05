@@ -87,6 +87,7 @@ class PictureMarkerLayer extends StatelessWidget {
         child: Container(
           width: 30,
           height: 30,
+          clipBehavior: Clip.antiAlias,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),

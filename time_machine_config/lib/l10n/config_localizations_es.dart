@@ -12,16 +12,22 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
   String get helpPage => 'Preguntas Frequentes';
 
   @override
-  String get questionHowToFindPicturesBody =>
-      'Puede buscar fotos en su vecindad (pestaña **Cerca**) o en el map (pestaña **Mapa**). La aplicación descargará las fotos de bases de datos en línea, así que deberá estar conectada a internet. Puede elegir cúales bases de datos utilizar, entre otros parámetros, en la configuración (pestaña **Opciones**).';
+  String questionHowToFindPicturesBody(
+    String nearbyIcon,
+    String mapIcon,
+    String settingsIcon,
+  ) {
+    return 'Puede buscar fotos en su vecindad (pestaña $nearbyIcon **Cerca**) o en el map (pestaña $mapIcon **Mapa**). La aplicación descargará las fotos de bases de datos en línea, así que deberá estar conectada a internet. Puede elegir cúales bases de datos utilizar, entre otros parámetros, en la configuración (pestaña $settingsIcon **Opciones**).';
+  }
 
   @override
   String get questionHowToFindPicturesTitle =>
       '¿Cómo encontrar fotos históricas?';
 
   @override
-  String get questionHowToImportPicturesBody =>
-      'Cuando seleccione la opción de import foto, deberá buscar la foto deseada en el teléfono. Cuando la seleccione, se mostrará la foto superpuesta con la foto histórica. Alinee las fotos lo más cercanamente posible y presione el botón **Guardar**. A continuación se abrirá la vista de **Comparación**.';
+  String questionHowToImportPicturesBody(String saveIcon) {
+    return 'Cuando seleccione la opción de import foto, deberá buscar la foto deseada en el teléfono. Cuando la seleccione, se mostrará la foto superpuesta con la foto histórica. Alinee las fotos lo más cercanamente posible y presione el botón $saveIcon **Guardar**. A continuación se abrirá la vista de **Comparación**.';
+  }
 
   @override
   String get questionHowToImportPicturesTitle =>
@@ -36,8 +42,12 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
       '¿Cómo crear una réplica de una foto histórica?';
 
   @override
-  String get questionHowToSharePicturesBody =>
-      'Puede compartir una foto histórica junto con su réplica desde la vista de **Comparación**, presionando el botón correspondiente. El menú permite publicar las fotos en el sitio [Re.Photos](https://www.re.photos), en nuestro [canal de Telegram](https://t.me/history_lens_app), entre otros métodos. Para publicar en [Re.Photos](https://www.re.photos) se abrirá el sitio web y deberá completar el formulario de creación, pero primeramente deberá acceder a su cuenta (o crear una nueva si no tiene). \n\nEs mejor compartir las versiones originales de las fotos históricas, obtenidas desde sus sitios web, para evitar marcas de agua. Puede abrir el sitio web de origen, seleccionando la foto histórica y presionando el botón **Navegador**.';
+  String questionHowToSharePicturesBody(
+    String telegramChannel,
+    String browserIcon,
+  ) {
+    return 'Puede compartir una foto histórica junto con su réplica desde la vista de **Comparación**, presionando el botón correspondiente. El menú permite publicar las fotos en el sitio [Re.Photos](https://www.re.photos), en nuestro [canal de Telegram]($telegramChannel), entre otros métodos. Para publicar en [Re.Photos](https://www.re.photos) se abrirá el sitio web y deberá completar el formulario de creación, pero primeramente deberá acceder a su cuenta (o crear una nueva si no tiene). \n\nEs mejor compartir las versiones originales de las fotos históricas, obtenidas desde sus sitios web, para evitar marcas de agua. Puede abrir el sitio web de origen, seleccionando la foto histórica y presionando el botón $browserIcon **Navegador**.';
+  }
 
   @override
   String get questionHowToSharePicturesTitle => '¿Cómo compartir mis fotos?';
@@ -59,8 +69,9 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
       '¿Qué datos recolecta la aplicación acerca de mí?';
 
   @override
-  String get questionWhatIsAppPurposeBody =>
-      'La aplicación permite descubir fotos antiguas y recrearlas, con el fin de compararlas con el presente. Además, puede compartir las fotos en [Re.Photos](https://www.re.photos) o en nuestro [canal de Telegram](https://t.me/history_lens_app).';
+  String questionWhatIsAppPurposeBody(String telegramChannel) {
+    return 'La aplicación permite descubir fotos antiguas y recrearlas, con el fin de compararlas con el presente. Además, puede compartir las fotos en [Re.Photos](https://www.re.photos) o en nuestro [canal de Telegram]($telegramChannel).';
+  }
 
   @override
   String get questionWhatIsAppPurposeTitle =>

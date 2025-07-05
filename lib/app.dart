@@ -192,6 +192,14 @@ class TimeMachineApp extends StatelessWidget {
           theme: ThemeData.from(
             colorScheme: colorScheme,
             useMaterial3: true,
+          ).copyWith(
+            snackBarTheme: SnackBarThemeData(
+              backgroundColor: colorScheme.secondary,
+              actionBackgroundColor: colorScheme.primary,
+              contentTextStyle: TextStyle(
+                color: colorScheme.onSecondary,
+              ),
+            ),
           ),
           routerConfig: context.read<GoRouter>(),
         );

@@ -109,8 +109,12 @@ abstract class ConfigLocalizations {
   /// No description provided for @questionHowToFindPicturesBody.
   ///
   /// In en, this message translates to:
-  /// **'You can find pictures either in your vicinity (**Nearby** tab) or in the map (**Map** tab). The application will load the pictures from online databases, so you will need an active internet connection. You can choose which databases to use, among other parameters, in the configuration (**Settings** tab).'**
-  String get questionHowToFindPicturesBody;
+  /// **'You can find pictures either in your vicinity ({nearbyIcon} **Nearby** tab) or in the map ({mapIcon} **Map** tab). The application will load the pictures from online databases, so you will need an active internet connection. You can choose which databases to use, among other parameters, in the configuration ({settingsIcon} **Settings** tab).'**
+  String questionHowToFindPicturesBody(
+    String nearbyIcon,
+    String mapIcon,
+    String settingsIcon,
+  );
 
   /// No description provided for @questionHowToFindPicturesTitle.
   ///
@@ -121,8 +125,8 @@ abstract class ConfigLocalizations {
   /// No description provided for @questionHowToImportPicturesBody.
   ///
   /// In en, this message translates to:
-  /// **'When you select the option to import a photo, you will be asked to find the picture in your phone. When you select it, the photo will appear overlaid with the historic picture. Align the pictures as closely as possible, and then press the **Save** button. You will be taken to the **Comparison** page.'**
-  String get questionHowToImportPicturesBody;
+  /// **'When you select the option to import a photo, you will be asked to find the picture in your phone. When you select it, the photo will appear overlaid with the historic picture. Align the pictures as closely as possible, and then press the {saveIcon} **Save** button. You will be taken to the **Comparison** page.'**
+  String questionHowToImportPicturesBody(String saveIcon);
 
   /// No description provided for @questionHowToImportPicturesTitle.
   ///
@@ -145,8 +149,11 @@ abstract class ConfigLocalizations {
   /// No description provided for @questionHowToSharePicturesBody.
   ///
   /// In en, this message translates to:
-  /// **'You can share a historic picture and its replica from the **Comparison** view, by pressing the corresponding button. The context menu allows publishing pictures in the [Re.Photos](https://www.re.photos) website, in our [Telegram channel](https://t.me/history_lens_app), among other methods. In order to publish to [Re.Photos](https://www.re.photos), you will be taken to their website and will have to complete the creation form, but first you will need to login to your account (or create an account if you haven`t one). \n\nIt is better to share the original versions of the historic pictures, obtained from their website, to avoid watermarks. You can access the website by selecting the historical picture and pressing the **Browser** button.'**
-  String get questionHowToSharePicturesBody;
+  /// **'You can share a historic picture and its replica from the **Comparison** view, by pressing the corresponding button. The context menu allows publishing pictures in the [Re.Photos](https://www.re.photos) website, in our [Telegram channel]({telegramChannel}), among other methods. In order to publish to [Re.Photos](https://www.re.photos), you will be taken to their website and will have to complete the creation form, but first you will need to login to your account (or create an account if you haven`t one). \n\nIt is better to share the original versions of the historic pictures, obtained from their website, to avoid watermarks. You can access the website by selecting the historical picture and pressing the {browserIcon} **Browser** button.'**
+  String questionHowToSharePicturesBody(
+    String telegramChannel,
+    String browserIcon,
+  );
 
   /// No description provided for @questionHowToSharePicturesTitle.
   ///
@@ -181,8 +188,8 @@ abstract class ConfigLocalizations {
   /// No description provided for @questionWhatIsAppPurposeBody.
   ///
   /// In en, this message translates to:
-  /// **'The application allows discovering historic pictures and recreating them, in order to compare them with the present. Then, you can share those pictures in [Re.Photos](https://www.re.photos) or in our [Telegram channel](https://t.me/history_lens_app).'**
-  String get questionWhatIsAppPurposeBody;
+  /// **'The application allows discovering historic pictures and recreating them, in order to compare them with the present. Then, you can share those pictures in [Re.Photos](https://www.re.photos) or in our [Telegram channel]({telegramChannel}).'**
+  String questionWhatIsAppPurposeBody(String telegramChannel);
 
   /// No description provided for @questionWhatIsAppPurposeTitle.
   ///

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_config/l10n/config_localizations.dart';
@@ -11,6 +13,8 @@ class HelpPage extends StatefulWidget {
 }
 
 class _HelpPageState extends State<HelpPage> {
+  static const TELEGRAM_CHANNEL = 'https://t.me/history_lens_app';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,12 +37,12 @@ class _HelpPageState extends State<HelpPage> {
         QuestionCell(
           key: ValueKey(1),
           title: ConfigLocalizations.of(context).questionWhatIsAppPurposeTitle,
-          body: ConfigLocalizations.of(context).questionWhatIsAppPurposeBody,
+          body: ConfigLocalizations.of(context).questionWhatIsAppPurposeBody(TELEGRAM_CHANNEL),
         ),
         QuestionCell(
           key: ValueKey(2),
           title: ConfigLocalizations.of(context).questionHowToFindPicturesTitle,
-          body: ConfigLocalizations.of(context).questionHowToFindPicturesBody,
+          body: ConfigLocalizations.of(context).questionHowToFindPicturesBody(Icons.radar.md, Icons.map.md, Icons.settings.md),
         ),
         QuestionCell(
           key: ValueKey(3),
@@ -53,12 +57,12 @@ class _HelpPageState extends State<HelpPage> {
         QuestionCell(
           key: ValueKey(5),
           title: ConfigLocalizations.of(context).questionHowToImportPicturesTitle,
-          body: ConfigLocalizations.of(context).questionHowToImportPicturesBody,
+          body: ConfigLocalizations.of(context).questionHowToImportPicturesBody(Icons.done.md),
         ),
         QuestionCell(
           key: ValueKey(6),
           title: ConfigLocalizations.of(context).questionHowToSharePicturesTitle,
-          body: ConfigLocalizations.of(context).questionHowToSharePicturesBody,
+          body: ConfigLocalizations.of(context).questionHowToSharePicturesBody(TELEGRAM_CHANNEL, Icons.open_in_browser.md),
         ),
         QuestionCell(
           key: ValueKey(7),
@@ -67,5 +71,12 @@ class _HelpPageState extends State<HelpPage> {
         ),
       ],
     );
+  }
+}
+
+extension IconMarkdown on IconData {
+  String get md {
+    final name = String.fromCharCode(codePoint);
+    return "`$name`";
   }
 }

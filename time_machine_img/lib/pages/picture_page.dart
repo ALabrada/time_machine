@@ -79,7 +79,7 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
           ),
         ),
       ),
-      backgroundColor: Theme.of(context).colorScheme.secondary.withAlpha(127),
+      backgroundColor: Theme.of(context).colorScheme.secondary,
       foregroundColor: Theme.of(context).colorScheme.onSecondary,
     );
   }

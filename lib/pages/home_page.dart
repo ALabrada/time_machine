@@ -115,11 +115,7 @@ class _HomePageState extends State<HomePage> {
       content: Text(success
           ? ImgLocalizations.of(context).importSuccessful
           : ImgLocalizations.of(context).importError,
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onPrimary,
-        ),
       ),
-      backgroundColor: Theme.of(context).colorScheme.primary,
     ));
   }
 }

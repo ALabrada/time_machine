@@ -23,12 +23,17 @@ class ToolBar extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: children,
-          ),
+          top: false,
+          child: _buildContent(context),
         ),
       ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: children,
     );
   }
 }
