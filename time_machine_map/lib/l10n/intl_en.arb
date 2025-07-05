@@ -1,4 +1,6 @@
 {
+  "locationNotFoundAction": "Settings",
+  "locationNotFoundError": "Could not determine your location. Please, check your location settings.",
   "menuTitle": "Options",
   "menuActionCamera": "Take replica of the picture",
   "menuActionCancel": "Cancel",

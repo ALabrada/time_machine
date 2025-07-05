@@ -143,7 +143,6 @@ class PicturesController {
         _subscribePosition(serviceEnabled: serviceEnabled);
 
         if (!serviceEnabled) {
-          await Geolocator.openLocationSettings();
           return false;
         }
 

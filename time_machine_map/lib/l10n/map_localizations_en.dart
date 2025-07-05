@@ -9,6 +9,13 @@ class MapLocalizationsEn extends MapLocalizations {
   MapLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get locationNotFoundAction => 'Settings';
+
+  @override
+  String get locationNotFoundError =>
+      'Could not determine your location. Please, check your location settings.';
+
+  @override
   String get menuTitle => 'Options';
 
   @override

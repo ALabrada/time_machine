@@ -100,6 +100,18 @@ abstract class MapLocalizations {
     Locale('ru')
   ];
 
+  /// No description provided for @locationNotFoundAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get locationNotFoundAction;
+
+  /// No description provided for @locationNotFoundError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not determine your location. Please, check your location settings.'**
+  String get locationNotFoundError;
+
   /// No description provided for @menuTitle.
   ///
   /// In en, this message translates to:

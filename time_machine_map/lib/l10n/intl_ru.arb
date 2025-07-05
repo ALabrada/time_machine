@@ -1,4 +1,6 @@
 {
+  "locationNotFoundAction": "Настройки",
+  "locationNotFoundError": "Не удалось определить ваше местоположение. Пожалуйста, проверьте настройки.",
   "menuTitle": "Опций",
   "menuActionCamera": "Сфотографировать реплику фотографии",
   "menuActionCancel": "Отменить",

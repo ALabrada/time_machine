@@ -9,6 +9,13 @@ class MapLocalizationsRu extends MapLocalizations {
   MapLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get locationNotFoundAction => 'Настройки';
+
+  @override
+  String get locationNotFoundError =>
+      'Не удалось определить ваше местоположение. Пожалуйста, проверьте настройки.';
+
+  @override
   String get menuTitle => 'Опций';
 
   @override

@@ -1,4 +1,6 @@
 {
+  "locationNotFoundAction": "Opciones",
+  "locationNotFoundError": "No se pudo determinar su ubicación. Por favor, verifique las opciones.",
   "menuTitle": "Opciones",
   "menuActionCamera": "Tomar réplica de la foto",
   "menuActionCancel": "Cancelar",

@@ -243,9 +243,11 @@ class _CameraPageState extends State<CameraPage> {
     XFile? file,
   }) async {
     if (file == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(CamLocalizations.of(context).couldNotTakePhoto),
-      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(CamLocalizations.of(context).couldNotTakePhoto),
+        ));
+      }
       return;
     }
     final screenSize = _screenSize;
