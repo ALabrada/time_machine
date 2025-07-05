@@ -52,10 +52,9 @@ class _GalleryPageState extends State<GalleryPage> {
             child: Stack(
               children: [
                 _buildGrid(),
-                Positioned(
-                  bottom: 40,
-                  left: 40,
-                  right: 40,
+                PositionedDirectional(
+                  bottom: 16,
+                  end: 8,
                   child: _buildToolbar(),
                 )
               ],
@@ -75,32 +74,37 @@ class _GalleryPageState extends State<GalleryPage> {
       ),
       initialData: null,
       builder: (context, snapshot) {
-        final selection = snapshot.data ?? 0;
-        return AnimatedOpacity(
-          duration: Duration(milliseconds: 300),
-          opacity: snapshot.data != null ? 1 : 0,
-          child: ToolBar(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondary,
-              borderRadius: BorderRadius.circular(100),
-              boxShadow: [
-                BoxShadow(
-                  offset: Offset(0,2),
-                  blurRadius: 10.0,
-                  color: gray06.withValues(alpha: 0.5),
-                ),
-              ],
-            ),
-            children: [
-              IconButton(
-                onPressed: () {
-                  unawaited(galleryController.importRecords(
-                    databaseService: context.read(),
-                  ));
-                },
-                icon: Icon(Icons.unarchive),
+        final editingOpacity = snapshot.data != null ? 1.0 : 0.0;
+        return Column(
+          children: [
+            AnimatedOpacity(
+              opacity: editingOpacity,
+              duration: Duration(milliseconds: 300),
+              child: FloatingActionButton(
+                heroTag: "cancel",
+                shape: const CircleBorder(),
+                onPressed: galleryController.cancelEditing,
+                child: Icon(Icons.cancel_outlined),
               ),
-              StreamBuilder(
+            ),
+            const SizedBox(height: 16),
+            AnimatedOpacity(
+              opacity: editingOpacity,
+              duration: Duration(milliseconds: 300),
+              child: FloatingActionButton(
+                heroTag: "delete",
+                shape: const CircleBorder(),
+                onPressed: () {
+                  unawaited(_deleteSelection());
+                },
+                child: Icon(Icons.delete_outline),
+              ),
+            ),
+            const SizedBox(height: 22),
+            AnimatedOpacity(
+              opacity: editingOpacity,
+              duration: Duration(milliseconds: 300),
+              child: StreamBuilder(
                 stream: galleryController.isProcessing,
                 initialData: false,
                 builder: (context, snapshot) {
@@ -111,28 +115,29 @@ class _GalleryPageState extends State<GalleryPage> {
                       child: CircularProgressIndicator(),
                     );
                   }
-                  return IconButton(
-                    onPressed: selection == 0 ? null : () {
+                  return FloatingActionButton(
+                    heroTag: "export",
+                    onPressed: () {
                       unawaited(galleryController.export(
                         dialogTitle: ImgLocalizations.of(context).shareMenuExport,
                       ));
                     },
-                    icon: Icon(Icons.archive),
+                    child: Icon(Icons.archive_outlined),
                   );
                 },
               ),
-              IconButton(
-                onPressed: selection == 0 ? null : () {
-                  unawaited(_deleteSelection());
-                },
-                icon: Icon(Icons.delete),
-              ),
-              IconButton(
-                onPressed: galleryController.cancelEditing,
-                icon: Icon(Icons.cancel),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 22),
+            FloatingActionButton(
+              heroTag: "import",
+              onPressed: () {
+                unawaited(galleryController.importRecords(
+                  databaseService: context.read(),
+                ));
+              },
+              child: Icon(Icons.unarchive_outlined),
+            ),
+          ],
         );
       },
     );
