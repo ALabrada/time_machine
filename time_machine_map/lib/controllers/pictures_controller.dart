@@ -58,6 +58,10 @@ class PicturesController {
     _positionSubscription = null;
   }
 
+  void clearSelection() {
+    selection.value = null;
+  }
+
   Future<void> reload() => loadPictures(mapController?.camera);
 
   void saveSettings(MapCamera camera) {
@@ -65,6 +69,10 @@ class PicturesController {
     preferences?.setDouble('map.lng', camera.center.longitude);
     preferences?.setDouble('map.zoom', camera.zoom);
     preferences?.setDouble('map.rotation', camera.rotation);
+  }
+
+  void select(Picture? picture) {
+    selection.value = picture;
   }
 
   Future<void> loadPictures(MapCamera? camera) async {
@@ -93,6 +101,10 @@ class PicturesController {
         for (final item in result)
           item,
     ];
+    final selection = this.selection.valueOrNull;
+    if (selection != null) {
+      this.selection.value = pictures.value.where((p) => p.provider == selection.provider && p.id == selection.id).firstOrNull;
+    }
   }
 
   Future<bool> show({
@@ -118,6 +130,7 @@ class PicturesController {
 
     saveSettings(mapController.camera);
     await loadPictures(mapController.camera);
+    select(picture);
     return true;
   }
 

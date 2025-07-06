@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -8,19 +9,58 @@ import 'package:time_machine_map/molecules/picture_marker.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'package:time_machine_res/tokens/colors.dart';
 
-class PictureMarkerLayer extends StatelessWidget {
+class PictureMarkerLayer extends StatefulWidget {
   const PictureMarkerLayer({
     super.key,
     this.pictures,
+    this.selection,
     this.popupController,
+    this.onSelected,
     this.onTap,
     this.onLongPress,
   });
 
   final List<Picture>? pictures;
+  final Stream<Picture?>? selection;
   final PopupController? popupController;
+  final void Function(Picture model)? onSelected;
   final void Function(Picture model)? onTap;
   final void Function(Picture model)? onLongPress;
+
+  @override
+  _PictureMarkerLayerState createState() => _PictureMarkerLayerState();
+}
+
+class _PictureMarkerLayerState extends State<PictureMarkerLayer> {
+  late PopupController _popupController;
+  StreamSubscription? _selectionSubscription;
+  List<Marker> _markers = [];
+
+  @override
+  void dispose() {
+    _selectionSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _popupController = widget.popupController ?? PopupController();
+    _updateMarkers();
+    _selectionSubscription = widget.selection?.listen((e) {
+      _updateSelection(e);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant PictureMarkerLayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _updateMarkers();
+    _selectionSubscription?.cancel();
+    _selectionSubscription = widget.selection?.listen((e) {
+      _updateSelection(e);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,14 +70,17 @@ class PictureMarkerLayer extends StatelessWidget {
         size: const Size(40, 40),
         alignment: Alignment.center,
         padding: const EdgeInsets.all(50),
-        markers: [
-          for (final picture in pictures ?? <Picture>[])
-            _buildMarker(picture),
-        ],
+        markers: _markers,
         centerMarkerOnClick: false,
         zoomToBoundsOnClick: false,
         popupOptions: PopupOptions(
-          popupController: popupController,
+          popupController: _popupController,
+          markerTapBehavior: MarkerTapBehavior.custom((spec, state, _) {
+            final marker = spec.marker;
+            if (marker is PictureMarker) {
+              widget.onSelected?.call(marker.picture);
+            }
+          }),
           popupBuilder: (context, marker) {
             final picture = marker is PictureMarker ? marker.picture : null;
             return Container(
@@ -45,8 +88,8 @@ class PictureMarkerLayer extends StatelessWidget {
               constraints: BoxConstraints(maxWidth: 0.8 * MediaQuery.of(context).size.width),
               child: PictureView.model(
                 model: picture,
-                onLongPress: picture == null || onLongPress == null ? null : () => onLongPress!(picture),
-                onTapImage: picture == null || onTap == null ? null : () => onTap!(picture),
+                onLongPress: picture == null || widget.onLongPress == null ? null : () => widget.onLongPress!(picture),
+                onTapImage: picture == null || widget.onTap == null ? null : () => widget.onTap!(picture),
               ),
             );
           },
@@ -99,5 +142,23 @@ class PictureMarkerLayer extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _updateMarkers() {
+    _markers = [
+      for (final picture in widget.pictures ?? <Picture>[])
+        _buildMarker(picture),
+    ];
+  }
+
+  void _updateSelection(Picture? selection) {
+    final selectedMarker = selection == null ? null : _markers.whereType<PictureMarker>().where((e) {
+      return e.picture.provider == selection.provider && e.picture.id == selection.id;
+    }).firstOrNull;
+    if (selectedMarker == null) {
+      _popupController.hideAllPopups();
+    } else {
+      _popupController.showPopupsOnlyFor([selectedMarker]);
+    }
   }
 }

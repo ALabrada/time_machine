@@ -12,6 +12,7 @@ import 'package:flutter_map_compass/flutter_map_compass.dart';
 import 'package:flutter_map_marker_cluster_plus/flutter_map_marker_cluster_plus.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -56,7 +57,6 @@ class _MapPageState extends State<MapPage> {
       networkService: context.read<NetworkService>(),
       preferences: context.read(),
     );
-    _picturesController.pictures.listen((_) => _popupController.hideAllPopups());
     super.initState();
     unawaited(_picturesController.show(
       pictureId: widget.pictureId,
@@ -159,7 +159,7 @@ class _MapPageState extends State<MapPage> {
           initialZoom: _picturesController.defaultZoom ?? 2.0,
           initialRotation: _picturesController.defaultRotation ?? 0.0,
           onTap: (_, __) {
-            _popupController.hideAllPopups();
+            _picturesController.clearSelection();
           }, // Hide popup when the map is tapped.
           onMapReady: () {
             _picturesController.mapReady.value = true;
@@ -209,7 +209,9 @@ class _MapPageState extends State<MapPage> {
       builder: (context, snapshot) {
         return PictureMarkerLayer(
           pictures: snapshot.data,
+          selection: _picturesController.selection,
           popupController: _popupController,
+          onSelected: _picturesController.select,
           onTap: (picture) => _showImage(picture),
           onLongPress: (picture) => unawaited(_showMenu(picture)),
         );
