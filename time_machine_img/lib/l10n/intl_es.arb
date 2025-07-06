@@ -1,4 +1,8 @@
 {
+  "creationMenuTitle": "Crear réplica",
+  "creationMenuActionCamera": "Tomar foto",
+  "creationMenuActionCancel": "Cancelar",
+  "creationMenuActionImport": "Importar foto de la galería",
   "deleteCancel": "Cancelar",
   "deleteConfirm": "Borrar",
   "deleteManySubtitle": "¿Está seguro de que desea borrar las réplicas?",

@@ -9,6 +9,19 @@ class ImgLocalizationsRu extends ImgLocalizations {
   ImgLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get creationMenuTitle => 'Создать реплику';
+
+  @override
+  String get creationMenuActionCamera => 'Сфотографировать';
+
+  @override
+  String get creationMenuActionCancel => 'Отменить';
+
+  @override
+  String get creationMenuActionImport =>
+      'Импортировать фотографию из библиотеки';
+
+  @override
   String get deleteCancel => 'Отменить';
 
   @override

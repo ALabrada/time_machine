@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:extended_text/extended_text.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,8 @@ import 'package:time_machine_img/molecules/tool_bar.dart';
 import 'package:time_machine_net/services/network_service.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+
+import '../l10n/img_localizations.dart';
 
 class PicturePage extends StatefulWidget {
   const PicturePage({
@@ -141,14 +144,11 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
       animation: animationController,
       child: ToolBar(
         children: [
-          IconButton(
-            onPressed: widget.pictureId == null ? null : _importPicture,
-            icon: Icon(Icons.photo_library),
-          ),
-          IconButton(
-            onPressed: widget.pictureId == null ? null : _takePicture,
-            icon: Icon(Icons.camera_alt),
-          ),
+          if (picture?.provider != null && picture?.provider != '')
+            IconButton(
+              onPressed: showCreationMenu,
+              icon: Icon(Icons.library_add),
+            ),
           if (picture?.site != null)
             IconButton(
               onPressed: () => _openSite(picture!.site!),
@@ -184,5 +184,31 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
 
   void _openSite(String site) {
     unawaited(launchUrlString(site));
+  }
+
+  Future<void> showCreationMenu() async {
+    await showAdaptiveActionSheet(
+      context: context,
+      title: Text( ImgLocalizations.of(context).creationMenuTitle),
+      cancelAction: CancelAction(title: Text(ImgLocalizations.of(context).creationMenuActionCancel)),
+      actions: [
+        BottomSheetAction(
+          leading: Icon(Icons.photo_library),
+          title: Text(ImgLocalizations.of(context).creationMenuActionImport),
+          onPressed: (context) {
+            _importPicture();
+            Navigator.of(context).pop();
+          },
+        ),
+        BottomSheetAction(
+          leading: Icon(Icons.camera_alt),
+          title: Text(ImgLocalizations.of(context).creationMenuActionCamera),
+          onPressed: (context) {
+            _takePicture();
+            Navigator.of(context).pop();
+          },
+        ),
+      ],
+    );
   }
 }

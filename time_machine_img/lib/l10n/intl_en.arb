@@ -1,4 +1,8 @@
 {
+  "creationMenuTitle": "Create replica",
+  "creationMenuActionCamera": "Take a picture",
+  "creationMenuActionCancel": "Cancel",
+  "creationMenuActionImport": "Import a picture from the library",
   "deleteCancel": "Cancel",
   "deleteConfirm": "Delete",
   "deleteManySubtitle": "Are you sure you want to delete the replicas?",

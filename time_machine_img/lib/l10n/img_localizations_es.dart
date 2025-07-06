@@ -9,6 +9,18 @@ class ImgLocalizationsEs extends ImgLocalizations {
   ImgLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
+  String get creationMenuTitle => 'Crear réplica';
+
+  @override
+  String get creationMenuActionCamera => 'Tomar foto';
+
+  @override
+  String get creationMenuActionCancel => 'Cancelar';
+
+  @override
+  String get creationMenuActionImport => 'Importar foto de la galería';
+
+  @override
   String get deleteCancel => 'Cancelar';
 
   @override

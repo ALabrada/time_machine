@@ -100,6 +100,30 @@ abstract class ImgLocalizations {
     Locale('ru')
   ];
 
+  /// No description provided for @creationMenuTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create replica'**
+  String get creationMenuTitle;
+
+  /// No description provided for @creationMenuActionCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a picture'**
+  String get creationMenuActionCamera;
+
+  /// No description provided for @creationMenuActionCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get creationMenuActionCancel;
+
+  /// No description provided for @creationMenuActionImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import a picture from the library'**
+  String get creationMenuActionImport;
+
   /// No description provided for @deleteCancel.
   ///
   /// In en, this message translates to:

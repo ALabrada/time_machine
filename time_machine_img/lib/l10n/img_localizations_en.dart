@@ -9,6 +9,18 @@ class ImgLocalizationsEn extends ImgLocalizations {
   ImgLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get creationMenuTitle => 'Create replica';
+
+  @override
+  String get creationMenuActionCamera => 'Take a picture';
+
+  @override
+  String get creationMenuActionCancel => 'Cancel';
+
+  @override
+  String get creationMenuActionImport => 'Import a picture from the library';
+
+  @override
   String get deleteCancel => 'Cancel';
 
   @override

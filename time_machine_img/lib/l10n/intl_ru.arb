@@ -1,4 +1,8 @@
 {
+  "creationMenuTitle": "Создать реплику",
+  "creationMenuActionCamera": "Сфотографировать",
+  "creationMenuActionCancel": "Отменить",
+  "creationMenuActionImport": "Импортировать фотографию из библиотеки",
   "deleteCancel": "Отменить",
   "deleteConfirm": "Удалить",
   "deleteManySubtitle": "Вы уверены, что хотите удалить реплики?",
