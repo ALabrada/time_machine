@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_cam/time_machine_cam.dart';
 import 'package:time_machine_config/time_machine_config.dart';
@@ -51,47 +52,53 @@ class _HomePageState extends State<HomePage> {
     if (currentPageIndex < 0) {
       return Center(child: CircularProgressIndicator(),);
     }
-    return Scaffold(
-      bottomNavigationBar: NavigationBar(
-        onDestinationSelected: (int index) {
-          setState(() {
-            currentPageIndex = index;
-          });
-        },
-        indicatorColor: Theme.of(context).primaryColor,
-        backgroundColor: background02,
-        selectedIndex: currentPageIndex,
-        destinations: <Widget>[
-          NavigationDestination(
-            selectedIcon: Icon(Icons.photo_album),
-            icon: Icon(Icons.photo_album_outlined),
-            label: AppLocalizations.of(context).homeTabsGallery,
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.radar),
-            icon: Icon(Icons.radar_outlined),
-            label: AppLocalizations.of(context).homeTabsCamera,
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.map),
-            icon: Icon(Icons.map_outlined),
-            label: AppLocalizations.of(context).homeTabsMap,
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.settings),
-            icon: Icon(Icons.settings_outlined),
-            label: AppLocalizations.of(context).homeTabsConfig,
-          ),
-        ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarBrightness: Brightness.dark,
+        statusBarColor: Colors.white,
       ),
-      body: <Widget>[
-        GalleryPage(),
-        ScanningPage(),
-        MapPage(
-          pictureId: widget.pictureId,
+      child: Scaffold(
+        bottomNavigationBar: NavigationBar(
+          onDestinationSelected: (int index) {
+            setState(() {
+              currentPageIndex = index;
+            });
+          },
+          indicatorColor: Theme.of(context).primaryColor,
+          backgroundColor: background02,
+          selectedIndex: currentPageIndex,
+          destinations: <Widget>[
+            NavigationDestination(
+              selectedIcon: Icon(Icons.photo_album),
+              icon: Icon(Icons.photo_album_outlined),
+              label: AppLocalizations.of(context).homeTabsGallery,
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.radar),
+              icon: Icon(Icons.radar_outlined),
+              label: AppLocalizations.of(context).homeTabsCamera,
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.map),
+              icon: Icon(Icons.map_outlined),
+              label: AppLocalizations.of(context).homeTabsMap,
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.settings),
+              icon: Icon(Icons.settings_outlined),
+              label: AppLocalizations.of(context).homeTabsConfig,
+            ),
+          ],
         ),
-        ConfigurationPage()
-      ][currentPageIndex],
+        body: <Widget>[
+          GalleryPage(),
+          ScanningPage(),
+          MapPage(
+            pictureId: widget.pictureId,
+          ),
+          ConfigurationPage()
+        ][currentPageIndex],
+      ),
     );
   }
 

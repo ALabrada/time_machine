@@ -15,6 +15,7 @@ import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../controllers/upload_controller.dart';
 import '../molecules/tool_bar.dart';
 
 class ComparisonPage extends StatefulWidget {
@@ -270,7 +271,11 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
         BottomSheetAction(
           title: Text(ImgLocalizations.of(context).shareMenuPublishTo('re.photos')),
           onPressed: (context) {
-            context.go('/gallery/${widget.recordId}/upload');
+            final originalPicture = comparisonController.record?.original;
+            final page = originalPicture != null && originalPicture.provider == 're.photos' ?
+                '${UploadController.defaultPageUrl}with_before/${originalPicture.id}/' :
+                UploadController.defaultPageUrl;
+            context.go('/gallery/${widget.recordId}/upload?webPage=${Uri.encodeQueryComponent(page)}');
             context.pop();
           },
         ),

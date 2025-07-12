@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'dart:math';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map_math/flutter_geo_math.dart';
@@ -10,13 +8,13 @@ import 'package:time_machine_net/domain/area.dart';
 
 import 'network_service.dart';
 
-class RussiaInPhotoProvider implements DataProvider {
+class HistoryPinProvider implements DataProvider {
   final dio = Dio(
-      BaseOptions(baseUrl: 'https://russiainphoto.ru')
+      BaseOptions(baseUrl: 'https://www.historypin.org')
   );
   String? userAgent;
 
-  RussiaInPhotoProvider({this.userAgent,}) {
+  HistoryPinProvider({this.userAgent,}) {
     dio.interceptors.add(
       LogInterceptor(
         request: true,
@@ -35,20 +33,21 @@ class RussiaInPhotoProvider implements DataProvider {
     DateTime? endDate,
   }) async {
     final userAgent = this.userAgent;
-    final response = await dio.get('/rest/front/map-grid/',
+    final response = await dio.get('/en/api/explore/pin/get_gallery.json',
       queryParameters: {
-        'bounds': '${area.maxLat},${area.minLng},${area.minLat},${area.maxLng}',
+        'bounds': '${area.minLat},${area.minLng},${area.maxLat},${area.maxLng}',
       },
       options: Options(
         headers: {
           if (userAgent != null)
             HttpHeaders.userAgentHeader: userAgent,
+          HttpHeaders.acceptHeader: 'application/json',
         },
       ),
     );
     return [
       for (final item in response.data['results'] as List)
-        for (final _ in Iterable.generate(item['photos_count'] as int))
+        if (item['node_type']?.toString() == 'pin' && item['type']?.toString() == 'photo')
           _decode(item),
     ];
   }
@@ -78,14 +77,35 @@ class RussiaInPhotoProvider implements DataProvider {
     return result;
   }
 
+  Future<Picture> get(String id) async {
+    final userAgent = this.userAgent;
+    final response = await dio.get('/en/api/explore/pin/get.json',
+      queryParameters: {
+        'id': id,
+      },
+      options: Options(
+        headers: {
+          if (userAgent != null)
+            HttpHeaders.userAgentHeader: userAgent,
+          HttpHeaders.acceptHeader: 'application/json',
+        },
+      ),
+    );
+    return _decode(response.data);
+  }
+
   Picture _decode(dynamic obj) {
-    final hash = obj['geohash']?.toString();
+    final id = obj['id'].toString();
+    final sitePath = obj['url']?.toString() ?? '/en/explore/pin/$id';
+    final imgPath = obj['display']?['content']?.toString() ?? obj['image'].toString();
     return Picture(
-      id: obj['photo']['id'].toString(),
-      url: obj['photo']['url'].toString(),
-      site: hash == null ? null : '${dio.options.baseUrl}/search/photo/?page=1&geohash=$hash&paginate_page=1&index=1',
-      latitude: obj['lat'] as double,
-      longitude: obj['lon'] as double,
+      id: id,
+      description: obj['caption'].toString(),
+      time: obj['date'].toString(),
+      url: '${dio.options.baseUrl}$imgPath',
+      site: '${dio.options.baseUrl}$sitePath',
+      latitude: obj['location']['lat'] as double,
+      longitude: obj['location']['lng'] as double,
     );
   }
 }

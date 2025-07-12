@@ -119,10 +119,25 @@ final class ConfigurationController extends ChangeNotifier {
     NetworkService? networkService,
   }) {
     return [
+      if (networkService?.providers.containsKey('re.photos') ?? false)
+        SelectableItem(
+          item: 're.photos',
+          value: configurationService.providers?.contains('re.photos') ?? true,
+        ),
       if (networkService?.providers.containsKey('pastvu') ?? false)
         SelectableItem(
           item: 'pastvu',
           value: configurationService.providers?.contains('pastvu') ?? true,
+        ),
+      if (networkService?.providers.containsKey('historypin') ?? false)
+        SelectableItem(
+          item: 'historypin',
+          value: configurationService.providers?.contains('historypin') ?? true,
+        ),
+      if (networkService?.providers.containsKey('sepiatown') ?? false)
+        SelectableItem(
+          item: 'sepiatown',
+          value: configurationService.providers?.contains('sepiatown') ?? true,
         ),
       if (networkService?.providers.containsKey('russiainphoto') ?? false)
         SelectableItem(

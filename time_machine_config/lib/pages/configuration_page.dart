@@ -135,10 +135,16 @@ class _ConfigurationPageState extends State<ConfigurationPage> {
   AbstractSettingsSection _buildProvidersSection() {
     final names = {
       'pastvu': 'PastVu',
+      're.photos': 'Re.Photos',
+      'historypin': 'Historypin',
+      'sepiatown': 'SepiaTown',
       'russiainphoto': 'История России в фотографиях',
     };
     final links = {
       'pastvu': 'https://pastvu.com/',
+      're.photos': 'https://www.re.photos/',
+      'historypin': 'https://www.historypin.org/',
+      'sepiatown': 'https://www.sepiatown.com/',
       'russiainphoto': 'https://russiainphoto.ru/',
     };
     return SettingsSection(

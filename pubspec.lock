@@ -1627,6 +1627,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.12.1"
+  statusbarz:
+    dependency: "direct main"
+    description:
+      name: statusbarz
+      sha256: "0564403d1a6169076557d9daa4bc5fb9aa0d39a46585156d5b4cd0c9a3b6efbe"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.14"
   stream_channel:
     dependency: transitive
     description:

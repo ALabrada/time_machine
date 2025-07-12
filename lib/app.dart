@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:statusbarz/statusbarz.dart';
 import 'package:time_machine/pages/home_page.dart';
 import 'package:time_machine/secrets.dart' as secrets;
 import 'package:time_machine_cam/time_machine_cam.dart';
@@ -139,6 +140,15 @@ class TimeMachineApp extends StatelessWidget {
                 userAgent: userAgent,
               ),
               'russiainphoto': RussiaInPhotoProvider(
+                userAgent: userAgent,
+              ),
+              're.photos': RetroPhotosProvider(
+                userAgent: userAgent,
+              ),
+              'historypin': HistoryPinProvider(
+                userAgent: userAgent,
+              ),
+              'sepiatown': SepiaTownProvider(
                 userAgent: userAgent,
               ),
             },
