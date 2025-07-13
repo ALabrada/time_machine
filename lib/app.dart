@@ -203,6 +203,15 @@ class TimeMachineApp extends StatelessWidget {
             colorScheme: colorScheme,
             useMaterial3: true,
           ).copyWith(
+            appBarTheme: AppBarTheme(
+              backgroundColor: colorScheme.secondary,
+              foregroundColor: colorScheme.onSecondary,
+              systemOverlayStyle: SystemUiOverlayStyle(
+                statusBarBrightness: Brightness.light,
+                statusBarIconBrightness: Brightness.light,
+                statusBarColor: colorScheme.secondary,
+              ),
+            ),
             snackBarTheme: SnackBarThemeData(
               backgroundColor: colorScheme.secondary,
               actionBackgroundColor: colorScheme.primary,

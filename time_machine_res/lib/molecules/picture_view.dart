@@ -38,11 +38,13 @@ class PictureView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final text = _buildText(context);
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
         padding: EdgeInsets.all(8),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(color: Colors.black, width: 1),
@@ -53,8 +55,11 @@ class PictureView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildIcon(context),
-            SizedBox(width: 8),
-            Expanded(child: _buildText(context)),
+            if (text != null)
+              ...[
+                SizedBox(width: 8),
+                Expanded(child: text),
+              ],
           ],
         ),
       ),
@@ -72,13 +77,27 @@ class PictureView extends StatelessWidget {
         height: 48,
         width: 48,
         fit: BoxFit.fitHeight,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) {
+            return child;
+          }
+          return Container(
+            alignment: Alignment.center,
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildText(BuildContext context) {
+  Widget? _buildText(BuildContext context) {
     final title = this.title;
     final time = this.time;
+    if ((title?.isEmpty ?? true) && (time?.isEmpty ?? true)) {
+      return null;
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,

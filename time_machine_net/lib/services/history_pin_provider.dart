@@ -36,6 +36,8 @@ class HistoryPinProvider implements DataProvider {
     final response = await dio.get('/en/api/explore/pin/get_gallery.json',
       queryParameters: {
         'bounds': '${area.minLat},${area.minLng},${area.maxLat},${area.maxLng}',
+        if (startDate != null || endDate != null)
+          'date': '${startDate?.year ?? 1000}:${endDate?.year ?? DateTime.now().year}'
       },
       options: Options(
         headers: {

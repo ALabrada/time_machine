@@ -125,8 +125,20 @@ class _PictureMarkerLayerState extends State<PictureMarkerLayer> {
       picture: picture,
       width: 30,
       height: 30,
-      child: Transform.rotate(
-        angle: bearing == null ? 0 : bearing * pi / 180,
+      child: bearing == null ? Container(
+        width: 30,
+        height: 30,
+        clipBehavior: Clip.antiAlias,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          color: accent01,
+        ),
+        child: Icon(Icons.pin_drop_outlined,
+          color: background02,
+        ),
+      ) : Transform.rotate(
+        angle: bearing * pi / 180,
         child: Container(
           width: 30,
           height: 30,

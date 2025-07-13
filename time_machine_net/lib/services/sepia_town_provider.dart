@@ -107,14 +107,14 @@ class SepiaTownProvider implements DataProvider {
 
   double? _decodeOrientation(String? direction) {
     switch (direction) {
-      case 'S': return 0;
-      case 'SW': return 45;
-      case 'W': return 90;
-      case 'NW': return 135;
-      case 'N': return 180;
-      case 'NE': return 225;
-      case 'E': return 270;
-      case 'SE': return 315;
+      case 'N': return 0;
+      case 'NE': return 45;
+      case 'E': return 90;
+      case 'SE': return 135;
+      case 'S': return 180;
+      case 'SW': return 225;
+      case 'W': return 270;
+      case 'NW': return 315;
       default: return null;
     }
   }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cachette/cachette.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map_math/flutter_geo_math.dart';
@@ -9,6 +10,7 @@ import 'package:time_machine_net/domain/area.dart';
 import 'network_service.dart';
 
 class RetroPhotosProvider implements DataProvider {
+  final cache = Cachette<String, Picture>(1000);
   final dio = Dio(
       BaseOptions(baseUrl: 'https://www.re.photos')
   );
@@ -110,6 +112,10 @@ class RetroPhotosProvider implements DataProvider {
   Future<Picture> _download(dynamic obj) async {
     final userAgent = this.userAgent;
     final id = obj['id'].toString();
+    final cached = cache[id];
+    if (cached != null) {
+      return cached;
+    }
     final response = await dio.get('/api/template/$id/',
       options: Options(
         headers: {
@@ -118,7 +124,9 @@ class RetroPhotosProvider implements DataProvider {
         },
       ),
     );
-    return _decode(obj, response.data);
+    final item = _decode(obj, response.data);
+    cache[id] = item;
+    return item;
   }
 
   Picture _decode(dynamic obj, dynamic details) {
@@ -129,8 +137,8 @@ class RetroPhotosProvider implements DataProvider {
       previewUrl: details['image']['file_thumb'].toString(),
       time: details['image']['creation_date'].toString(),
       site: '${dio.options.baseUrl}/en/template/${obj['id']}/',
-      latitude: obj['position']['coordinates'][0] as double,
-      longitude: obj['position']['coordinates'][1] as double,
+      latitude: obj['position']['coordinates'][1] as double,
+      longitude: obj['position']['coordinates'][0] as double,
     );
   }
 }

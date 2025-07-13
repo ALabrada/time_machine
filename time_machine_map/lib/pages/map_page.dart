@@ -84,9 +84,7 @@ class _MapPageState extends State<MapPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: _buildMap(),
-    );
+    return _buildMap();
   }
 
   Widget _buildButtons() {
