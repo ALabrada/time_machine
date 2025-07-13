@@ -175,9 +175,11 @@ class _MapPageState extends State<MapPage> {
                 .fromGeolocatorPositionStream(stream: _picturesController.position),
           ),
           _buildMarkers(),
-          const MapCompass.cupertino(
-            hideIfRotatedNorth: true,
-            padding: EdgeInsets.fromLTRB(8, 60, 8, 8),
+          const SafeArea(
+            child: MapCompass.cupertino(
+              hideIfRotatedNorth: true,
+              padding: EdgeInsets.fromLTRB(8, 60, 8, 8),
+            ),
           ),
           _buildButtons(),
           _buildSearchBar(),
