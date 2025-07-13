@@ -20,6 +20,7 @@ class Picture {
     this.time,
     this.margin,
     this.site,
+    this.visitedAt,
   });
 
   String id;
@@ -36,6 +37,8 @@ class Picture {
   String? time;
   String? margin;
   String? site;
+  @DateTimeConverter()
+  DateTime? visitedAt;
 
   @JsonKey(includeToJson: false, includeFromJson: false)
   Location get location => Location(lat: latitude, lng: longitude);
@@ -70,12 +73,36 @@ extension PictureRepository on Repository<Picture> {
 
   Future<List<Picture>> findPicturesWithText(List<String> keywords, {
     int limit = 20,
+    List<String> providers = const[],
   }) async {
     final finder = Finder(
       filter: Filter.and([
         for (final word in keywords)
           Filter.matches('description', word),
+        if (providers.isNotEmpty)
+          Filter.inList('provider', providers),
       ]),
+      sortOrders: [
+        SortOrder('visitedAt', false, true),
+      ],
+      limit: limit,
+    );
+    final result = await find(finder);
+    return result;
+  }
+
+  Future<List<Picture>> findVisitedPictures({
+    int limit = 20,
+    List<String> providers = const[],
+  }) async {
+    final finder = Finder(
+      filter: providers.isEmpty ? Filter.notNull('visitedAt') : Filter.and([
+        Filter.notNull('visitedAt'),
+        Filter.inList('provider', providers),
+      ]),
+      sortOrders: [
+        SortOrder('visitedAt', false),
+      ],
       limit: limit,
     );
     final result = await find(finder);

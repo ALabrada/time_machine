@@ -35,7 +35,7 @@ class ImportController {
     if (id == null) {
       return null;
     }
-    original = await databaseService?.createRepository<Picture>().getById(id);
+    original = await databaseService?.loadPicture(id);
     return original;
   }
 

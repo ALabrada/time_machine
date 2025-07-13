@@ -12,6 +12,7 @@ class Record {
     required this.pictureId,
     required this.createdAt,
     required this.updateAt,
+    this.visitedAt,
     this.originalId,
     this.localId,
     this.original,
@@ -26,8 +27,12 @@ class Record {
   int? localId;
   int? originalId;
   int pictureId;
+  @DateTimeConverter()
   DateTime createdAt;
+  @DateTimeConverter()
   DateTime updateAt;
+  @DateTimeConverter()
+  DateTime? visitedAt;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   Picture? original;
@@ -89,6 +94,36 @@ extension RecordRepository on Repository<Record> {
         Filter.inList('originalId', pictureIds),
         Filter.inList('pictureId', pictureIds),
       ]),
+    );
+    final result = await find(finder);
+    return result;
+  }
+
+  Future<List<Record>> findVisitedRecords({
+    int limit = 20,
+  }) async {
+    final finder = Finder(
+      filter: Filter.notNull('visitedAt'),
+      sortOrders: [
+        SortOrder('visitedAt', false),
+      ],
+      limit: limit,
+    );
+    final result = await find(finder);
+    return result;
+  }
+
+  Future<List<Record>> paginate({
+    int offset = 0,
+    int limit = 20,
+  }) async {
+    final finder = Finder(
+      sortOrders: [
+        SortOrder('createdAt', false),
+        SortOrder('pictureId'),
+      ],
+      offset: offset,
+      limit: limit,
     );
     final result = await find(finder);
     return result;

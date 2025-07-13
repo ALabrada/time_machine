@@ -75,6 +75,9 @@ class ImgLocalizationsRu extends ImgLocalizations {
   String get galleryNoSearchResults => 'Нет результатов поиска';
 
   @override
+  String get galleryRecentPictures => 'Просмотрено недавно';
+
+  @override
   String get importError => 'Не удалось импортировать файл';
 
   @override

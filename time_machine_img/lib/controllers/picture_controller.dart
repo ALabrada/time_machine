@@ -1,6 +1,7 @@
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_img/services/database_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 
 class PictureController {
@@ -20,7 +21,7 @@ class PictureController {
     if (id == null) {
       return null;
     }
-    picture = await databaseService?.createRepository<Picture>().getById(id);
+    picture = await databaseService?.loadPicture(id);
     return picture;
   }
 

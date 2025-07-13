@@ -34,7 +34,7 @@ class ComparisonController with TaskManager {
     if (id == null) {
       return null;
     }
-    final record = await databaseService?.createRepository<Record>().getById(id);
+    final record = await databaseService?.loadRecord(id);
     if (record == null) {
       return null;
     }

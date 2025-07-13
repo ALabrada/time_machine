@@ -147,23 +147,31 @@ class GalleryController with TaskManager {
   Future<void> _reloadElements({String? query}) async {
     final text = (query ?? searchController.text).trim();
     final words = text.split(r'\s+');
-    words.removeWhere((e) => e.length < 2);    
-    final items = await databaseService?.findRecords(words);
-    if (items == null) {
+    words.removeWhere((e) => e.length < 2);
+    final databaseService = this.databaseService;
+    if (databaseService == null) {
       return;
     }
-    _updateSections(items);
+    final records = await databaseService.findRecords(words);
+    final pictures = words.isEmpty ? await databaseService.createRepository<Picture>().findVisitedPictures(limit: 6) : null;
+    _updateSections(records: records, pictures: pictures);
   }
 
-  void _updateSections(List<Record> records) {
-    sections.value = records
-        .groupListsBy((x) => DateTime(x.createdAt.year, x.createdAt.month, x.createdAt.day))
-        .entries
-        .sortedByCompare((e) => e.value.first.createdAt, (x, y) => -x.compareTo(y))
-        .map((e) => GallerySection(
-          date: e.key,
-          elements: e.value,
-        ))
-        .toList();
+  void _updateSections({
+    required List<Record> records,
+    List<Picture>? pictures,
+  }) {
+    sections.value = [
+      if (pictures != null && pictures.isNotEmpty)
+        RecentSection(elements: pictures),
+      ...records
+          .groupListsBy((x) => DateTime(x.createdAt.year, x.createdAt.month, x.createdAt.day))
+          .entries
+          .sortedByCompare((e) => e.value.first.createdAt, (x, y) => -x.compareTo(y))
+          .map((e) => GroupedSection(
+        date: e.key,
+        elements: e.value,
+      ))
+    ];
   }
 }

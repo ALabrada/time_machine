@@ -19,6 +19,8 @@ Picture _$PictureFromJson(Map<String, dynamic> json) => Picture(
       time: json['time'] as String?,
       margin: json['margin'] as String?,
       site: json['site'] as String?,
+      visitedAt: _$JsonConverterFromJson<Object, DateTime>(
+          json['visitedAt'], const DateTimeConverter().fromJson),
     );
 
 Map<String, dynamic> _$PictureToJson(Picture instance) => <String, dynamic>{
@@ -34,4 +36,18 @@ Map<String, dynamic> _$PictureToJson(Picture instance) => <String, dynamic>{
       'time': instance.time,
       'margin': instance.margin,
       'site': instance.site,
+      'visitedAt': _$JsonConverterToJson<Object, DateTime>(
+          instance.visitedAt, const DateTimeConverter().toJson),
     };
+
+Value? _$JsonConverterFromJson<Json, Value>(
+  Object? json,
+  Value? Function(Json json) fromJson,
+) =>
+    json == null ? null : fromJson(json as Json);
+
+Json? _$JsonConverterToJson<Json, Value>(
+  Value? value,
+  Json? Function(Value value) toJson,
+) =>
+    value == null ? null : toJson(value);

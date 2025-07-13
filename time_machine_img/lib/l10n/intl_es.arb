@@ -19,6 +19,7 @@
   "galleryEmptyListBody": "Puede comenzar buscando fotos históricas en su [cercanía]({nearbyLink}) o en el [mapa]({mapLink}). Cuando replique una foto histórica, su foto aparecerá aquí. También puede presionar {importIcon} para importar sus fotos desde un archivo, si las exportó previamente usando la Aplicación.",
   "galleryEmptyListTitle": "La galería está vacía",
   "galleryNoSearchResults": "No se encontraron resultados",
+  "galleryRecentPictures": "Vistas recientemente",
   "importError": "No se pudo importar el archivo",
   "importSuccessful": "Archivo importado correctamente",
   "searchBarHint": "Buscar...",

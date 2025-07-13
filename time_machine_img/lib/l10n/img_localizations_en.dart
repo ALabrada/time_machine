@@ -76,6 +76,9 @@ class ImgLocalizationsEn extends ImgLocalizations {
   String get galleryNoSearchResults => 'No search results';
 
   @override
+  String get galleryRecentPictures => 'Viewed recently';
+
+  @override
   String get importError => 'Could not import the provided file';
 
   @override

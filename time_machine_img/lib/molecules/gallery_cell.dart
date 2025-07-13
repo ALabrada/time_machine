@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
@@ -36,8 +37,8 @@ class GalleryCell extends StatelessWidget {
   BoxDecoration _buildDecoration(BuildContext context) {
     final uri = this.uri;
     return BoxDecoration(
-      image: uri == null ? null :  DecorationImage(
-        image: FileImage(File.fromUri(uri)),
+      image: uri == null ? null : DecorationImage(
+        image: _image(uri),
         fit: BoxFit.cover,
       ),
     );
@@ -65,5 +66,12 @@ class GalleryCell extends StatelessWidget {
         color: Theme.of(context).primaryColor,
       ),
     );
+  }
+
+  static ImageProvider _image(Uri uri) {
+    if (uri.scheme == 'file') {
+      return FileImage(File.fromUri(uri));
+    }
+    return CachedNetworkImageProvider(uri.toString());
   }
 }

@@ -76,6 +76,9 @@ class ImgLocalizationsEs extends ImgLocalizations {
   String get galleryNoSearchResults => 'No se encontraron resultados';
 
   @override
+  String get galleryRecentPictures => 'Vistas recientemente';
+
+  @override
   String get importError => 'No se pudo importar el archivo';
 
   @override

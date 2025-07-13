@@ -173,9 +173,16 @@ class _GalleryPageState extends State<GalleryPage> {
             padding: EdgeInsets.only(top: 8, bottom: 4),
             child: _buildSectionHeader(sections[section]),
           ),
-          itemInSectionCount: (section) => sections[section].elements.length,
+          itemInSectionCount: (section) => sections[section].length,
           itemInSectionBuilder: (context, index) {
-            return _buildCell(sections[index.section].elements[index.index]);
+            final section = sections[index.section];
+            if (section is GroupedSection) {
+              return _buildRecordCell(section.elements[index.index]);
+            }
+            if (section is RecentSection) {
+              return _buildPictureCell(section.elements[index.index]);
+            }
+            return GalleryCell();
           },
         );
       },
@@ -218,12 +225,26 @@ class _GalleryPageState extends State<GalleryPage> {
 
   Widget _buildSectionHeader(GallerySection section) {
     final dateFormat = DateFormat.yMEd(ImgLocalizations.of(context).localeName);
-    return Text(dateFormat.format(section.date),
-      style: TextTheme.of(context).headlineSmall,
+    if (section is GroupedSection) {
+      return Text(dateFormat.format(section.date),
+        style: TextTheme.of(context).headlineSmall,
+      );
+    }
+    return Text(ImgLocalizations.of(context).galleryRecentPictures,
+      style: TextTheme.of(context).headlineSmall?.copyWith(
+        color: Theme.of(context).colorScheme.primary,
+      ),
     );
   }
 
-  Widget _buildCell(Record record) {
+  Widget _buildPictureCell(Picture? picture) {
+    return GalleryCell(
+      uri: picture == null ? null : Uri.tryParse(picture.url),
+      onTap: picture == null ? null : () => _selectPicture(picture),
+    );
+  }
+
+  Widget _buildRecordCell(Record record) {
     return FutureBuilder(
       future: galleryController.loadPicture(record.pictureId),
       builder: (context, snapshot) {
@@ -239,7 +260,7 @@ class _GalleryPageState extends State<GalleryPage> {
             return GalleryCell(
               uri: picture == null ? null : Uri.tryParse(picture.url),
               isSelected: isSelected,
-              onTap: () => _select(record),
+              onTap: () => _selectRecord(record),
               onLongPress: () => galleryController.toggleSelection(record),
             );
           },
@@ -282,11 +303,15 @@ class _GalleryPageState extends State<GalleryPage> {
     await galleryController.removeRecords();
   }
 
-  void _select(Record element) {
+  void _selectRecord(Record element) {
     if (galleryController.isEditing.value) {
       galleryController.toggleSelection(element);
     } else {
       context.go('/gallery/${element.localId}');
     }
+  }
+
+  void _selectPicture(Picture element) {
+    context.go('/picture/${element.localId}');
   }
 }

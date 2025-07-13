@@ -11,6 +11,28 @@ import 'package:time_machine_db/time_machine_db.dart';
 import 'package:uuid/uuid.dart';
 
 extension DatabaseExtensions on DatabaseService {
+  Future<Picture?> loadPicture(int id) async {
+    final repo = createRepository<Picture>();
+    final picture = await repo.getById(id);
+    if (picture == null) {
+      return picture;
+    }
+    picture.visitedAt = DateTime.now().toUtc();
+    await repo.update(picture);
+    return picture;
+  }
+
+  Future<Record?> loadRecord(int id) async {
+    final repo = createRepository<Record>();
+    final record = await repo.getById(id);
+    if (record == null) {
+      return record;
+    }
+    record.visitedAt = DateTime.now().toUtc();
+    await repo.update(record);
+    return record;
+  }
+
   Future<List<Record>> findRecords(List<String> words) async {
     if (words.isEmpty) {
       return await createRepository<Record>().list();

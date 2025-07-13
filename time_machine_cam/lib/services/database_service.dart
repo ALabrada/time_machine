@@ -84,6 +84,17 @@ extension CamDatabaseService on DatabaseService {
     return await createRepository<Record>().insert(record);
   }
 
+  Future<Picture?> loadPicture(int id) async {
+    final repo = createRepository<Picture>();
+    final picture = await repo.getById(id);
+    if (picture == null) {
+      return picture;
+    }
+    picture.visitedAt = DateTime.now().toUtc();
+    await repo.update(picture);
+    return picture;
+  }
+
   Future<Picture> savePicture(Picture model) async {
     final repo = createRepository<Picture>();
     return await repo.upsert(model);

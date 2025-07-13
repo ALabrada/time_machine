@@ -221,6 +221,12 @@ abstract class ImgLocalizations {
   /// **'No search results'**
   String get galleryNoSearchResults;
 
+  /// No description provided for @galleryRecentPictures.
+  ///
+  /// In en, this message translates to:
+  /// **'Viewed recently'**
+  String get galleryRecentPictures;
+
   /// No description provided for @importError.
   ///
   /// In en, this message translates to:
