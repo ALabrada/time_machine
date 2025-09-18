@@ -60,7 +60,7 @@ class PictureFrame extends StatelessWidget {
       return FileImage(File(uri.path));
     }
     if (uri.isScheme('data')) {
-      final data = base64Decode(url.split(';base64,').last);
+      final data = UriData.fromUri(uri).contentAsBytes();
       return MemoryImage(data);
     }
     return CachedNetworkImageProvider(url);

@@ -43,6 +43,7 @@ class _PicturePageState extends State<PicturePage> with SingleTickerProviderStat
       duration: Duration(milliseconds: 300),
     );
     pictureController = PictureController(
+      cacheService: context.read(),
       databaseService: context.read(),
       networkService: context.read(),
     );

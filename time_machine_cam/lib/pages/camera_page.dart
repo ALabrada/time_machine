@@ -54,7 +54,7 @@ class _CameraPageState extends State<CameraPage> {
   @override
   void initState() {
     controller = PhotoController(
-      cacheManager: CachedNetworkImageProvider.defaultCacheManager,
+      cacheService: context.read(),
       configurationService: context.read(),
       databaseService: context.read(),
       networkService: context.read(),

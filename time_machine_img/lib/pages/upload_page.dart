@@ -30,7 +30,7 @@ class _UploadPageState extends State<UploadPage> {
   @override
   void initState() {
     uploadController = UploadController(
-      cacheManager: CachedNetworkImageProvider.defaultCacheManager,
+      cacheService: context.read(),
       databaseService: context.read(),
       networkService: context.read(),
       preferences: context.read(),

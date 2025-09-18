@@ -1,9 +1,11 @@
 import 'dart:io' as io;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:televerse/telegram.dart';
 import 'package:televerse/televerse.dart';
 import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 
 final class TelegramService {
   const TelegramService({
@@ -19,7 +21,7 @@ final class TelegramService {
   Future<bool> publish({
     required List<Picture> pictures,
     String? caption,
-    BaseCacheManager? cacheManager,
+    required CacheService cacheService,
   }) async {
     if (pictures.isEmpty) {
       return false;
@@ -28,7 +30,7 @@ final class TelegramService {
     final files = await Stream.fromIterable(pictures)
       .asyncMap((p) => _openFile(
         picture: p,
-        cacheManager: cacheManager,
+        cacheService: cacheService,
       ))
       .whereNotNull()
       .toList();
@@ -57,17 +59,18 @@ final class TelegramService {
 
   Future<InputFile?> _openFile({
     Picture? picture,
-    BaseCacheManager? cacheManager,
+    required CacheService cacheService,
   }) async {
     final url = picture == null ? null : Uri.tryParse(picture.url);
     if (url == null) {
       return null;
     }
-    if (url.scheme == 'file') {
+    if (url.isScheme('file')) {
       return InputFile.fromFile(io.File(url.path));
     }
-    final cache = cacheManager ?? DefaultCacheManager();
-    final file = await cache.getSingleFile(url.toString());
-    return InputFile.fromFile(file);
+    final file = await cacheService.fetch(url.toString());
+    return kIsWeb || url.isScheme('data')
+        ? InputFile.fromBytes(await file.readAsBytes())
+        : InputFile.fromFile(io.File(file.path));
   }
 }

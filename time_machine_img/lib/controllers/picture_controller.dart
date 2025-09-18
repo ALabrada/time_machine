@@ -6,13 +6,13 @@ import 'package:time_machine_net/time_machine_net.dart';
 
 class PictureController {
   PictureController({
-    this.cacheManager,
+    required this.cacheService,
     this.databaseService,
     this.networkService,
     this.picture,
   });
 
-  final BaseCacheManager? cacheManager;
+  final CacheService cacheService;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
   Picture? picture;
@@ -31,11 +31,10 @@ class PictureController {
       return;
     }
 
-    final cache = cacheManager ?? DefaultCacheManager();
-    final file = await cache.getSingleFile(picture.url);
+    final file = await cacheService.fetch(picture.url);
 
     await Share.shareXFiles([
-      XFile(file.path),
+      file,
     ], text: picture.text);
   }
 }

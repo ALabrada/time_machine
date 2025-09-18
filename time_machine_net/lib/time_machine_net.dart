@@ -2,6 +2,7 @@ library time_machine_net;
 
 export 'domain/area.dart';
 export 'domain/place_info.dart';
+export 'services/cache_service.dart';
 export 'services/geonames_geocoder.dart';
 export 'services/history_pin_provider.dart';
 export 'services/native_geocoder.dart';

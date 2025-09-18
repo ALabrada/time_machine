@@ -12,6 +12,7 @@ import 'package:image/image.dart' as img;
 import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:path/path.dart' as p;
 import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'package:uuid/uuid.dart';
 
@@ -25,16 +26,16 @@ extension CamDatabaseService on DatabaseService {
     Picture? original,
     double? height,
     double? width,
-    BaseCacheManager? cacheManager,
+    required CacheService cacheService,
   }) async {
     final time = createdAt ?? DateTime.now();
     var id = Uuid().v4();
     String url;
     var image = await _getImage(file);
     final dirPath = filePath;
-    if (dirPath == null || dirPath.isEmpty) {
+    if (dirPath == null || dirPath.isEmpty || kIsWeb) {
       final data = img.encodeJpg(image);
-      url = 'data:image/jpg;base64,${base64Encode(data)}';
+      url = Uri.dataFromBytes(data, mimeType: 'image/jpg').toString();
     } else if (p.isWithin(dirPath, file.path)) {
       id = p.basename(file.path);
       url = Uri.file(file.path).toString();
@@ -64,8 +65,8 @@ extension CamDatabaseService on DatabaseService {
 
     String? originalViewPort;
     if (original != null && height != null && width != null) {
-      final originalFile = await (cacheManager ?? DefaultCacheManager()).getSingleFile(original.url);
-      image = await _getImage(XFile(originalFile.path));
+      final originalFile = await cacheService.fetch(original.url);
+      image = await _getImage(originalFile);
       originalViewPort = _getViewPort(image.height.toDouble(), image.width.toDouble(), height, width);
     }
 

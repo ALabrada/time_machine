@@ -15,8 +15,10 @@ dependencies:
     path: ../time_machine_db
 
   cachette: ^1.0.0
+  cross_file: any
   collection: any
   dio: ^5.7.0
+  flutter_cache_manager: any
   flutter_map_math: ^0.2.4
   geocoding: ^4.0.0
   intl: any

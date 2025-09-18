@@ -12,7 +12,7 @@ import 'package:time_machine_net/time_machine_net.dart';
 
 class ImportController {
   ImportController({
-    this.cacheManager,
+    required this.cacheService,
     this.configurationService,
     this.databaseService,
     this.networkService,
@@ -22,7 +22,7 @@ class ImportController {
   final cropController = CustomImageCropController();
   final isProcessing = BehaviorSubject<bool>.seeded(false);
 
-  final BaseCacheManager? cacheManager;
+  final CacheService cacheService;
   final ConfigurationService? configurationService;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
@@ -70,7 +70,7 @@ class ImportController {
         ),
         height: height,
         width: width,
-        cacheManager: cacheManager,
+        cacheService: cacheService,
       );
     } finally {
       isProcessing.value = false;

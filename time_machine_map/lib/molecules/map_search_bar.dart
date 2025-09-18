@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:material_floating_search_bar_2/material_floating_search_bar_2.dart';
+import 'package:material_floating_search_bar_plus/material_floating_search_bar_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_map/controllers/map_search_controller.dart';
 import 'package:time_machine_map/l10n/map_localizations.dart';

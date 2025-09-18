@@ -64,7 +64,7 @@ class GalleryController with TaskManager {
       return;
     }
     await sharingService?.import(
-      files: selection.paths.nonNulls,
+      files: selection.xFiles.nonNulls,
       databaseService: databaseService,
     );
     await _reloadElements();

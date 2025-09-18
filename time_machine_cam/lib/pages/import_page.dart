@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:custom_image_crop/custom_image_crop.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -28,7 +29,7 @@ class _ImportPageState extends State<ImportPage> {
   @override
   void initState() {
     controller = ImportController(
-      cacheManager: CachedNetworkImageProvider.defaultCacheManager,
+      cacheService: context.read(),
       configurationService: context.read(),
       databaseService: context.read(),
       networkService: context.read(),
@@ -102,13 +103,13 @@ class _ImportPageState extends State<ImportPage> {
           ratio: Ratio(width: original.width.toDouble(), height: original.height.toDouble()),
           cropController: controller.cropController,
           drawPath: drawPath,
-          image: FileImage(imported),
+          image: imported,
         );
       },
     );
   }
 
-  Future<(ui.Image? original, File? imported)> _init() async {
+  Future<(ui.Image? original, ImageProvider? imported)> _init() async {
     final original = await controller.loadPicture(widget.pictureId);
     final originalFile = original == null
         ? null
@@ -120,8 +121,11 @@ class _ImportPageState extends State<ImportPage> {
     if (selection == null) {
       return (originalImage, null);
     }
+    if (kIsWeb) {
+      return (originalImage, MemoryImage(await selection.readAsBytes()));
+    }
     final importedFile = File(selection.path);
-    return (originalImage, importedFile);
+    return (originalImage, FileImage(importedFile));
   }
 
   Future<void> _savePicture() async {

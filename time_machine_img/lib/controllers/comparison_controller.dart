@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:isolate';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_compare_2/image_compare_2.dart';
@@ -16,14 +17,14 @@ import 'package:url_launcher/url_launcher.dart';
 
 class ComparisonController with TaskManager {
   ComparisonController({
-    this.cacheManager,
+    required this.cacheService,
     this.databaseService,
     this.networkService,
     this.telegramService,
     this.record,
   });
 
-  final BaseCacheManager? cacheManager;
+  final CacheService cacheService;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
   final TelegramService? telegramService;
@@ -95,7 +96,7 @@ class ComparisonController with TaskManager {
     await execute(() => telegramService.publish(
       pictures: [original, picture],
       caption: caption,
-      cacheManager: cacheManager,
+      cacheService: cacheService,
     ));
     return true;
   }
@@ -104,17 +105,16 @@ class ComparisonController with TaskManager {
     final record = this.record;
     final picture = record?.picture;
     final original = record?.original;
-    final cache = cacheManager ?? DefaultCacheManager();
     if (record == null || picture == null) {
       return;
     }
     final originalFile = original == null
         ? null
-        : await execute(() => cache.getSingleFile(original.url));
+        : await execute(() => cacheService.fetch(original.url));
     await Share.shareXFiles([
       XFile(Uri.parse(picture.url).path),
       if (originalFile != null)
-        XFile(originalFile.path),
+        originalFile,
     ], text: picture.description);
   }
 
@@ -125,12 +125,10 @@ class ComparisonController with TaskManager {
 
     final picture = record?.picture;
     final original = record?.original;
-    final cache = cacheManager ?? DefaultCacheManager();
     if (record == null || picture == null || original == null) {
       return null;
     }
-    final originalFile = await cache.getSingleFile(original.url);
-    final originalPath = originalFile.path;
+    final originalFile = await cacheService.fetch(original.url);
 
     similarity = await Isolate.run(() async {
       final originalViewPort = Record.tryParseViewPort(record.originalViewPort);
@@ -139,7 +137,9 @@ class ComparisonController with TaskManager {
           ? null
           : originalViewPort.intersection(pictureViewPort);
 
-      var originalImage = await img.decodeImageFile(originalPath);
+      var originalImage = kIsWeb
+          ? img.decodeImage(await originalFile.readAsBytes())
+          : await img.decodeImageFile(originalFile.path);
       if (originalImage == null) {
         return null;
       }

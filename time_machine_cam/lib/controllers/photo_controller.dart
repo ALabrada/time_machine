@@ -17,13 +17,13 @@ import 'package:uuid/uuid.dart';
 
 class PhotoController {
   PhotoController({
-    this.cacheManager,
+    required this.cacheService,
     this.configurationService,
     this.databaseService,
     this.networkService,
   });
 
-  final BaseCacheManager? cacheManager;
+  final CacheService cacheService;
   final ConfigurationService? configurationService;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
@@ -93,7 +93,7 @@ class PhotoController {
         heading: heading.valueOrNull,
         height: height,
         width: width,
-        cacheManager: cacheManager,
+        cacheService: cacheService,
       );
     } finally {
       isProcessing.value = false;

@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:cross_file/cross_file.dart';
+import 'package:flutter/foundation.dart';
 import 'package:listen_sharing_intent/listen_sharing_intent.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:rxdart/rxdart.dart';
@@ -13,7 +15,7 @@ final class SharingService {
   Future<void> init({
     DatabaseService? databaseService,
   }) async {
-    if (databaseService == null) {
+    if (databaseService == null || kIsWeb) {
       return;
     }
 
@@ -35,7 +37,7 @@ final class SharingService {
   }
 
   Future<void> import({
-    required Iterable<String> files,
+    required Iterable<XFile> files,
     DatabaseService? databaseService,
   }) async {
     final db = databaseService;
@@ -44,7 +46,7 @@ final class SharingService {
     }
     for (final file in files) {
       try {
-        final records = await db.importFile(sourcePath: file);
+        final records = await db.importFile(file: file);
         if (records.isNotEmpty) {
           importedRecords.sink.add(records);
           imported.sink.add(true);
@@ -62,7 +64,7 @@ final class SharingService {
     DatabaseService? databaseService,
   }) async {
     await import(
-      files: files.map((e) => e.path),
+      files: files.map((e) => XFile(e.path)),
       databaseService: databaseService,
     );
   }

@@ -5,6 +5,8 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:collection/collection.dart';
+import 'package:cross_file/cross_file.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -119,10 +121,11 @@ extension DatabaseExtensions on DatabaseService {
   }
 
   Future<List<Record>> importFile({
-    required String sourcePath,
+    required XFile file,
   }) async {
     final decoder = ZipDecoder();
-    final archive = decoder.decodeStream(InputFileStream(sourcePath));
+    final input = kIsWeb ? InputMemoryStream(await file.readAsBytes()) : InputFileStream(file.path);
+    final archive = decoder.decodeStream(input);
 
     var record = await _importRecord(archive: archive);
     if (record != null) {
@@ -147,7 +150,7 @@ extension DatabaseExtensions on DatabaseService {
     }
 
     final url = Uri.tryParse(record.picture?.url ?? '');
-    if (url != null) {
+    if (url != null && url.isScheme('file')) {
       await File(url.path).delete();
     }
     return true;
@@ -180,9 +183,15 @@ extension DatabaseExtensions on DatabaseService {
 
     final id = picture.id;
     final dirPath = filePath;
-    final localPath = '$dirPath/pictures/$id.jpg';
-    await Future.microtask(() => image.decompress(OutputFileStream(localPath)));
-    picture.url = Uri.file(localPath).toString();
+    if (dirPath == null || dirPath.isEmpty || kIsWeb) {
+      final buffer = OutputMemoryStream();
+      await Future.microtask(() => image.decompress(buffer));
+      picture.url = Uri.dataFromBytes(buffer.getBytes(), mimeType: 'image/jpg').toString();
+    } else {
+      final localPath = '$dirPath/pictures/$id.jpg';
+      await Future.microtask(() => image.decompress(OutputFileStream(localPath)));
+      picture.url = Uri.file(localPath).toString();
+    }
 
     return await createRepository<Picture>().upsert(picture);
   }
@@ -193,17 +202,30 @@ extension DatabaseExtensions on DatabaseService {
   }) async {
     final url = Uri.tryParse(picture.url);
     final mainFile = ArchiveFile.string('$name.json', jsonEncode(picture.toJson()));
-    if (url == null || url.scheme != 'file') {
+    if (url == null) {
       return [mainFile];
     }
-    final attachment = File(url.path);
-    final size = await attachment.length();
-    final content = FileContentStream(InputFileStream(attachment.path));
-    final attachmentFile = ArchiveFile.file('$name.jpg', size, content);
-    return [
-      mainFile,
-      attachmentFile,
-    ];
+    if (url.isScheme('data')) {
+      final attachment = UriData.fromUri(url).contentAsBytes();
+      final size = attachment.lengthInBytes;
+      final content = FileContentStream(InputMemoryStream(attachment));
+      final attachmentFile = ArchiveFile.file('$name.jpg', size, content);
+      return [
+        mainFile,
+        attachmentFile,
+      ];
+    }
+    if (url.isScheme('file')) {
+      final attachment = File(url.path);
+      final size = await attachment.length();
+      final content = FileContentStream(InputFileStream(attachment.path));
+      final attachmentFile = ArchiveFile.file('$name.jpg', size, content);
+      return [
+        mainFile,
+        attachmentFile,
+      ];
+    }
+    return [mainFile];
   }
 
   Future<Record?> _importRecord({

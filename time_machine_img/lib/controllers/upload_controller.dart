@@ -21,7 +21,7 @@ final class UploadController extends ChangeNotifier {
   static const defaultPageUrl = 'https://www.re.photos/en/compilation/create/';
 
   UploadController({
-    this.cacheManager,
+    required this.cacheService,
     this.databaseService,
     this.networkService,
     this.preferences,
@@ -47,7 +47,7 @@ final class UploadController extends ChangeNotifier {
   }
 
   final Uri url;
-  final BaseCacheManager? cacheManager;
+  final CacheService cacheService;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
   final SharedPreferencesWithCache? preferences;
@@ -127,8 +127,7 @@ final class UploadController extends ChangeNotifier {
       return picture.url;
     }
 
-    final cache = cacheManager ?? DefaultCacheManager();
-    final file = await cache.getSingleFile(picture.url);
+    final file = await cacheService.fetch(picture.url);
 
     if (!align) {
       return Uri.file(file.path).toString();

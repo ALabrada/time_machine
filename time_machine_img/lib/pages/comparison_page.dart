@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_compare_slider/image_compare_slider.dart';
@@ -45,7 +46,7 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
       duration: Duration(milliseconds: 300),
     );
     comparisonController = ComparisonController(
-      cacheManager: CachedNetworkImageProvider.defaultCacheManager,
+      cacheService: context.read(),
       databaseService: context.read(),
       networkService: context.read(),
       telegramService: context.read(),
@@ -268,24 +269,26 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
       title: Text( ImgLocalizations.of(context).shareMenu),
       cancelAction: CancelAction(title: Text(ImgLocalizations.of(context).shareMenuCancel)),
       actions: [
-        BottomSheetAction(
-          title: Text(ImgLocalizations.of(context).shareMenuPublishTo('re.photos')),
-          onPressed: (context) {
-            final originalPicture = comparisonController.record?.original;
-            final page = originalPicture != null && originalPicture.provider == 're.photos' ?
-                '${UploadController.defaultPageUrl}with_before/${originalPicture.id}/' :
-                UploadController.defaultPageUrl;
-            context.go('/gallery/${widget.recordId}/upload?webPage=${Uri.encodeQueryComponent(page)}');
-            context.pop();
-          },
-        ),
-        BottomSheetAction(
-          title: Text(ImgLocalizations.of(context).shareMenuPublishTo('Telegram')),
-          onPressed: (context) {
-            unawaited(publishToTelegram());
-            context.pop();
-          },
-        ),
+        if (!kIsWeb)
+          BottomSheetAction(
+            title: Text(ImgLocalizations.of(context).shareMenuPublishTo('re.photos')),
+            onPressed: (context) {
+              final originalPicture = comparisonController.record?.original;
+              final page = originalPicture != null && originalPicture.provider == 're.photos' ?
+                  '${UploadController.defaultPageUrl}with_before/${originalPicture.id}/' :
+                  UploadController.defaultPageUrl;
+              context.go('/gallery/${widget.recordId}/upload?webPage=${Uri.encodeQueryComponent(page)}');
+              context.pop();
+            },
+          ),
+        if (!kIsWeb)
+          BottomSheetAction(
+            title: Text(ImgLocalizations.of(context).shareMenuPublishTo('Telegram')),
+            onPressed: (context) {
+              unawaited(publishToTelegram());
+              context.pop();
+            },
+          ),
         BottomSheetAction(
           title: Text(ImgLocalizations.of(context).shareMenuExport),
           onPressed: (context) {

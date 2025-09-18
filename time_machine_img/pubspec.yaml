@@ -22,10 +22,11 @@ dependencies:
   time_machine_res:
     path: ../time_machine_res
 
-  adaptive_action_sheet: ^2.0.4
+  adaptive_action_sheet: 2.0.3
   archive: ^4.0.7
   cached_network_image: ^3.4.1
   collection: any
+  cross_file: any
   extended_text: ^15.0.2
   file_picker: ^10.1.7
   flutter_cache_manager : ^3.4.1
