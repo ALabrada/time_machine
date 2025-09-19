@@ -13,12 +13,19 @@ final class CacheService {
   final BaseCacheManager cacheManager;
 
   Future<XFile> fetch(String url) async {
-    if (url.startsWith('data:')) {
+    final uri = Uri.tryParse(url);
+    if (uri != null && uri.isScheme('data')) {
       final data = UriData.parse(url);
-      return XFile.fromData(data.contentAsBytes());
+      return XFile.fromData(data.contentAsBytes(),
+        mimeType: data.mimeType,
+        name: 'photo.${data.mimeType.split('/').last}',
+      );
     }
-    if (kIsWeb) {
-      final response = await Dio().get<List<int>>(url,
+    if (uri != null && uri.isScheme('file')) {
+      return XFile(uri.path);
+    }
+    if (kIsWeb && uri != null) {
+      final response = await Dio().getUri<List<int>>(uri,
         options: Options(responseType: ResponseType.bytes)
       );
       if (response.data == null) {
@@ -26,6 +33,7 @@ final class CacheService {
       }
       return XFile.fromData(Uint8List.fromList(response.data!),
         mimeType: response.headers.value(Headers.contentTypeHeader),
+        name: uri.pathSegments.lastOrNull,
       );
     }
     final file = await cacheManager.getSingleFile(url);

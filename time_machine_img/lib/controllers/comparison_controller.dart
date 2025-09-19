@@ -71,7 +71,7 @@ class ComparisonController with TaskManager {
     }
     await FilePicker.platform.saveFile(
       dialogTitle: dialogTitle,
-      fileName: 'export',
+      fileName: 'export.zip',
       bytes: data,
     );
   }
@@ -108,11 +108,12 @@ class ComparisonController with TaskManager {
     if (record == null || picture == null) {
       return;
     }
+    final pictureFile = await cacheService.fetch(picture.url);
     final originalFile = original == null
         ? null
         : await execute(() => cacheService.fetch(original.url));
     await Share.shareXFiles([
-      XFile(Uri.parse(picture.url).path),
+      pictureFile,
       if (originalFile != null)
         originalFile,
     ], text: picture.description);

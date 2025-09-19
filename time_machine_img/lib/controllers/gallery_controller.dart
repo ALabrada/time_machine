@@ -94,7 +94,7 @@ class GalleryController with TaskManager {
     }
     await FilePicker.platform.saveFile(
       dialogTitle: dialogTitle,
-      fileName: 'export',
+      fileName: 'export.zip',
       bytes: data,
     );
   }

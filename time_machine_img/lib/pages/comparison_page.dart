@@ -294,14 +294,22 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
           onPressed: (context) {
             unawaited(comparisonController.exportRecord(
               dialogTitle: ImgLocalizations.of(context).shareMenuExport,
-            ));
+            ).onError((e, _) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(e.toString()),
+              ));
+            }));
             context.pop();
           },
         ),
         BottomSheetAction(
           title: Text(ImgLocalizations.of(context).shareMenuImages),
           onPressed: (context) {
-            unawaited(comparisonController.sharePictures());
+            unawaited(comparisonController.sharePictures().onError((e, _) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(e.toString()),
+              ));
+            }));
             context.pop();
           },
         ),
