@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/pigeon.dart';
 import 'package:cross_file/cross_file.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -89,6 +90,13 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Widget _buildContent({Picture? picture}) {
+    if (kIsWeb) {
+      return Center(
+        child: Text(CamLocalizations.of(context).cameraNotSupported,
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+      );
+    }
     return CameraAwesomeBuilder.custom(
       saveConfig: SaveConfig.photo(
         pathBuilder: (s) async => SingleCaptureRequest(controller.targetPath, s[0]),

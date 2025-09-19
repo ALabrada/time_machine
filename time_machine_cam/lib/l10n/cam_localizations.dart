@@ -100,6 +100,12 @@ abstract class CamLocalizations {
     Locale('ru')
   ];
 
+  /// No description provided for @cameraNotSupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This functionality is not supported yet'**
+  String get cameraNotSupported;
+
   /// No description provided for @couldNotImportPhoto.
   ///
   /// In en, this message translates to:

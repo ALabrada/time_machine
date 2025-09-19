@@ -1,4 +1,5 @@
 {
+  "cameraNotSupported": "This functionality is not supported yet",
   "couldNotImportPhoto": "Could not import the photo due to an unexpected error",
   "couldNotTakePhoto": "Could not take the photo due to an unexpected error",
   "distanceInMeters": "{distance} m",

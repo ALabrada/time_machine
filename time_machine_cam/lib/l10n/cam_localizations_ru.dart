@@ -9,6 +9,10 @@ class CamLocalizationsRu extends CamLocalizations {
   CamLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
+  String get cameraNotSupported =>
+      'Эта функциональность пока не поддерживается';
+
+  @override
   String get couldNotImportPhoto =>
       'Не удалось импортировать фотографию из-за непредвиденной ошибки';
 

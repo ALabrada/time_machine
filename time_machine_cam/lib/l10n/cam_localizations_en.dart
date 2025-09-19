@@ -9,6 +9,9 @@ class CamLocalizationsEn extends CamLocalizations {
   CamLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get cameraNotSupported => 'This functionality is not supported yet';
+
+  @override
   String get couldNotImportPhoto =>
       'Could not import the photo due to an unexpected error';
 
