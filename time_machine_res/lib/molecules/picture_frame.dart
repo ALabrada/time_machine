@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_res/time_machine_res.dart';
@@ -63,6 +64,9 @@ class PictureFrame extends StatelessWidget {
       final data = UriData.fromUri(uri).contentAsBytes();
       return MemoryImage(data);
     }
+    if (kIsWeb) {
+      return CachedNetworkImageProvider('https://proxy.corsfix.com/?$url');
+    }
     return CachedNetworkImageProvider(url);
   }
 
@@ -75,7 +79,6 @@ class PictureFrame extends StatelessWidget {
         .map(double.tryParse)
         .whereType<double>()
         .toList();
-    print('Margin: $values');
     switch (values.length) {
       case 1: return EdgeInsets.all(values[0]);
       case 2: return EdgeInsets.symmetric(horizontal: values[0], vertical: values[1]);

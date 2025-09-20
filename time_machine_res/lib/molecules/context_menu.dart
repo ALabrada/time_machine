@@ -1,6 +1,8 @@
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_res/l10n/res_localizations.dart';
 
@@ -59,16 +61,17 @@ extension ContextMenu on BuildContext {
               Navigator.of(context).pop();
             },
           ),
-        BottomSheetAction(
-          leading: Icon(Icons.share),
-          title: Text(ResLocalizations.of(this).menuActionShare),
-          onPressed: (context) {
-            CachedNetworkImageProvider.defaultCacheManager.getSingleFile(model.url).then((v) {
-              shareFile(v.path);
-            });
-            Navigator.of(context).pop();
-          },
-        ),
+        if (!kIsWeb)
+          BottomSheetAction(
+            leading: Icon(Icons.share),
+            title: Text(ResLocalizations.of(this).menuActionShare),
+            onPressed: (context) {
+              CachedNetworkImageProvider.defaultCacheManager.getSingleFile(model.url).then((v) {
+                shareFile(v.path);
+              });
+              Navigator.of(context).pop();
+            },
+          ),
       ],
     );
   }

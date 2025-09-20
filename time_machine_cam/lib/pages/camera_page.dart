@@ -25,6 +25,7 @@ import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_cam/controllers/photo_controller.dart';
 import 'package:time_machine_cam/molecules/compass_view.dart';
 import 'package:time_machine_res/molecules/picture_frame.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 
 import '../l10n/cam_localizations.dart';
 
@@ -213,7 +214,7 @@ class _CameraPageState extends State<CameraPage> {
     return IgnorePointer(
       child: Opacity(
         opacity: controller.pictureOpacity,
-        child: CachedNetworkImage(
+        child: CachedImage(
           imageUrl: picture.url,
         ),
       ),

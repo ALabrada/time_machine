@@ -69,9 +69,6 @@ class GalleryCell extends StatelessWidget {
   }
 
   static ImageProvider _image(Uri uri) {
-    if (uri.scheme == 'file') {
-      return FileImage(File.fromUri(uri));
-    }
-    return CachedNetworkImageProvider(uri.toString());
+    return PictureFrame.imageFor(uri.toString());
   }
 }

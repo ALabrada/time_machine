@@ -1182,6 +1182,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
+  network_image_plus:
+    dependency: transitive
+    description:
+      name: network_image_plus
+      sha256: "00d8761c2ac20a3ac1482c826027f68e30c65d21fd8eb83e4add717d4fa1a5a4"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.6"
   octo_image:
     dependency: transitive
     description:

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_res/molecules/picture_frame.dart';
 
 class PictureView extends StatelessWidget {
   const PictureView({
@@ -23,7 +24,7 @@ class PictureView extends StatelessWidget {
     key: key,
     time: model?.time,
     title: model?.description,
-    image: model == null ? null : CachedNetworkImageProvider(model.previewUrl ?? model.url),
+    image: model == null ? null : PictureFrame.imageFor(model.previewUrl ?? model.url),
     onLongPress: onLongPress,
     onTap: onTap,
     onTapImage: onTapImage,

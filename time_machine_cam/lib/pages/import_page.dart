@@ -113,7 +113,7 @@ class _ImportPageState extends State<ImportPage> {
     final original = await controller.loadPicture(widget.pictureId);
     final originalFile = original == null
         ? null
-        : await CachedNetworkImageProvider.defaultCacheManager.getSingleFile(original.url);
+        : await controller.cacheService.fetch(original.url);
     final originalImage = originalFile == null
         ? null
         : await decodeImageFromList(await originalFile.readAsBytes());

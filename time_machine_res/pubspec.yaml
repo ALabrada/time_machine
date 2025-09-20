@@ -19,6 +19,7 @@ dependencies:
   adaptive_action_sheet: 2.0.3
   cached_network_image: ^3.4.1
   flutter_markdown_plus: ^1.0.3
+  network_image_plus: ^1.0.6
   provider: ^6.1.2
   rxdart: any
 

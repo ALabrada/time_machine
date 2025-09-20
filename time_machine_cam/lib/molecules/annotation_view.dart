@@ -1,7 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_cam/domain/picture_annotation.dart';
 import 'package:time_machine_cam/l10n/cam_localizations.dart';
+import 'package:time_machine_res/molecules/cached_image.dart';
 
 class AnnotationView extends StatelessWidget {
   const AnnotationView({
@@ -34,7 +36,7 @@ class AnnotationView extends StatelessWidget {
             Expanded(
               child: InkWell(
                 onTap: onTapPicture,
-                child: CachedNetworkImage(
+                child: CachedImage(
                   imageUrl: annotation.picture.previewUrl ?? annotation.picture.url,
                   height: 40,
                 ),
