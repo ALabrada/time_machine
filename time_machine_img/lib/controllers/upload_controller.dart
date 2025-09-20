@@ -270,7 +270,7 @@ final class UploadController extends ChangeNotifier {
       if (params.mode == ShowFileChooserRequestMode.OPEN) {
         final url = await showUploadMenu();
         if (url == null) {
-          return ShowFileChooserResponse(filePaths: [], handledByClient: true);
+          return ShowFileChooserResponse(handledByClient: true);
         }
         if (url.isNotEmpty) {
           return ShowFileChooserResponse(filePaths: [url], handledByClient: true);
@@ -282,7 +282,7 @@ final class UploadController extends ChangeNotifier {
           params.mode == ShowFileChooserRequestMode.OPEN) {
         final picker = ImagePicker();
         final photo = await picker.pickImage(source: ImageSource.camera);
-        if (photo == null) return ShowFileChooserResponse(filePaths: [], handledByClient: true);
+        if (photo == null) return ShowFileChooserResponse(handledByClient: true);
         return ShowFileChooserResponse(
           filePaths: [Uri.file(photo.path).toString()],
           handledByClient: true,
@@ -295,7 +295,7 @@ final class UploadController extends ChangeNotifier {
         final video = await picker.pickVideo(
             source: ImageSource.camera,
             maxDuration: const Duration(seconds: 10));
-        if (video == null) return ShowFileChooserResponse(filePaths: [], handledByClient: true);
+        if (video == null) return ShowFileChooserResponse(handledByClient: true);
         return ShowFileChooserResponse(
           filePaths: [Uri.file(video.path).toString()],
           handledByClient: true,
@@ -304,7 +304,7 @@ final class UploadController extends ChangeNotifier {
       // For general file picking, use the FilePicker package.
       else if (params.mode == ShowFileChooserRequestMode.OPEN_MULTIPLE) {
         final result = await FilePicker.platform.pickFiles(allowMultiple: true);
-        if (result == null) return ShowFileChooserResponse(filePaths: [], handledByClient: true);
+        if (result == null) return ShowFileChooserResponse(handledByClient: true);
         final files = result.files
             .where((file) => file.path != null)
             .map((file) => Uri.file(file.path!).toString())
@@ -312,7 +312,7 @@ final class UploadController extends ChangeNotifier {
         return ShowFileChooserResponse(filePaths: files, handledByClient: true);
       } else {
         final result = await FilePicker.platform.pickFiles();
-        if (result == null) return ShowFileChooserResponse(filePaths: [], handledByClient: true);
+        if (result == null) return ShowFileChooserResponse(handledByClient: true);
         return ShowFileChooserResponse(
           filePaths: [Uri.file(result.files.single.path!).toString()],
           handledByClient: true,
@@ -320,7 +320,7 @@ final class UploadController extends ChangeNotifier {
       }
     } catch (e) {
       onError?.call(e.toString());
-      return ShowFileChooserResponse(filePaths: [], handledByClient: true);
+      return ShowFileChooserResponse(handledByClient: true);
     }
   }
 }
