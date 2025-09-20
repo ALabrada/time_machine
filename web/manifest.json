@@ -3,7 +3,7 @@
     "short_name": "time_machine",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#8B4513",
+    "background_color": "#77413C",
     "theme_color": "#FFD700",
     "description": "Portable Time Machine",
     "orientation": "portrait-primary",
