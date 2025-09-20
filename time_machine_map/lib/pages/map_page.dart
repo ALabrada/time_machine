@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -249,7 +250,8 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _moveTo(LatLng position) {
-    _mapController.move(position, _mapController.camera.zoom);
+    final zoom = _mapController.camera.zoom;
+    _mapController.move(position, max(zoom, 17));
   }
 
   void _zoom({
