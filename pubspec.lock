@@ -543,6 +543,63 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.8.1"
+  flutter_inappwebview:
+    dependency: transitive
+    description:
+      path: "flutter_inappwebview/flutter_inappwebview"
+      relative: true
+    source: path
+    version: "6.2.0-beta.3"
+  flutter_inappwebview_android:
+    dependency: transitive
+    description:
+      path: "flutter_inappwebview/flutter_inappwebview_android"
+      relative: true
+    source: path
+    version: "1.2.0-beta.3"
+  flutter_inappwebview_internal_annotations:
+    dependency: transitive
+    description:
+      name: flutter_inappwebview_internal_annotations
+      sha256: "787171d43f8af67864740b6f04166c13190aa74a1468a1f1f1e9ee5b90c359cd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.0"
+  flutter_inappwebview_ios:
+    dependency: transitive
+    description:
+      path: "flutter_inappwebview/flutter_inappwebview_ios"
+      relative: true
+    source: path
+    version: "1.2.0-beta.3"
+  flutter_inappwebview_macos:
+    dependency: transitive
+    description:
+      path: "flutter_inappwebview/flutter_inappwebview_macos"
+      relative: true
+    source: path
+    version: "1.2.0-beta.3"
+  flutter_inappwebview_platform_interface:
+    dependency: transitive
+    description:
+      path: "flutter_inappwebview/flutter_inappwebview_platform_interface"
+      relative: true
+    source: path
+    version: "1.4.0-beta.3"
+  flutter_inappwebview_web:
+    dependency: transitive
+    description:
+      path: "flutter_inappwebview/flutter_inappwebview_web"
+      relative: true
+    source: path
+    version: "1.2.0-beta.3"
+  flutter_inappwebview_windows:
+    dependency: transitive
+    description:
+      path: "flutter_inappwebview/flutter_inappwebview_windows"
+      relative: true
+    source: path
+    version: "0.7.0-beta.3"
   flutter_launcher_icons:
     dependency: "direct dev"
     description:
@@ -1780,46 +1837,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
-  webview_cookie_manager_plus:
-    dependency: transitive
-    description:
-      name: webview_cookie_manager_plus
-      sha256: "629e455d9e9917228f69ff31366aa9cf6dc209df716a2b8746a3fcc9904944a0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.17"
-  webview_flutter:
-    dependency: transitive
-    description:
-      name: webview_flutter
-      sha256: c3e4fe614b1c814950ad07186007eff2f2e5dd2935eba7b9a9a1af8e5885f1ba
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.13.0"
-  webview_flutter_android:
-    dependency: transitive
-    description:
-      name: webview_flutter_android
-      sha256: "3c4eb4fcc252b40c2b5ce7be20d0481428b70f3ff589b0a8b8aaeb64c6bed701"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.10.2"
-  webview_flutter_platform_interface:
-    dependency: transitive
-    description:
-      name: webview_flutter_platform_interface
-      sha256: "63d26ee3aca7256a83ccb576a50272edd7cfc80573a4305caa98985feb493ee0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.14.0"
-  webview_flutter_wkwebview:
-    dependency: transitive
-    description:
-      name: webview_flutter_wkwebview
-      sha256: fea63576b3b7e02b2df8b78ba92b48ed66caec2bb041e9a0b1cbd586d5d80bfd
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.23.1"
   win32:
     dependency: transitive
     description:

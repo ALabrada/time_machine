@@ -13,6 +13,13 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  flutter_inappwebview:
+    path: ../flutter_inappwebview/flutter_inappwebview
+  flutter_inappwebview_android:
+    path: ../flutter_inappwebview/flutter_inappwebview_android
+  flutter_inappwebview_ios:
+    path: ../flutter_inappwebview/flutter_inappwebview_ios
+
   time_machine_config:
     path: ../time_machine_config
   time_machine_db:
@@ -48,9 +55,6 @@ dependencies:
   televerse: any
   url_launcher: ^6.3.1
   uuid: any
-  webview_cookie_manager_plus: ^2.0.16
-  webview_flutter: ^4.11.0
-  webview_flutter_android: any
 
 dev_dependencies:
   flutter_test:

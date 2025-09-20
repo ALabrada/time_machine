@@ -1,3 +1,6 @@
 [submodule "camera_camera"]
 	path = camera_camera
 	url = https://github.com/ALabrada/camera_camera.git
+[submodule "flutter_inappwebview"]
+	path = flutter_inappwebview
+	url = https://github.com/ALabrada/flutter_inappwebview.git

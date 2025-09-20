@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import '../controllers/upload_controller.dart';
 import '../l10n/img_localizations.dart';
@@ -25,6 +26,15 @@ class UploadPage extends StatefulWidget {
 }
 
 class _UploadPageState extends State<UploadPage> {
+  final settings = InAppWebViewSettings(
+    isInspectable: kDebugMode,
+    mediaPlaybackRequiresUserGesture: false,
+    allowsInlineMediaPlayback: true,
+    iframeAllowFullscreen: true,
+    useShouldOverrideUrlLoading: true,
+    useOnShowFileChooser: true,
+  );
+  final GlobalKey webViewKey = GlobalKey();
   late UploadController uploadController;
 
   @override
@@ -69,8 +79,48 @@ class _UploadPageState extends State<UploadPage> {
   Widget _buildContent() {
     return Stack(
       children: [
-        WebViewWidget(
-          controller: uploadController.webViewController,
+        FutureBuilder(
+          future: _loadPage(),
+          builder: (context, _) {
+            return InAppWebView(
+              key: webViewKey,
+              initialUrlRequest:
+              URLRequest(url: WebUri.uri(uploadController.url)),
+              initialSettings: settings,
+              onWebViewCreated: (controller) {
+                uploadController.webViewController = controller;
+              },
+              onLoadStart: (_, url) {
+                uploadController.onPageStarted(url?.rawValue);
+              },
+              onPermissionRequest: (_, request) async {
+                return PermissionResponse(
+                  resources: request.resources,
+                  action: PermissionResponseAction.GRANT,
+                );
+              },
+              shouldOverrideUrlLoading: (_, navigationAction) async {
+                return uploadController.onNavigationRequest(navigationAction);
+              },
+              onLoadStop: (_, url) async {
+                uploadController.onPageFinished(url?.rawValue);
+              },
+              onReceivedError: (_, request, error) {
+                uploadController.onResourceError(error);
+              },
+              onReceivedHttpError: (_, request, resource) {
+                uploadController.onHttpError();
+              },
+              onShowFileChooser: (_, request) async {
+                return uploadController.pickFile(request);
+              },
+              onConsoleMessage: (_, consoleMessage) {
+                if (kDebugMode) {
+                  print(consoleMessage);
+                }
+              },
+            );
+          },
         ),
         Positioned(
           left: 0,

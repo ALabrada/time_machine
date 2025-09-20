@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -13,9 +15,6 @@ import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/time_machine_net.dart';
-import 'package:webview_cookie_manager_plus/webview_cookie_manager_plus.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 final class UploadController extends ChangeNotifier {
   static const defaultPageUrl = 'https://www.re.photos/en/compilation/create/';
@@ -29,34 +28,18 @@ final class UploadController extends ChangeNotifier {
     this.onUploadFile,
     this.onError,
     Uri? url,
-  }) : url = url ?? Uri.parse(defaultPageUrl) {
-    webViewController.setNavigationDelegate(
-      NavigationDelegate(
-        onProgress: (int progress) {
-          if (loadingProgress.valueOrNull != null) {
-            loadingProgress.value = progress;
-          }
-        },
-        onPageStarted: _onPageStarted,
-        onPageFinished: _onPageFinished,
-        onHttpError: _onHttpError,
-        onWebResourceError: _onResourceError,
-        onNavigationRequest: _onNavigationRequest,
-      )
-    );
-  }
+  }) : url = url ?? Uri.parse(defaultPageUrl);
 
   final Uri url;
   final CacheService cacheService;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
   final SharedPreferencesWithCache? preferences;
-  final WebViewController webViewController = WebViewController()
-    ..setJavaScriptMode(JavaScriptMode.unrestricted);
   final FutureOr<(Picture picture, bool align)?> Function()? onUploadFile;
   final void Function(String? description)? onError;
 
   final BehaviorSubject<int?> loadingProgress = BehaviorSubject();
+  InAppWebViewController? webViewController;
 
   Record? record;
   String get baseUrl => Uri(
@@ -90,28 +73,26 @@ final class UploadController extends ChangeNotifier {
     final cookies = preferences?.getStringList('web.cookies.$key') ?? [];
     debugPrint('[WEB] loadCookies: $cookies');
 
-    final manager = WebviewCookieManager();
-    await manager.clearCookies();
-    await manager.setCookies([
-      for (final value in cookies)
-        Cookie.fromSetCookieValue(value),
-    ], origin: baseUrl);
+    final manager = CookieManager.instance();
+    await manager.deleteAllCookies();
+    for (final value in cookies) {
+      final cookie = Cookie.fromMap(jsonDecode(value));
+      if (cookie != null) {
+        manager.setCookie(url: WebUri(baseUrl), name: cookie.name, value: cookie.value);
+      }
+    }
   }
 
   Future<void> loadPage() async {
-    if (Platform.isAndroid) {
-      final androidController = webViewController.platform as AndroidWebViewController;
-      await androidController.setOnShowFileSelector(_androidFilePicker);
-    }
-
     await loadCookies();
-    await webViewController.loadRequest(url);
   }
 
   Future<void> saveCookies() async {
-    final cookies = await WebviewCookieManager().getCookies(baseUrl);
+    final cookies = await CookieManager.instance().getCookies(
+      url: WebUri(baseUrl),
+    );
     final key = Uri.encodeComponent(baseUrl);
-    final value = List.generate(cookies.length, (i) => cookies[i].toString());
+    final value = List.generate(cookies.length, (i) => jsonEncode(cookies[i].toJson()));
     preferences?.setStringList('web.cookies.$key', value);
     debugPrint('[WEB] saveCookies: $value');
   }
@@ -243,25 +224,27 @@ final class UploadController extends ChangeNotifier {
     return Uri.file(dstPath).toString();
   }
 
-  void _onPageStarted(String url) {
+  void onPageStarted(String? url) {
     debugPrint('[WEB] load: $url');
     loadingProgress.value = 0;
   }
 
-  void _onPageFinished(String url) {
+  void onPageFinished(String? url) {
     debugPrint('[WEB] loaded: $url');
     loadingProgress.value = null;
     unawaited(saveCookies());
-    unawaited(fillPage(url));
+    if (url != null) {
+      unawaited(fillPage(url));
+    }
   }
 
-  void _onHttpError(HttpResponseError error) {
-    debugPrint('[WEB] error: ${error.response?.toString()}');
+  void onHttpError() {
+    debugPrint('[WEB] error}');
     onError?.call(null);
   }
 
-  void _onResourceError(WebResourceError error) {
-    debugPrint('[WEB] error ${error.errorCode}: ${error.description}');
+  void onResourceError(WebResourceError error) {
+    debugPrint('[WEB] error ${error.type}: ${error.description}');
     onError?.call(error.description);
   }
 
@@ -270,63 +253,74 @@ final class UploadController extends ChangeNotifier {
       for (final e in fieldValues.entries)
         'document.getElementById("${e.key}").value = "${e.value.replaceAll('"', '\\"')}";'
     ].join('\n');
-    await webViewController.runJavaScript(script);
+    await webViewController?.evaluateJavascript(source: script);
   }
 
-  FutureOr<NavigationDecision> _onNavigationRequest(NavigationRequest request) async {
-    if (!request.url.startsWith(baseUrl)) {
-      debugPrint('[WEB] deny ${request.url}');
-      return NavigationDecision.prevent;
+  FutureOr<NavigationActionPolicy> onNavigationRequest(NavigationAction action) async {
+    final url = action.request.url?.rawValue;
+    if (url != null && !url.startsWith(baseUrl)) {
+      debugPrint('[WEB] deny $url');
+      return NavigationActionPolicy.CANCEL;
     }
-    return NavigationDecision.navigate;
+    return NavigationActionPolicy.ALLOW;
   }
 
-  Future<List<String>> _androidFilePicker(FileSelectorParams params) async {
+  Future<ShowFileChooserResponse> pickFile(ShowFileChooserRequest params) async {
     try {
-      if (params.mode == FileSelectorMode.open) {
+      if (params.mode == ShowFileChooserRequestMode.OPEN) {
         final url = await showUploadMenu();
         if (url == null) {
-          return [];
+          return ShowFileChooserResponse(filePaths: [], handledByClient: true);
         }
         if (url.isNotEmpty) {
-          return [url];
+          return ShowFileChooserResponse(filePaths: [url], handledByClient: true);
         }
       }
 
       // If the input accepts images and has a capture attribute, open the camera.
       if (params.acceptTypes.any((type) => type == 'image/*') &&
-          params.mode == FileSelectorMode.open) {
+          params.mode == ShowFileChooserRequestMode.OPEN) {
         final picker = ImagePicker();
         final photo = await picker.pickImage(source: ImageSource.camera);
-        if (photo == null) return [];
-        return [Uri.file(photo.path).toString()];
+        if (photo == null) return ShowFileChooserResponse(filePaths: [], handledByClient: true);
+        return ShowFileChooserResponse(
+          filePaths: [Uri.file(photo.path).toString()],
+          handledByClient: true,
+        );
       }
       // If the input accepts video, allow video recording.
       else if (params.acceptTypes.any((type) => type == 'video/*') &&
-          params.mode == FileSelectorMode.open) {
+          params.mode == ShowFileChooserRequestMode.OPEN) {
         final picker = ImagePicker();
         final video = await picker.pickVideo(
             source: ImageSource.camera,
             maxDuration: const Duration(seconds: 10));
-        if (video == null) return [];
-        return [Uri.file(video.path).toString()];
+        if (video == null) return ShowFileChooserResponse(filePaths: [], handledByClient: true);
+        return ShowFileChooserResponse(
+          filePaths: [Uri.file(video.path).toString()],
+          handledByClient: true,
+        );
       }
       // For general file picking, use the FilePicker package.
-      else if (params.mode == FileSelectorMode.openMultiple) {
+      else if (params.mode == ShowFileChooserRequestMode.OPEN_MULTIPLE) {
         final result = await FilePicker.platform.pickFiles(allowMultiple: true);
-        if (result == null) return [];
-        return result.files
+        if (result == null) return ShowFileChooserResponse(filePaths: [], handledByClient: true);
+        final files = result.files
             .where((file) => file.path != null)
             .map((file) => Uri.file(file.path!).toString())
             .toList();
+        return ShowFileChooserResponse(filePaths: files, handledByClient: true);
       } else {
         final result = await FilePicker.platform.pickFiles();
-        if (result == null) return [];
-        return [Uri.file(result.files.single.path!).toString()];
+        if (result == null) return ShowFileChooserResponse(filePaths: [], handledByClient: true);
+        return ShowFileChooserResponse(
+          filePaths: [Uri.file(result.files.single.path!).toString()],
+          handledByClient: true,
+        );
       }
     } catch (e) {
       onError?.call(e.toString());
-      return [];
+      return ShowFileChooserResponse(filePaths: [], handledByClient: true);
     }
   }
 }
