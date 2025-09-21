@@ -213,7 +213,7 @@ class TimeMachineApp extends StatelessWidget {
               backgroundColor: colorScheme.secondary,
               foregroundColor: colorScheme.onSecondary,
               systemOverlayStyle: SystemUiOverlayStyle(
-                statusBarBrightness: Brightness.light,
+                statusBarBrightness: Brightness.dark,
                 statusBarIconBrightness: Brightness.light,
                 statusBarColor: colorScheme.secondary,
               ),
