@@ -2,15 +2,18 @@ import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:time_machine_db/time_machine_db.dart';
 
 final class CacheService {
   CacheService({
     BaseCacheManager? cacheManager,
+    this.databaseService,
   }) : cacheManager = cacheManager ?? DefaultCacheManager();
 
   CacheService.defaultInstance() : this(cacheManager: null);
 
   final BaseCacheManager cacheManager;
+  final DatabaseService Function()? databaseService;
 
   Future<XFile> fetch(String url) async {
     final uri = Uri.tryParse(url);
@@ -22,7 +25,8 @@ final class CacheService {
       );
     }
     if (uri != null && uri.isScheme('file')) {
-      return XFile(uri.path);
+      final path = databaseService?.call().expandPath(uri.path) ?? uri.path;
+      return XFile(path);
     }
     if (kIsWeb && uri != null) {
       final response = await Dio().getUri<List<int>>(uri,

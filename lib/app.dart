@@ -127,8 +127,9 @@ class TimeMachineApp extends StatelessWidget {
           },
         ),
         Provider<CacheService>(
-          create: (_) => CacheService(
+          create: (context) => CacheService(
             cacheManager: CachedNetworkImageProvider.defaultCacheManager,
+            databaseService: () => context.read(),
           ),
         ),
         Provider<NetworkService>(

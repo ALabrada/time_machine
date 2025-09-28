@@ -97,6 +97,7 @@ class ComparisonController with TaskManager {
       pictures: [original, picture],
       caption: caption,
       cacheService: cacheService,
+      databaseService: databaseService,
     ));
     return true;
   }
@@ -159,8 +160,10 @@ class ComparisonController with TaskManager {
         );
       }
 
-      final uri = Uri.tryParse(picture.url);
-      var ownImage = uri != null && uri.scheme == 'file' ? await img.decodeImageFile(uri.path) : null;
+      final ownFile = await cacheService.fetch(picture.url);
+      var ownImage = kIsWeb
+          ? img.decodeImage(await ownFile.readAsBytes())
+          : await img.decodeImageFile(ownFile.path);
       if (ownImage == null) {
         return null;
       }

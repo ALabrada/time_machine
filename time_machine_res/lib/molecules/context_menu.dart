@@ -66,9 +66,15 @@ extension ContextMenu on BuildContext {
             leading: Icon(Icons.share),
             title: Text(ResLocalizations.of(this).menuActionShare),
             onPressed: (context) {
-              CachedNetworkImageProvider.defaultCacheManager.getSingleFile(model.url).then((v) {
-                shareFile(v.path);
-              });
+              final uri = Uri.parse(model.url);
+              if (uri.isScheme('file')) {
+                final path = databaseService?.expandPath(uri.path) ?? uri.path;
+                shareFile(path);
+              } else {
+                CachedNetworkImageProvider.defaultCacheManager.getSingleFile(model.url).then((v) {
+                  shareFile(v.path);
+                });
+              }
               Navigator.of(context).pop();
             },
           ),

@@ -239,7 +239,9 @@ class _GalleryPageState extends State<GalleryPage> {
 
   Widget _buildPictureCell(Picture? picture) {
     return GalleryCell(
-      uri: picture == null ? null : Uri.tryParse(picture.url),
+      image: picture == null ? null : PictureFrame.imageFor(picture.url,
+        databaseService: context.read(),
+      ),
       onTap: picture == null ? null : () => _selectPicture(picture),
     );
   }
@@ -258,7 +260,9 @@ class _GalleryPageState extends State<GalleryPage> {
           builder: (context, snapshot) {
             final isSelected = snapshot.data;
             return GalleryCell(
-              uri: picture == null ? null : Uri.tryParse(picture.url),
+              image: picture == null ? null : PictureFrame.imageFor(picture.url,
+                databaseService: context.read(),
+              ),
               isSelected: isSelected,
               onTap: () => _selectRecord(record),
               onLongPress: () => galleryController.toggleSelection(record),

@@ -103,8 +103,7 @@ final class UploadController extends ChangeNotifier {
       return null;
     }
     final (picture, align) = result;
-    final url = Uri.tryParse(picture.url);
-    if (picture.url.isEmpty || url == null || url.isScheme('file')) {
+    if (picture.url.isEmpty) {
       return picture.url;
     }
 

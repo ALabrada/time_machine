@@ -151,7 +151,8 @@ extension DatabaseExtensions on DatabaseService {
 
     final url = Uri.tryParse(record.picture?.url ?? '');
     if (url != null && url.isScheme('file')) {
-      await File(url.path).delete();
+
+      await File(expandPath(url.path)).delete();
     }
     return true;
   }
@@ -190,7 +191,7 @@ extension DatabaseExtensions on DatabaseService {
     } else {
       final localPath = '$dirPath/pictures/$id.jpg';
       await Future.microtask(() => image.decompress(OutputFileStream(localPath)));
-      picture.url = Uri.file(localPath).toString();
+      picture.url = Uri.file('${DatabaseService.filePathPlaceholder}/pictures/$id.jpg').toString();
     }
 
     return await createRepository<Picture>().upsert(picture);
@@ -216,7 +217,7 @@ extension DatabaseExtensions on DatabaseService {
       ];
     }
     if (url.isScheme('file')) {
-      final attachment = File(url.path);
+      final attachment = File(expandPath(url.path));
       final size = await attachment.length();
       final content = FileContentStream(InputFileStream(attachment.path));
       final attachmentFile = ArchiveFile.file('$name.jpg', size, content);

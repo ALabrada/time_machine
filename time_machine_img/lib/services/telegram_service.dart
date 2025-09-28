@@ -22,6 +22,7 @@ final class TelegramService {
     required List<Picture> pictures,
     String? caption,
     required CacheService cacheService,
+    DatabaseService? databaseService,
   }) async {
     if (pictures.isEmpty) {
       return false;
@@ -31,6 +32,7 @@ final class TelegramService {
       .asyncMap((p) => _openFile(
         picture: p,
         cacheService: cacheService,
+        databaseService: databaseService,
       ))
       .whereNotNull()
       .toList();
@@ -60,13 +62,15 @@ final class TelegramService {
   Future<InputFile?> _openFile({
     Picture? picture,
     required CacheService cacheService,
+    DatabaseService? databaseService,
   }) async {
     final url = picture == null ? null : Uri.tryParse(picture.url);
     if (url == null) {
       return null;
     }
     if (url.isScheme('file')) {
-      return InputFile.fromFile(io.File(url.path));
+      final path = databaseService?.expandPath(url.path) ?? url.path;
+      return InputFile.fromFile(io.File(path));
     }
     final file = await cacheService.fetch(url.toString());
     return kIsWeb || url.isScheme('data')

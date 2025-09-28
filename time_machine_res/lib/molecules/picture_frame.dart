@@ -55,10 +55,11 @@ class PictureFrame extends StatelessWidget {
     );
   }
 
-  static ImageProvider imageFor(String url) {
+  static ImageProvider imageFor(String url, {DatabaseService? databaseService}) {
     final uri = Uri.parse(url);
     if (uri.isScheme('file')) {
-      return FileImage(File(uri.path));
+      final path = databaseService?.expandPath(uri.path) ?? uri.path;
+      return FileImage(File(path));
     }
     if (uri.isScheme('data')) {
       final data = UriData.fromUri(uri).contentAsBytes();

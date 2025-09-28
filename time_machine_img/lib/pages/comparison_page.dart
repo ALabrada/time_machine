@@ -92,8 +92,12 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
       return null;
     }
     return ImageCompareSlider(
-      itemOne: Image(image: PictureFrame.imageFor(original.url)),
-      itemTwo: Image(image: PictureFrame.imageFor(picture.url)),
+      itemOne: Image(image: PictureFrame.imageFor(original.url,
+        databaseService: context.read(),
+      )),
+      itemTwo: Image(image: PictureFrame.imageFor(picture.url,
+        databaseService: context.read(),
+      )),
       itemOneBuilder: (child, context) => PictureFrame(
         aspectRatio: aspectRatio,
         child: child,

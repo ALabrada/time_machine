@@ -10,10 +10,20 @@ import 'package:time_machine_db/time_machine_db.dart';
 class DatabaseService {
   DatabaseService({required this.db, this.dataPath});
 
+  static const filePathPlaceholder = '/[FILES]';
+
   final String? dataPath;
   final Database db;
 
   String? get filePath => dataPath == null ? null : p.join(dataPath!, 'files');
+
+  String expandPath(String path) {
+    final filePath = this.filePath;
+    if (filePath == null) {
+      return path;
+    }
+    return Uri.decodeFull(path).replaceAll(DatabaseService.filePathPlaceholder, filePath);
+  }
 
   Repository<T> createRepository<T>() => Repository.create(db: db);
 

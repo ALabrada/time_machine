@@ -38,12 +38,12 @@ extension CamDatabaseService on DatabaseService {
       url = Uri.dataFromBytes(data, mimeType: 'image/jpg').toString();
     } else if (p.isWithin(dirPath, file.path)) {
       id = p.basename(file.path);
-      url = Uri.file(file.path).toString();
+      url = Uri.file( file.path.replaceAll(dirPath, DatabaseService.filePathPlaceholder)).toString();
     } else {
       final localPath = '$dirPath/pictures/$id.jpg';
       await File(localPath).create(recursive: true);
       await img.encodeJpgFile(localPath, image);
-      url = Uri.file(localPath).toString();
+      url = Uri.file('${DatabaseService.filePathPlaceholder}/pictures/$id.jpg').toString();
     }
     final pictureViewPort = height == null || width == null
         ? null

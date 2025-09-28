@@ -7,13 +7,13 @@ import 'package:time_machine_res/time_machine_res.dart';
 class GalleryCell extends StatelessWidget {
   const GalleryCell({
     super.key,
-    this.uri,
+    this.image,
     this.isSelected,
     this.onTap,
     this.onLongPress,
   });
 
-  final Uri? uri;
+  final ImageProvider? image;
   final bool? isSelected;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
@@ -35,10 +35,10 @@ class GalleryCell extends StatelessWidget {
   }
 
   BoxDecoration _buildDecoration(BuildContext context) {
-    final uri = this.uri;
+    final image = this.image;
     return BoxDecoration(
-      image: uri == null ? null : DecorationImage(
-        image: _image(uri),
+      image: image == null ? null : DecorationImage(
+        image: image,
         fit: BoxFit.cover,
       ),
     );
@@ -66,9 +66,5 @@ class GalleryCell extends StatelessWidget {
         color: Theme.of(context).primaryColor,
       ),
     );
-  }
-
-  static ImageProvider _image(Uri uri) {
-    return PictureFrame.imageFor(uri.toString());
   }
 }
