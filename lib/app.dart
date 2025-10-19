@@ -126,12 +126,6 @@ class TimeMachineApp extends StatelessWidget {
             );
           },
         ),
-        Provider<CacheService>(
-          create: (context) => CacheService(
-            cacheManager: CachedNetworkImageProvider.defaultCacheManager,
-            databaseService: () => context.read(),
-          ),
-        ),
         Provider<NetworkService>(
           create: (_) => NetworkService(
             userAgent: userAgent,
@@ -167,6 +161,12 @@ class TimeMachineApp extends StatelessWidget {
           initialData: null,
           create: (_) => DatabaseService.load(),
           lazy: false,
+        ),
+        Provider<CacheService>(
+          create: (context) => CacheService(
+            cacheManager: CachedNetworkImageProvider.defaultCacheManager,
+            databaseService: () => context.read(),
+          ),
         ),
         Provider<SharingService>(
           create: (_) => SharingService(),
