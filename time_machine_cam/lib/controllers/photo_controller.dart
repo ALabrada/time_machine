@@ -119,7 +119,7 @@ class PhotoController {
       headingSubscription = CombineLatestStream.combine2(
           headingStream.mapNotNull((e) {
             final accuracy = e.accuracy;
-            if (accuracy != null && accuracy <= 30) {
+            if (accuracy != null && accuracy > 50) {
               return null;
             }
             return e.heading;

@@ -58,7 +58,11 @@ class CompassView extends StatelessWidget {
               ? CamLocalizations.of(context).distanceInMeters(distance)
               : CamLocalizations.of(context).distanceGreaterThan1Km,
             style: TextTheme.of(context).bodyLarge?.merge(TextStyle(
-                color: Theme.of(context).colorScheme.primary),
+                color: Theme.of(context).colorScheme.primary,
+              shadows: [
+                Shadow(blurRadius: 8),
+              ],
+            ),
             ),
           ),
       ],
