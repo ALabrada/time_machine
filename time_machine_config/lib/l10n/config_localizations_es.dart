@@ -9,7 +9,7 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
   ConfigLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get helpPage => 'Preguntas Frequentes';
+  String get helpPage => 'Preguntas Frecuentes';
 
   @override
   String questionHowToFindPicturesBody(
@@ -17,7 +17,7 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
     String mapIcon,
     String settingsIcon,
   ) {
-    return 'Puede buscar fotos en su vecindad (pestaña $nearbyIcon **Cerca**) o en el map (pestaña $mapIcon **Mapa**). La aplicación descargará las fotos de bases de datos en línea, así que deberá estar conectada a internet. Puede elegir cúales bases de datos utilizar, entre otros parámetros, en la configuración (pestaña $settingsIcon **Opciones**).';
+    return 'Puede buscar fotos en su vecindad (pestaña $nearbyIcon **Cerca**) o en el mapa (pestaña $mapIcon **Mapa**). La aplicación descargará las fotos de bases de datos en línea, así que deberá estar conectada a internet. Puede elegir cuáles bases de datos utilizar, entre otros parámetros, en la configuración (pestaña $settingsIcon **Opciones**).';
   }
 
   @override
@@ -26,7 +26,7 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
 
   @override
   String questionHowToImportPicturesBody(String saveIcon) {
-    return 'Cuando seleccione la opción de import foto, deberá buscar la foto deseada en el teléfono. Cuando la seleccione, se mostrará la foto superpuesta con la foto histórica. Alinee las fotos lo más cercanamente posible y presione el botón $saveIcon **Guardar**. A continuación se abrirá la vista de **Comparación**.';
+    return 'Cuando seleccione la opción de importar foto, deberá buscar la foto deseada en el teléfono. Cuando la seleccione, se mostrará la foto superpuesta con la foto histórica. Alinee las fotos lo más cercanamente posible y presione el botón $saveIcon **Guardar**. A continuación se abrirá la vista de **Comparación**.';
   }
 
   @override
@@ -54,7 +54,7 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
 
   @override
   String get questionHowToTakePictureBody =>
-      'Cuando abra la cámara para tomar una foto, la foto histórica aparecerá montada sobre la vista de la cámara. Si se encuentra lejos del lugar de la foto histórica, en la esquina superior izquierda se mostrarán instrucciones para arribar al lugar. Entonces, alinee la foto histórica con la vista de la cámara lo más cercanamente posible. Cuando se guarde la foto, podrá abir la vista de **Comparación** o continuar tomando fotos.';
+      'Cuando abra la cámara para tomar una foto, la foto histórica aparecerá montada sobre la vista de la cámara. Si se encuentra lejos del lugar de la foto histórica, en la esquina superior izquierda se mostrarán instrucciones para arribar al lugar. Entonces, alinee la foto histórica con la vista de la cámara lo más cercanamente posible. Cuando se guarde la foto, podrá abrir la vista de **Comparación** o continuar tomando fotos.';
 
   @override
   String get questionHowToTakePictureTitle =>
@@ -62,7 +62,7 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
 
   @override
   String get questionWhatDataIsCollectedBody =>
-      'Toda la aplicación recolectada por la aplicación se almacena localmente en el teléfono. Los datos se comparten solamente cuando usted explícitamente publica las fotos. Las fotos tomadas además contienen las coordenadas geográficas correspondientes.';
+      'Toda la información recolectada por la aplicación se almacena localmente en el teléfono. Los datos se comparten solamente cuando usted explícitamente publica las fotos. Las fotos tomadas además contienen las coordenadas geográficas correspondientes.';
 
   @override
   String get questionWhatDataIsCollectedTitle =>
@@ -70,12 +70,12 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
 
   @override
   String questionWhatIsAppPurposeBody(String telegramChannel) {
-    return 'La aplicación permite descubir fotos antiguas y recrearlas, con el fin de compararlas con el presente. Además, puede compartir las fotos en [Re.Photos](https://www.re.photos) o en nuestro [canal de Telegram]($telegramChannel).';
+    return 'La aplicación permite descubrir fotos antiguas y recrearlas, con el fin de compararlas con el presente. Además, puede compartir las fotos en [Re.Photos](https://www.re.photos) o en nuestro [canal de Telegram]($telegramChannel).';
   }
 
   @override
   String get questionWhatIsAppPurposeTitle =>
-      '¿Cuál el es propósito de la aplicación Lentes de la Historia?';
+      '¿Cuál es el propósito de la aplicación Lentes de la Historia?';
 
   @override
   String get sectionDataBases => 'Base de Datos de Imágenes';
@@ -96,7 +96,7 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
   String get settingGeocoder => 'Base de Datos de Direcciones';
 
   @override
-  String get settingHelp => 'Preguntas Frequentes';
+  String get settingHelp => 'Preguntas Frecuentes';
 
   @override
   String get settingMapProvider => 'Servicio de Mapas';

@@ -16,7 +16,7 @@ class MapLocalizationsRu extends MapLocalizations {
       'Не удалось определить ваше местоположение. Пожалуйста, проверьте настройки.';
 
   @override
-  String get menuTitle => 'Опций';
+  String get menuTitle => 'Опции';
 
   @override
   String get menuActionCamera => 'Сфотографировать реплику фотографии';

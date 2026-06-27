@@ -146,7 +146,7 @@ class GalleryController with TaskManager {
 
   Future<void> _reloadElements({String? query}) async {
     final text = (query ?? searchController.text).trim();
-    final words = text.split(r'\s+');
+    final words = text.split(RegExp(r'\s+'));
     words.removeWhere((e) => e.length < 2);
     final databaseService = this.databaseService;
     if (databaseService == null) {

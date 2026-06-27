@@ -62,7 +62,7 @@ class Picture {
 }
 
 extension PictureRepository on Repository<Picture> {
-  Future<Picture?> findPictureByIdAndProvider(int id, String provider) async {
+  Future<Picture?> findPictureByIdAndProvider(String id, String provider) async {
     final finder = Finder(filter: Filter.and([
       Filter.equals('id', id),
       Filter.equals('provider', provider),

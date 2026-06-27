@@ -187,6 +187,7 @@ class PicturesController {
   }
 
   void _subscribePosition({bool serviceEnabled=false}) {
+    _positionSubscription?.cancel();
     _positionSubscription = Geolocator.getServiceStatusStream().mergeWith([
       Stream.value(serviceEnabled ? ServiceStatus.enabled : ServiceStatus.disabled),
     ])

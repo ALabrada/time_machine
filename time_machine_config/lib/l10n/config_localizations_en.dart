@@ -45,7 +45,7 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
     String telegramChannel,
     String browserIcon,
   ) {
-    return 'You can share a historic picture and its replica from the **Comparison** view, by pressing the corresponding button. The context menu allows publishing pictures in the [Re.Photos](https://www.re.photos) website, in our [Telegram channel]($telegramChannel), among other methods. In order to publish to [Re.Photos](https://www.re.photos), you will be taken to their website and will have to complete the creation form, but first you will need to login to your account (or create an account if you haven`t one). \n\nIt is better to share the original versions of the historic pictures, obtained from their website, to avoid watermarks. You can access the website by selecting the historical picture and pressing the $browserIcon **Browser** button.';
+    return 'You can share a historic picture and its replica from the **Comparison** view, by pressing the corresponding button. The context menu allows publishing pictures in the [Re.Photos](https://www.re.photos) website, in our [Telegram channel]($telegramChannel), among other methods. In order to publish to [Re.Photos](https://www.re.photos), you will be taken to their website and will have to complete the creation form, but first you will need to login to your account (or create an account if you don\'t have one). \n\nIt is better to share the original versions of the historic pictures, obtained from their website, to avoid watermarks. You can access the website by selecting the historical picture and pressing the $browserIcon **Browser** button.';
   }
 
   @override
@@ -61,7 +61,7 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
 
   @override
   String get questionWhatDataIsCollectedBody =>
-      'All the data collected by the application is stored locally in the phone. The data is shared only when you explicitly choose the share the pictures. The recorded photos will also contain their corresponding geo-coordinates.';
+      'All the data collected by the application is stored locally in the phone. The data is shared only when you explicitly choose to share the pictures. The recorded photos will also contain their corresponding geo-coordinates.';
 
   @override
   String get questionWhatDataIsCollectedTitle =>

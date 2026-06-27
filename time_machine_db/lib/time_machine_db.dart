@@ -18,6 +18,6 @@ Rectangle<int> cropImage({
   final x = scaleX * max(0, intersection.left - viewPort.left);
   final y = scaleY * max(0, intersection.top - viewPort.top);
   final w = scaleX * intersection.width;
-  final h = scaleX * intersection.height;
+  final h = scaleY * intersection.height;
   return Rectangle<int>(x.toInt(), y.toInt(), w.toInt(), h.toInt());
 }

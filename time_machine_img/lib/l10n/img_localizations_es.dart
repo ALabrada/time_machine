@@ -49,7 +49,7 @@ class ImgLocalizationsEs extends ImgLocalizations {
   String get comparisonPage => 'Comparación';
 
   @override
-  String get comparisonBottom => 'Arriba';
+  String get comparisonBottom => 'Abajo';
 
   @override
   String get comparisonLeft => 'Izquierda';
@@ -61,7 +61,7 @@ class ImgLocalizationsEs extends ImgLocalizations {
   String get comparisonRight => 'Derecha';
 
   @override
-  String get comparisonTop => 'Encima';
+  String get comparisonTop => 'Arriba';
 
   @override
   String galleryEmptyListBody(
