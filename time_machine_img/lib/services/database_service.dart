@@ -185,7 +185,7 @@ extension DatabaseExtensions on DatabaseService {
 
     for (final entry in archive.files) {
       if (entry.isDirectory) {
-        final prefix = '${entry.name}/';
+        final prefix = entry.name.endsWith('/') ? entry.name : '${entry.name}/';
         results.add({
           'record': readJson('${prefix}meta.json')!,
           'nowPicture': readJson('${prefix}now.json'),
