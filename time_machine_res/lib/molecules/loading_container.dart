@@ -55,7 +55,7 @@ class LoadingContainerState extends State<LoadingContainer> {
         if (_isLoading)
           ModalBarrier(
             dismissible: false,
-            color: Theme.of(context).colorScheme.background.withAlpha(128),
+            color: Theme.of(context).colorScheme.surface.withAlpha(128),
           ),
         if (_isLoading)
           Opacity(

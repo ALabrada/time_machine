@@ -1,12 +1,9 @@
 import 'dart:async';
-import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:ar_location_view/ar_location_view.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:time_machine_cam/l10n/cam_localizations.dart';
 import 'package:time_machine_cam/services/database_service.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -27,10 +24,10 @@ class ScanningPage extends StatefulWidget {
   final double maxDistanceInMeters;
 
   @override
-  _ScanningPageState createState() => _ScanningPageState();
+  ScanningPageState createState() => ScanningPageState();
 }
 
-class _ScanningPageState extends State<ScanningPage> {
+class ScanningPageState extends State<ScanningPage> {
   late ARController arController;
 
   @override
@@ -98,10 +95,11 @@ class _ScanningPageState extends State<ScanningPage> {
           context.go(url);
         }
       },
-      shareFile: (path) {
-        Share.shareXFiles([
-          XFile(path),
-        ], text: model.text);
+      shareFile: (path) async {
+        await SharePlus.instance.share(ShareParams(
+          files: [XFile(path)],
+          text: model.text,
+        ));
       }
     );
   }

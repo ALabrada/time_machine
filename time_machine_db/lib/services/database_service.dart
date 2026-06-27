@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:sembast/sembast.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:sembast_web/sembast_web.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -64,18 +63,12 @@ class DatabaseService {
 
   Future<String> readText(String path) async {
     final dirPath = await getApplicationDocumentsDirectory();
-    if (dirPath == null) {
-      throw Exception('Cannot save files');
-    }
     var file = File(p.join(dirPath.path, path));
     return await file.readAsString();
   }
 
   Future<String> writeFile(String path, Object content) async {
     final dirPath = await getApplicationDocumentsDirectory();
-    if (dirPath == null) {
-      throw Exception('Cannot save files');
-    }
     var file = File(p.join(dirPath.path, path));
     file = await file.create(recursive: true);
     if (content is String) {
@@ -109,7 +102,7 @@ class Repository<T> {
   factory Repository.create({required Database db}) {
     final storeId = T.toString().toLowerCase();
     switch (T) {
-      case Picture:
+      case Picture _:
         return Repository<Picture>(
           box: intMapStoreFactory.store(storeId),
           db: db,
@@ -118,7 +111,7 @@ class Repository<T> {
           getKey: (x) => x.localId,
           setKey: (x, v) => x.localId = v,
         ) as Repository<T>;
-      case Record:
+      case Record _:
         return Repository<Record>(
           box: intMapStoreFactory.store(storeId),
           db: db,

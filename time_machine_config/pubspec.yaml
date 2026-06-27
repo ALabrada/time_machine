@@ -13,6 +13,9 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  rxdart: ^7.1.0
+  provider: ^6.1.0
+
   time_machine_db:
     path: ../time_machine_db
   time_machine_net:

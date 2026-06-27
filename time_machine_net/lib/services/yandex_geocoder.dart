@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+
 import 'package:time_machine_db/domain/location.dart';
 import 'package:time_machine_net/domain/place_info.dart';
 
@@ -34,7 +34,7 @@ class YandexGeocoder implements GeocodingService {
 
   @override
   Future<List<PlaceInfo>> searchAddress(String query) async {
-    final response = await dio.get('v1/',
+    await dio.get('v1/',
       queryParameters: {
         if (apiKey != null)
           'apikey': apiKey!,
@@ -54,7 +54,7 @@ class YandexGeocoder implements GeocodingService {
 
   @override
   Future<List<PlaceInfo>> searchCoordinates(Location location) async {
-    final response = await dio.get('v1/',
+    await dio.get('v1/',
       queryParameters: {
         if (apiKey != null)
           'apikey': apiKey!,

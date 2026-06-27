@@ -1,12 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
-import 'dart:typed_data';
-import 'package:intl/intl.dart';
 import 'package:cross_file/cross_file.dart';
-import 'package:native_exif/native_exif.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image/image.dart' as img;
 import 'package:native_device_orientation/native_device_orientation.dart';

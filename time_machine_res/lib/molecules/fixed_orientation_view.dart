@@ -13,17 +13,17 @@ class FixedOrientationView extends StatefulWidget {
   final Widget child;
 
   @override
-  _FixedOrientationViewState createState() => _FixedOrientationViewState();
+  FixedOrientationViewState createState() => FixedOrientationViewState();
 }
 
-class _FixedOrientationViewState extends State<FixedOrientationView>  with RouteAware {
+class FixedOrientationViewState extends State<FixedOrientationView>  with RouteAware {
   late RouteObserver _routeObserver;
 
   @override
   void initState() {
     final orientations = widget.orientations;
     if (orientations != null) {
-      print('Set orientations: $orientations');
+      debugPrint('Set orientations: $orientations');
       SystemChrome.setPreferredOrientations(orientations);
     }
     super.initState();
@@ -63,7 +63,7 @@ class _FixedOrientationViewState extends State<FixedOrientationView>  with Route
   void didPopNext() {
     final orientations = widget.orientations;
     if (orientations != null) {
-      print('Set orientations: $orientations');
+      debugPrint('Set orientations: $orientations');
       SystemChrome.setPreferredOrientations(orientations);
     }
   }

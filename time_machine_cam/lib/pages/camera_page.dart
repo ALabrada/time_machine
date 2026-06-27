@@ -1,30 +1,18 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/pigeon.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:time_machine_cam/l10n/cam_localizations_en.dart';
-import 'package:time_machine_cam/molecules/camera_flash_button.dart';
-import 'package:time_machine_cam/molecules/camera_toggle_button.dart';
-import 'package:time_machine_cam/molecules/camera_trigger_button.dart';
 import 'package:time_machine_cam/molecules/camera_zoom_button.dart';
 import 'package:time_machine_cam/molecules/rotated_view.dart';
-import 'package:time_machine_cam/services/database_service.dart';
-import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_cam/controllers/photo_controller.dart';
 import 'package:time_machine_cam/molecules/compass_view.dart';
-import 'package:time_machine_res/molecules/picture_frame.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
 import '../l10n/cam_localizations.dart';
@@ -38,10 +26,10 @@ class CameraPage extends StatefulWidget {
   final int? pictureId;
 
   @override
-  _CameraPageState createState() => _CameraPageState();
+  CameraPageState createState() => CameraPageState();
 }
 
-class _CameraPageState extends State<CameraPage> {
+class CameraPageState extends State<CameraPage> {
   final audioPlayer = AudioPlayer()
     ..setAudioContext(AudioContextConfig(
       focus: AudioContextConfigFocus.mixWithOthers,
@@ -253,7 +241,7 @@ class _CameraPageState extends State<CameraPage> {
       await audioPlayer.seek(Duration());
       await audioPlayer.resume();
     } catch (e) {
-      print("Error playing sound: $e");
+      debugPrint("Error playing sound: $e");
     }
   }
 

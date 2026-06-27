@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_map_math/flutter_geo_math.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:time_machine_db/time_machine_db.dart';

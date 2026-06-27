@@ -44,7 +44,7 @@ class CameraZoomButton extends StatelessWidget {
     final percent = 100.0 * zoom;
     return CircleAvatar(
       radius: 20,
-      backgroundColor: Colors.black.withOpacity(0.6),
+      backgroundColor: Colors.black.withValues(alpha: 0.6),
       child: IconButton(
         onPressed: onTap,
         icon: Center(

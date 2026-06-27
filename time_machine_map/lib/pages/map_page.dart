@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:geolocator/geolocator.dart';
@@ -13,7 +11,6 @@ import 'package:flutter_map_compass/flutter_map_compass.dart';
 import 'package:flutter_map_marker_cluster_plus/flutter_map_marker_cluster_plus.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -38,10 +35,10 @@ class MapPage extends StatefulWidget {
   final int? pictureId;
 
   @override
-  _MapPageState createState() => _MapPageState();
+  MapPageState createState() => MapPageState();
 }
 
-class _MapPageState extends State<MapPage> {
+class MapPageState extends State<MapPage> {
   final _mapController = MapController();
   final _popupController = PopupController();
   late PicturesController _picturesController;
@@ -284,9 +281,10 @@ class _MapPageState extends State<MapPage> {
           }
         },
         shareFile: (path) {
-          Share.shareXFiles([
-            XFile(path),
-          ], text: model.text);
+          SharePlus.instance.share(ShareParams(
+            files: [XFile(path)],
+            text: model.text,
+          ));
         }
     );
   }

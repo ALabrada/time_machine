@@ -1,5 +1,3 @@
-library time_machine_net;
-
 export 'domain/area.dart';
 export 'domain/place_info.dart';
 export 'services/cache_service.dart';

@@ -44,7 +44,7 @@ class CameraFlashButton extends StatelessWidget {
   } ) {
     return CircleAvatar(
       radius: 20,
-      backgroundColor: Colors.black.withOpacity(0.6),
+      backgroundColor: Colors.black.withValues(alpha: 0.6),
       child: IconButton(
         onPressed: onTap,
         icon: Icon(

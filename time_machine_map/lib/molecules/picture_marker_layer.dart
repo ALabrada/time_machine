@@ -7,7 +7,6 @@ import 'package:flutter_map_marker_cluster_plus/flutter_map_marker_cluster_plus.
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_map/molecules/picture_marker.dart';
 import 'package:time_machine_res/time_machine_res.dart';
-import 'package:time_machine_res/tokens/colors.dart';
 
 class PictureMarkerLayer extends StatefulWidget {
   const PictureMarkerLayer({
@@ -28,10 +27,10 @@ class PictureMarkerLayer extends StatefulWidget {
   final void Function(Picture model)? onLongPress;
 
   @override
-  _PictureMarkerLayerState createState() => _PictureMarkerLayerState();
+  PictureMarkerLayerState createState() => PictureMarkerLayerState();
 }
 
-class _PictureMarkerLayerState extends State<PictureMarkerLayer> {
+class PictureMarkerLayerState extends State<PictureMarkerLayer> {
   late PopupController _popupController;
   StreamSubscription? _selectionSubscription;
   List<Marker> _markers = [];

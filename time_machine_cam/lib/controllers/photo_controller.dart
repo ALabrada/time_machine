@@ -1,14 +1,9 @@
 import 'dart:async';
-import 'package:ar_location_view/ar_compass.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:cross_file/cross_file.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 import 'package:time_machine_cam/services/database_service.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -52,8 +47,8 @@ class PhotoController {
 
   String get targetPath {
     final dirPath = databaseService?.filePath;
-    const _uuid = Uuid();
-    final id = _uuid.v4();
+    const uuid = Uuid();
+    final id = uuid.v4();
     if (dirPath == null || dirPath.isEmpty) {
       return '$id.jpg';
     }

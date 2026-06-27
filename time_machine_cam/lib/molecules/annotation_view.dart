@@ -1,5 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_cam/domain/picture_annotation.dart';
 import 'package:time_machine_cam/l10n/cam_localizations.dart';

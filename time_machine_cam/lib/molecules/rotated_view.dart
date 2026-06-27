@@ -1,7 +1,5 @@
 import 'package:camerawesome/camerawesome_plugin.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:native_device_orientation/native_device_orientation.dart';
 
 class RotatedView extends StatelessWidget {
   const RotatedView({super.key, required this.child});

@@ -6,10 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:select_dialog/select_dialog.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:time_machine_config/controllers/configuration_controller.dart';
-import 'package:time_machine_config/services/configuration_service.dart';
-import 'package:time_machine_net/services/network_service.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../l10n/config_localizations.dart';
@@ -21,10 +18,10 @@ class ConfigurationPage extends StatefulWidget {
   });
 
   @override
-  _ConfigurationPageState createState() => _ConfigurationPageState();
+  ConfigurationPageState createState() => ConfigurationPageState();
 }
 
-class _ConfigurationPageState extends State<ConfigurationPage> {
+class ConfigurationPageState extends State<ConfigurationPage> {
   late ConfigurationController controller;
 
   @override

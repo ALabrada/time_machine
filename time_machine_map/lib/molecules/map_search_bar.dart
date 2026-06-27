@@ -16,10 +16,10 @@ class MapSearchBar extends StatefulWidget {
   final ValueChanged<LatLng>? onSelected;
 
   @override
-  _MapSearchBarState createState() => _MapSearchBarState();
+  MapSearchBarState createState() => MapSearchBarState();
 }
 
-class _MapSearchBarState extends State<MapSearchBar> {
+class MapSearchBarState extends State<MapSearchBar> {
   final _fieldController = FloatingSearchBarController();
   late MapSearchController _searchController;
 

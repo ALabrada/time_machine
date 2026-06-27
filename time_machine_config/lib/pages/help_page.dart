@@ -1,6 +1,3 @@
-import 'dart:convert';
-
-import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_config/l10n/config_localizations.dart';
 import 'package:time_machine_config/molecules/question_cell.dart';
@@ -10,10 +7,10 @@ class HelpPage extends StatefulWidget {
   const HelpPage({super.key});
 
   @override
-  _HelpPageState createState() => _HelpPageState();
+  HelpPageState createState() => HelpPageState();
 }
 
-class _HelpPageState extends State<HelpPage> {
+class HelpPageState extends State<HelpPage> {
   static const telegramChannel = 'https://t.me/history_lens_app';
 
   @override

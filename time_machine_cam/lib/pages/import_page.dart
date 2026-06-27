@@ -1,11 +1,9 @@
 import 'dart:io';
 import 'dart:ui' as ui;
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:custom_image_crop/custom_image_crop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_cam/domain/image_painter.dart';
 import 'package:time_machine_cam/l10n/cam_localizations.dart';
@@ -20,10 +18,10 @@ class ImportPage extends StatefulWidget {
   final int? pictureId;
 
   @override
-  _ImportPageState createState() => _ImportPageState();
+  ImportPageState createState() => ImportPageState();
 }
 
-class _ImportPageState extends State<ImportPage> {
+class ImportPageState extends State<ImportPage> {
   late ImportController controller;
   late Future<(ui.Image? original, ImageProvider? imported)> _initFuture;
 
