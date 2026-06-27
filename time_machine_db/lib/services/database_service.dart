@@ -24,7 +24,7 @@ class DatabaseService {
     return Uri.decodeFull(path).replaceAll(DatabaseService.filePathPlaceholder, filePath);
   }
 
-  Repository<T> createRepository<T>() => Repository.create(db: db);
+  Repository<T> createRepository<T>() => Repository<T>.create(db: db);
 
   static Future<DatabaseService> load({String? dirPath,}) async {
     if (kIsWeb) {
@@ -100,29 +100,27 @@ class Repository<T> {
   });
 
   factory Repository.create({required Database db}) {
-    final storeId = T.toString().toLowerCase();
-    switch (T) {
-      case Picture _:
-        return Repository<Picture>(
-          box: intMapStoreFactory.store(storeId),
-          db: db,
-          fromJson: Picture.fromJson,
-          toJson: (x) => x.toJson(),
-          getKey: (x) => x.localId,
-          setKey: (x, v) => x.localId = v,
-        ) as Repository<T>;
-      case Record _:
-        return Repository<Record>(
-          box: intMapStoreFactory.store(storeId),
-          db: db,
-          fromJson: Record.fromJson,
-          toJson: (x) => x.toJson(),
-          getKey: (x) => x.localId,
-          setKey: (x, v) => x.localId = v,
-        ) as Repository<T>;
-      default:
-        throw Exception("Invalid repository type: ${T.runtimeType.toString()}");
+    if (T == Picture) {
+      return Repository<Picture>(
+        box: intMapStoreFactory.store('picture'),
+        db: db,
+        fromJson: Picture.fromJson,
+        toJson: (x) => x.toJson(),
+        getKey: (x) => x.localId,
+        setKey: (x, v) => x.localId = v,
+      ) as Repository<T>;
     }
+    if (T == Record) {
+      return Repository<Record>(
+        box: intMapStoreFactory.store('record'),
+        db: db,
+        fromJson: Record.fromJson,
+        toJson: (x) => x.toJson(),
+        getKey: (x) => x.localId,
+        setKey: (x, v) => x.localId = v,
+      ) as Repository<T>;
+    }
+    throw Exception("Invalid repository type: ${T.toString()}");
   }
 
   Future<bool> delete(Object id)  async {
