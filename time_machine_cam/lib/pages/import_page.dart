@@ -25,6 +25,7 @@ class ImportPage extends StatefulWidget {
 
 class _ImportPageState extends State<ImportPage> {
   late ImportController controller;
+  late Future<(ui.Image? original, ImageProvider? imported)> _initFuture;
 
   @override
   void initState() {
@@ -34,6 +35,7 @@ class _ImportPageState extends State<ImportPage> {
       databaseService: context.read(),
       networkService: context.read(),
     );
+    _initFuture = _init();
     super.initState();
   }
 
@@ -78,7 +80,7 @@ class _ImportPageState extends State<ImportPage> {
 
   Widget _buildContent() {
     return FutureBuilder(
-      future: _init(),
+      future: _initFuture,
       builder: (context, snapshot) {
         final original = snapshot.data?.$1;
         final imported = snapshot.data?.$2;

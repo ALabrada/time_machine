@@ -18,7 +18,7 @@ class PicturesController {
     this.preferences,
   }) {
     _eventSubscription = mapController?.mapEventStream
-      .throttleTime(Duration(seconds: 1))
+      .throttleTime(Duration(seconds: 1), leading: false, trailing: true)
       .distinct((x, y) => x.camera == y.camera)
       .listen((e) {
         saveSettings(e.camera);
@@ -56,6 +56,11 @@ class PicturesController {
     _eventSubscription = null;
     _positionSubscription?.cancel();
     _positionSubscription = null;
+    isProcessing.close();
+    mapReady.close();
+    pictures.close();
+    selection.close();
+    position.close();
   }
 
   void clearSelection() {
@@ -153,6 +158,7 @@ class PicturesController {
         }
 
         final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        _positionSubscription?.cancel();
         _subscribePosition(serviceEnabled: serviceEnabled);
 
         if (!serviceEnabled) {

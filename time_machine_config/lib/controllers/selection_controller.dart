@@ -8,4 +8,10 @@ final class SelectionController<T> extends ValueNotifier<T> {
   }) : elements = BehaviorSubject<List<T>>.seeded(elements), super(value);
 
   final BehaviorSubject<List<T>> elements;
+
+  @override
+  void dispose() {
+    elements.close();
+    super.dispose();
+  }
 }

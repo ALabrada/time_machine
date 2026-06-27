@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_db/domain/location.dart';
 import 'package:time_machine_net/domain/place_info.dart';
@@ -18,15 +19,17 @@ class YandexGeocoder implements GeocodingService {
     this.apiKey,
     this.userAgent,
   }) {
-    dio.interceptors.add(
-      LogInterceptor(
-        request: true,
-        requestBody: true,
-        responseBody: true,
-        error: true,
-        logPrint: (o) => debugPrint(o.toString()),
-      ),
-    );
+    if (!kReleaseMode) {
+      dio.interceptors.add(
+        LogInterceptor(
+          request: true,
+          requestBody: true,
+          responseBody: true,
+          error: true,
+          logPrint: (o) => debugPrint(o.toString()),
+        ),
+      );
+    }
   }
 
   @override

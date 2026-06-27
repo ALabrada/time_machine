@@ -25,6 +25,7 @@ class ARController {
   void dispose() {
     _eventSubscription?.cancel();
     _eventSubscription = null;
+    annotations.close();
   }
 
   Future<void> reload() async {

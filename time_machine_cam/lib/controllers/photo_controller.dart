@@ -52,7 +52,8 @@ class PhotoController {
 
   String get targetPath {
     final dirPath = databaseService?.filePath;
-    final id = Uuid().v4();
+    const _uuid = Uuid();
+    final id = _uuid.v4();
     if (dirPath == null || dirPath.isEmpty) {
       return '$id.jpg';
     }
@@ -66,6 +67,10 @@ class PhotoController {
   void dispose() {
     positionSubscription?.cancel();
     headingSubscription?.cancel();
+    isProcessing.close();
+    position.close();
+    heading.close();
+    orientation.close();
   }
 
   Future<Picture?> loadPicture(int? id) async {

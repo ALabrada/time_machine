@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map_math/flutter_geo_math.dart';
 import 'package:latlong2/latlong.dart';
@@ -17,15 +18,17 @@ class RussiaInPhotoProvider implements DataProvider {
   String? userAgent;
 
   RussiaInPhotoProvider({this.userAgent,}) {
-    dio.interceptors.add(
-      LogInterceptor(
-        request: true,
-        requestBody: true,
-        responseBody: true,
-        error: true,
-        logPrint: (o) => debugPrint(o.toString()),
-      ),
-    );
+    if (!kReleaseMode) {
+      dio.interceptors.add(
+        LogInterceptor(
+          request: true,
+          requestBody: true,
+          responseBody: true,
+          error: true,
+          logPrint: (o) => debugPrint(o.toString()),
+        ),
+      );
+    }
   }
 
   @override

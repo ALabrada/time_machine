@@ -34,6 +34,11 @@ class GalleryController with TaskManager {
     _searchSubscription = null;
     _importSubscription?.cancel();
     _importSubscription = null;
+    isEditing.close();
+    sections.close();
+    selection.close();
+    _searchCriteria.close();
+    super.dispose();
   }
 
   void cancelEditing() {

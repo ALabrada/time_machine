@@ -13,6 +13,10 @@ class MapSearchController {
   final NetworkService? networkService;
   final results = BehaviorSubject<List<PlaceInfo>>();
 
+  void dispose() {
+    results.close();
+  }
+
   Future<List<PlaceInfo>> locate(String name) async {
     final source = configurationService?.geocoder ?? ConfigurationService.defaultGeocoder;
     final result = await networkService?.searchAddress(query: name, source: source) ?? <PlaceInfo>[];

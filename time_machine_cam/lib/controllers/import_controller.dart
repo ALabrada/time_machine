@@ -108,8 +108,12 @@ class ImportController {
       return (null, null, null);
     }
     final tags = await Exif.fromPath(file.path);
-    final coord = await tags.getLatLong();
-    final dateTime = await tags.getOriginalDate();
-    return (coord?.latitude, coord?.longitude, dateTime);
+    try {
+      final coord = await tags.getLatLong();
+      final dateTime = await tags.getOriginalDate();
+      return (coord?.latitude, coord?.longitude, dateTime);
+    } finally {
+      await tags.close();
+    }
   }
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/domain/area.dart';
@@ -14,15 +15,17 @@ class PastVuProvider implements DataProvider {
   String? userAgent;
 
   PastVuProvider({this.userAgent,}) {
-    dio.interceptors.add(
-      LogInterceptor(
-        request: true,
-        requestBody: true,
-        responseBody: true,
-        error: true,
-        logPrint: (o) => debugPrint(o.toString()),
-      ),
-    );
+    if (!kReleaseMode) {
+      dio.interceptors.add(
+        LogInterceptor(
+          request: true,
+          requestBody: true,
+          responseBody: true,
+          error: true,
+          logPrint: (o) => debugPrint(o.toString()),
+        ),
+      );
+    }
   }
 
   @override

@@ -2,7 +2,7 @@ import 'package:time_machine_res/foundation/color_foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_res/tokens/colors.dart';
 
-final colorScheme = ColorScheme(
+const colorScheme = ColorScheme(
   brightness: Brightness.light,
   primary: primary01,
   onPrimary: label01,

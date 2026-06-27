@@ -51,7 +51,7 @@ class _CameraPageState extends State<CameraPage> {
     ))
     ..setReleaseMode(ReleaseMode.stop);
   late PhotoController controller;
-  late Timer timer;
+  late Future<Picture?> _loadPictureFuture;
 
   @override
   void initState() {
@@ -61,8 +61,17 @@ class _CameraPageState extends State<CameraPage> {
       databaseService: context.read(),
       networkService: context.read(),
     );
+    _loadPictureFuture = controller.loadPicture(widget.pictureId);
     super.initState();
     unawaited(controller.init());
+  }
+
+  @override
+  void didUpdateWidget(covariant CameraPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.pictureId != oldWidget.pictureId) {
+      _loadPictureFuture = controller.loadPicture(widget.pictureId);
+    }
   }
 
   @override
@@ -75,7 +84,7 @@ class _CameraPageState extends State<CameraPage> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: controller.loadPicture(widget.pictureId),
+      future: _loadPictureFuture,
       builder: (context, snapshot) {
         final picture = snapshot.data;
         return Scaffold(
