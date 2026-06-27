@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -22,10 +21,10 @@ class UploadPage extends StatefulWidget {
   final String webPage;
 
   @override
-  _UploadPageState createState() => _UploadPageState();
+  UploadPageState createState() => UploadPageState();
 }
 
-class _UploadPageState extends State<UploadPage> {
+class UploadPageState extends State<UploadPage> {
   final settings = InAppWebViewSettings(
     isInspectable: kDebugMode,
     mediaPlaybackRequiresUserGesture: false,

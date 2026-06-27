@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:intl/intl.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/domain/gallery_section.dart';
@@ -29,6 +28,7 @@ class GalleryController with TaskManager {
 
   StreamSubscription? _searchSubscription, _importSubscription;
 
+  @override
   void dispose() {
     _searchSubscription?.cancel();
     _searchSubscription = null;

@@ -1,19 +1,14 @@
-import 'dart:io';
 import 'dart:isolate';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_compare_2/image_compare_2.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/services/database_service.dart';
 import 'package:time_machine_img/services/telegram_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class ComparisonController with TaskManager {
   ComparisonController({
@@ -53,7 +48,6 @@ class ComparisonController with TaskManager {
 
   Future<bool> removeRecord() async {
     final record = this.record;
-    final recordId = record?.localId;
     final db = databaseService;
     return record != null && db != null && await db.removeRecord(record);
   }
@@ -113,11 +107,14 @@ class ComparisonController with TaskManager {
     final originalFile = original == null
         ? null
         : await execute(() => cacheService.fetch(original.url));
-    await Share.shareXFiles([
-      pictureFile,
-      if (originalFile != null)
-        originalFile,
-    ], text: picture.description);
+    await SharePlus.instance.share(ShareParams(
+      files: [
+        pictureFile,
+        if (originalFile != null)
+          originalFile,
+      ],
+      text: picture.description,
+    ));
   }
 
   Future<double?> comparePictures(Record? record) async {

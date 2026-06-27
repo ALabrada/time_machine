@@ -1,6 +1,5 @@
 import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:televerse/telegram.dart';
 import 'package:televerse/televerse.dart';

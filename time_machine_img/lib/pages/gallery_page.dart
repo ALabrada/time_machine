@@ -1,8 +1,5 @@
 import 'dart:async';
-import 'dart:io';
-import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:group_grid_view/group_grid_view.dart';
 import 'package:intl/intl.dart';
@@ -16,16 +13,15 @@ import 'package:time_machine_img/molecules/gallery_cell.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
 import '../molecules/gallery_search_bar.dart';
-import '../molecules/tool_bar.dart';
 
 class GalleryPage extends StatefulWidget {
   const GalleryPage({super.key});
 
   @override
-  _GalleryPageState createState() => _GalleryPageState();
+  GalleryPageState createState() => GalleryPageState();
 }
 
-class _GalleryPageState extends State<GalleryPage> {
+class GalleryPageState extends State<GalleryPage> {
   late GalleryController galleryController;
 
   @override

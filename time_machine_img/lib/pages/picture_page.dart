@@ -1,20 +1,14 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:extended_text/extended_text.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:photo_view/photo_view.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_img/controllers/picture_controller.dart';
 import 'package:time_machine_img/molecules/tool_bar.dart';
-import 'package:time_machine_net/services/network_service.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -29,10 +23,10 @@ class PicturePage extends StatefulWidget {
   final int? pictureId;
 
   @override
-  _PicturePageState createState() => _PicturePageState();
+  PicturePageState createState() => PicturePageState();
 }
 
-class _PicturePageState extends State<PicturePage> with SingleTickerProviderStateMixin {
+class PicturePageState extends State<PicturePage> with SingleTickerProviderStateMixin {
   late PictureController pictureController;
   late AnimationController animationController;
 

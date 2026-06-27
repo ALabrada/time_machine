@@ -1,4 +1,3 @@
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/services/database_service.dart';
@@ -33,8 +32,9 @@ class PictureController {
 
     final file = await cacheService.fetch(picture.url);
 
-    await Share.shareXFiles([
-      file,
-    ], text: picture.text);
+    await SharePlus.instance.share(ShareParams(
+      files: [file],
+      text: picture.text,
+    ));
   }
 }

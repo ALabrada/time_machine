@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -11,9 +10,7 @@ import 'package:time_machine_img/controllers/comparison_controller.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
 import 'package:time_machine_img/molecules/comparison_description.dart';
-import 'package:time_machine_img/molecules/full_screen_view.dart';
 import 'package:time_machine_res/time_machine_res.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../controllers/upload_controller.dart';
@@ -28,10 +25,10 @@ class ComparisonPage extends StatefulWidget {
   final int? recordId;
 
   @override
-  _ComparisonPageState createState() => _ComparisonPageState();
+  ComparisonPageState createState() => ComparisonPageState();
 }
 
-class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProviderStateMixin {
+class ComparisonPageState extends State<ComparisonPage> with SingleTickerProviderStateMixin {
   static const defaultAspectRatio = 4.0/3.0;
 
   late ComparisonController comparisonController;
@@ -64,7 +61,8 @@ class _ComparisonPageState extends State<ComparisonPage> with SingleTickerProvid
           appBar: _buildAppBar(),
           body: FutureBuilder(
             future: comparisonController.comparePictures(record).onError((e, _) {
-              print("comparePictures error: $e");
+              debugPrint("comparePictures error: $e");
+              return null;
             }),
             builder: (context, snapshot) {
               return _buildContent(record: record, match: snapshot.data);

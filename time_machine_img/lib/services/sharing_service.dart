@@ -23,7 +23,7 @@ final class SharingService {
     _intentSub = ReceiveSharingIntent.instance.getMediaStream().listen((value) {
       unawaited(_import(files: value, databaseService: databaseService));
     }, onError: (err) {
-      print("getIntentDataStream error: $err");
+      debugPrint("getIntentDataStream error: $err");
     });
 
     final initialData = await ReceiveSharingIntent.instance.getInitialMedia();
