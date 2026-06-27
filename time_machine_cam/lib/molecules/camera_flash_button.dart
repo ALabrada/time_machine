@@ -64,7 +64,7 @@ class CameraFlashButton extends StatelessWidget {
       case FlashMode.none:
         return Icons.flash_off;
       case FlashMode.on:
-        return FontAwesomeIcons.lightbulb;
+        return FontAwesomeIcons.lightbulb.data;
     }
   }
 }
