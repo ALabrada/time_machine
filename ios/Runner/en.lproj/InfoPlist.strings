@@ -1,6 +1,6 @@
 /* App Name */
 "CFBundleDisplayName" = "History Lens";
-"CFBundleName" = "Time Machine";
+"CFBundleName" = "History Lens";
 
 /* Camera Permission */
 "NSCameraUsageDescription" = "This app requires access to the camera for Augmented Reality and taking pictures.";
