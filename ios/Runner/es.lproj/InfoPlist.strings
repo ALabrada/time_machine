@@ -1,0 +1,15 @@
+/* App Name */
+"CFBundleDisplayName" = "History Lens";
+"CFBundleName" = "Time Machine";
+
+/* Camera Permission */
+"NSCameraUsageDescription" = "Esta app requiere acceso a la cámara para realidad aumentada y tomar fotos.";
+
+/* Location Permissions */
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "Esta app necesita acceso a la ubicación para detectar fotos tomadas cerca.";
+"NSLocationAlwaysUsageDescription" = "Esta app necesita acceso a la ubicación para detectar fotos tomadas cerca.";
+"NSLocationUsageDescription" = "Esta app necesita acceso a la ubicación para detectar fotos tomadas cerca.";
+"NSLocationWhenInUseUsageDescription" = "Esta app necesita acceso a la ubicación para detectar fotos tomadas cerca.";
+
+/* Motion Permission */
+"NSMotionUsageDescription" = "Esta app requiere acceso al barómetro para proporcionar información de altitud.";

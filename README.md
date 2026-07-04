@@ -1,6 +1,6 @@
 # time_machine
 
-Portable Time Machine
+History Lens
 
 ## Getting Started
 
