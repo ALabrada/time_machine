@@ -1698,49 +1698,49 @@ packages:
       path: time_machine_cam
       relative: true
     source: path
-    version: "0.0.1"
+    version: "1.1.0"
   time_machine_config:
     dependency: "direct main"
     description:
       path: time_machine_config
       relative: true
     source: path
-    version: "0.0.1"
+    version: "1.1.0"
   time_machine_db:
     dependency: "direct main"
     description:
       path: time_machine_db
       relative: true
     source: path
-    version: "0.0.1"
+    version: "1.1.0"
   time_machine_img:
     dependency: "direct main"
     description:
       path: time_machine_img
       relative: true
     source: path
-    version: "0.0.1"
+    version: "1.1.0"
   time_machine_map:
     dependency: "direct main"
     description:
       path: time_machine_map
       relative: true
     source: path
-    version: "0.0.1"
+    version: "1.1.0"
   time_machine_net:
     dependency: "direct main"
     description:
       path: time_machine_net
       relative: true
     source: path
-    version: "0.0.1"
+    version: "1.1.0"
   time_machine_res:
     dependency: "direct main"
     description:
       path: time_machine_res
       relative: true
     source: path
-    version: "0.0.1"
+    version: "1.1.0"
   typed_data:
     dependency: transitive
     description:
