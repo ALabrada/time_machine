@@ -236,7 +236,9 @@ extension DatabaseExtensions on DatabaseService {
         picture.url = Uri.dataFromBytes(imageBytes, mimeType: 'image/jpg').toString();
       } else {
         final localPath = '$dirPath/pictures/${picture.id}.jpg';
-        await File(localPath).writeAsBytes(imageBytes);
+        final file = File(localPath);
+        await file.create(recursive: true);
+        await file.writeAsBytes(imageBytes);
         picture.url = Uri.file('${DatabaseService.filePathPlaceholder}/pictures/${picture.id}.jpg').toString();
       }
     }
