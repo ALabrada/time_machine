@@ -130,7 +130,10 @@ class TimeMachineApp extends StatelessWidget {
           create: (_) => NetworkService(
             userAgent: userAgent,
             geocoders: {
-              'OSM': OsmSearchEngine(),
+              if (userAgent != null)
+                'OSM': OsmSearchEngine(
+                  userAgent: userAgent!,
+                ),
               'Geonames': GeonamesGeocoder(
                 userAgent: userAgent,
                 userName: 'historylens',

@@ -46,7 +46,7 @@ class MapSearchBarState extends State<MapSearchBar> {
       axisAlignment: isPortrait ? 0.0 : -1.0,
       openAxisAlignment: 0.0,
       width: isPortrait ? 600 : 500,
-      debounceDelay: const Duration(milliseconds: 500),
+      debounceDelay: const Duration(seconds: 1),
       onQueryChanged: (query) {
         unawaited(_searchController.locate(query));
       },

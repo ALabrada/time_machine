@@ -1195,10 +1195,10 @@ packages:
     dependency: transitive
     description:
       name: osm_nominatim
-      sha256: "08c1b00dbf7869a64068970df913a299b11e056c8a905ed2397879b6a1f9d7ef"
+      sha256: "058e36e0cb93f3318f3516e1ab7bdb845867370c13c5490eb3e8b3bc2ac41bf8"
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.1"
+    version: "4.0.1"
   package_config:
     dependency: transitive
     description:

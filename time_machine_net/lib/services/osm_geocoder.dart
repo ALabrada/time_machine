@@ -6,9 +6,13 @@ import 'package:time_machine_net/domain/place_info.dart';
 import 'network_service.dart';
 
 class OsmSearchEngine implements GeocodingService {
+  final Nominatim api;
+
+  OsmSearchEngine({required String userAgent}) : api = Nominatim(userAgent: userAgent);
+
   @override
   Future<List<PlaceInfo>> searchAddress(String query) async {
-    final result = await Nominatim.searchByName(
+    final result = await api.searchByName(
       query: query,
       language: Intl.defaultLocale,
     );
@@ -24,7 +28,7 @@ class OsmSearchEngine implements GeocodingService {
 
   @override
   Future<List<PlaceInfo>> searchCoordinates(Location location) async {
-    final result = await Nominatim.reverseSearch(
+    final result = await api.reverseSearch(
       lat: location.lat,
       lon: location.lng,
       language: Intl.defaultLocale,
