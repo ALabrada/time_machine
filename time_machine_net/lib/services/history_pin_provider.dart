@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:cachette/cachette.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_map_math/flutter_geo_math.dart';
+import 'package:html/parser.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/domain/area.dart';
@@ -9,6 +11,7 @@ import 'package:time_machine_net/domain/area.dart';
 import 'network_service.dart';
 
 class HistoryPinProvider implements DataProvider {
+  final cache = Cachette<String, Picture>(1000);
   final dio = Dio(
       BaseOptions(baseUrl: 'https://www.historypin.org')
   );
@@ -35,11 +38,19 @@ class HistoryPinProvider implements DataProvider {
     DateTime? endDate,
   }) async {
     final userAgent = this.userAgent;
-    final response = await dio.get('/en/api/explore/pin/get_gallery.json',
+    final response = await dio.get('/pins.json',
       queryParameters: {
-        'bounds': '${area.minLat},${area.minLng},${area.maxLat},${area.maxLng}',
-        if (startDate != null || endDate != null)
-          'date': '${startDate?.year ?? 1000}:${endDate?.year ?? DateTime.now().year}'
+        'nelat': area.maxLat,
+        'nelng': area.maxLng,
+        'swlat': area.minLat,
+        'swlng': area.minLng,
+        'page': 1,
+        'page_size': 100,
+        'primary_media_type': 'image',
+        if (startDate != null)
+          'start_date': '${startDate.year}-${startDate.month}-${startDate.day}',
+        if (endDate != null)
+          'end_date': '${endDate.year}-${endDate.month}-${endDate.day}'
       },
       options: Options(
         headers: {
@@ -49,11 +60,9 @@ class HistoryPinProvider implements DataProvider {
         },
       ),
     );
-    return [
-      for (final item in response.data['results'] as List)
-        if (item['node_type']?.toString() == 'pin' && item['type']?.toString() == 'photo')
-          _decode(item),
-    ];
+    return Stream.fromIterable(response.data['pins'] as List)
+        .asyncMap(_download)
+        .toList();
   }
 
   @override
@@ -81,35 +90,46 @@ class HistoryPinProvider implements DataProvider {
     return result;
   }
 
-  Future<Picture> get(String id) async {
+  Future<Picture> _download(dynamic obj) async {
     final userAgent = this.userAgent;
-    final response = await dio.get('/en/api/explore/pin/get.json',
+    final id = obj['id'].toString();
+    final cached = cache[id];
+    if (cached != null) {
+      return cached;
+    }
+    final response = await dio.get('/pins/map',
       queryParameters: {
-        'id': id,
+        'pin_card': id,
       },
       options: Options(
         headers: {
           if (userAgent != null)
             HttpHeaders.userAgentHeader: userAgent,
-          HttpHeaders.acceptHeader: 'application/json',
         },
       ),
     );
-    return _decode(response.data);
+    final item = _decode(json: obj, html: response.data);
+    cache[id] = item;
+    return item;
   }
 
-  Picture _decode(dynamic obj) {
-    final id = obj['id'].toString();
-    final sitePath = obj['url']?.toString() ?? '/en/explore/pin/$id';
-    final imgPath = obj['display']?['content']?.toString() ?? obj['image'].toString();
+  Picture _decode({required dynamic html, required dynamic json}) {
+    final id = json['id'].toString();
+    final document = parse(html);
+       
+    final sitePath = document.getElementsByClassName('pin-card-link').firstOrNull?.attributes['href'] ?? '/pins/$id';
+    final imgUrl = document.getElementsByClassName('pin-card-image').firstOrNull?.getElementsByTagName('img').firstOrNull?.attributes['src'];
+    final title = document.getElementsByClassName('pin-card-title').firstOrNull?.text;
+    final date = document.getElementsByClassName('pin-card-date').firstOrNull?.text;
+    
     return Picture(
       id: id,
-      description: obj['caption'].toString(),
-      time: obj['date'].toString(),
-      url: '${dio.options.baseUrl}$imgPath',
+      description: title,
+      time: date,
+      url: imgUrl ?? '',
       site: '${dio.options.baseUrl}$sitePath',
-      latitude: obj['location']['lat'] as double,
-      longitude: obj['location']['lng'] as double,
+      latitude: json['latitude'] as double,
+      longitude: json['longitude'] as double,
     );
   }
 }
