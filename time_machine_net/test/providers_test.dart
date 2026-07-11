@@ -175,18 +175,27 @@ void main() {
     });
 
     test('findIn decodes pin/photo items matching raw API', () async {
-      adapter.dataFor = (_) => {
-        'results': [
-          {
-            'id': 3001,
-            'node_type': 'pin',
-            'type': 'photo',
-            'caption': 'Old NYC Building',
-            'date': '1915',
-            'location': {'lat': 40.7128, 'lng': -74.0060},
-            'display': {'content': '/img/nyc1.jpg'},
-          },
-        ],
+      adapter.dataFor = (options) {
+        if (options.path == '/pins.json') {
+          return {
+            'pins': [
+              {
+                'id': 3001,
+                'latitude': 40.7128,
+                'longitude': -74.0060,
+              },
+            ],
+          };
+        }
+        if (options.path == '/pins/map') {
+          return '''
+            <a class="pin-card-link" href="/pins/3001"></a>
+            <div class="pin-card-image"><img src="https://www.historypin.org/img/nyc1.jpg"></div>
+            <div class="pin-card-title">Old NYC Building</div>
+            <div class="pin-card-date">1915</div>
+          ''';
+        }
+        return null;
       };
 
       final pictures = await provider.findIn(area: nycArea());
@@ -197,39 +206,27 @@ void main() {
       expect(pictures.first.url, 'https://www.historypin.org/img/nyc1.jpg');
     });
 
-    test('findIn filters non-pin and non-photo items', () async {
-      adapter.dataFor = (_) => {
-        'results': [
-          {
-            'id': 4001,
-            'node_type': 'audio',
-            'type': 'photo',
-            'caption': 'audio',
-            'location': {'lat': 40.7128, 'lng': -74.0060},
-            'image': '/a.jpg',
-          },
-          {
-            'id': 4002,
-            'node_type': 'pin',
-            'type': 'video',
-            'caption': 'video',
-            'location': {'lat': 40.7128, 'lng': -74.0060},
-            'image': '/b.jpg',
-          },
-          {
-            'id': 4003,
-            'node_type': 'pin',
-            'type': 'photo',
-            'caption': 'valid',
-            'location': {'lat': 40.7128, 'lng': -74.0060},
-            'image': '/c.jpg',
-          },
-        ],
+    test('findIn handles missing HTML fields gracefully', () async {
+      adapter.dataFor = (options) {
+        if (options.path == '/pins.json') {
+          return {
+            'pins': [
+              {'id': 4001, 'latitude': 40.7128, 'longitude': -74.0060},
+            ],
+          };
+        }
+        if (options.path == '/pins/map') {
+          return '<div>No pin-card elements here</div>';
+        }
+        return null;
       };
 
       final pictures = await provider.findIn(area: nycArea());
       expect(pictures.length, 1);
-      expect(pictures.first.id, '4003');
+      expect(pictures.first.id, '4001');
+      expect(pictures.first.url, '');
+      expect(pictures.first.description, isNull);
+      expect(pictures.first.time, isNull);
     });
   });
 

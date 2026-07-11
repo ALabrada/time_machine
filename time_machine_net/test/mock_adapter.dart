@@ -19,6 +19,14 @@ class MockDioAdapter implements HttpClientAdapter {
         message: 'No mock handler for ${options.path}',
       );
     }
+    if (data is String) {
+      final body = utf8.encode(data);
+      return ResponseBody(
+        Stream.value(Uint8List.fromList(body)),
+        200,
+        headers: {'content-type': ['text/html']},
+      );
+    }
     final body = utf8.encode(jsonEncode(data));
     return ResponseBody(
       Stream.value(Uint8List.fromList(body)),
