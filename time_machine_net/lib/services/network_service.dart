@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -29,6 +30,17 @@ class NetworkService {
           HttpHeaders.userAgentHeader: userAgent,
       })
     );
+  }
+
+  Future<Picture?> fetchPicture(Picture picture) async {
+    final provider = providers[picture.provider ?? ''];
+    if (provider == null) {
+      return null;
+    }
+
+    final result = await provider.fetch(picture);
+    result.provider = picture.provider;
+    return result;
   }
 
   Future<Map<String, List<Picture>>> findIn({
@@ -119,6 +131,8 @@ class NetworkService {
 }
 
 abstract class DataProvider {
+  Future<Picture> fetch(Picture original);
+
   Future<List<Picture>> findIn({
     required Area area,
     DateTime? startDate,

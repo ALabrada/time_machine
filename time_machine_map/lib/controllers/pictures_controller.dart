@@ -76,8 +76,31 @@ class PicturesController {
     preferences?.setDouble('map.rotation', camera.rotation);
   }
 
-  void select(Picture? picture) {
-    selection.value = picture;
+  Future<void> select(Picture? picture) async {
+    if (picture == null) {
+      selection.value = null;
+    } else {
+      selection.value = await fetchPicture(picture);
+    }
+  }
+
+  Future<Picture?> fetchPicture(Picture picture) async {
+    if (picture.url.isNotEmpty) {
+      return picture;
+    }
+    final result = await networkService?.fetchPicture(picture);
+    if (result == null) {
+      return null;
+    }
+    final pictures = this.pictures.value;
+    this.pictures.value = List.generate(pictures.length, (idx) {
+      final original = pictures[idx];
+      if (original.id == result.id && original.provider == result.provider) {
+        return result;
+      }
+      return original;
+    });
+    return result;
   }
 
   Future<void> loadPictures(MapCamera? camera) async {
@@ -135,7 +158,7 @@ class PicturesController {
 
     saveSettings(mapController.camera);
     await loadPictures(mapController.camera);
-    select(picture);
+    await select(picture);
     return true;
   }
 

@@ -209,7 +209,7 @@ class MapPageState extends State<MapPage> {
           pictures: snapshot.data,
           selection: _picturesController.selection,
           popupController: _popupController,
-          onSelected: _picturesController.select,
+          onSelected: (picture) => unawaited(_picturesController.select(picture)),
           onTap: (picture) => _showImage(picture),
           onLongPress: (picture) => unawaited(_showMenu(picture)),
         );
@@ -262,14 +262,22 @@ class MapPageState extends State<MapPage> {
 
   void _showImage(Picture model) async {
     final db = context.read<DatabaseService?>();
-    final newModel = await db?.savePicture(model);
-    final id = newModel?.localId;
+    final fetchedModel = await _picturesController.fetchPicture(model);
+    if (fetchedModel == null) {
+      return;
+    }
+    final savedModel = await db?.savePicture(fetchedModel);
+    final id = savedModel?.localId;
     if (mounted && id != null) {
       context.go('/picture/$id');
     }
   }
 
   Future<void> _showMenu(Picture model) async {
+    final fetchedModel = await _picturesController.fetchPicture(model);
+    if (fetchedModel == null || !mounted) {
+      return;
+    }
     await context.showContextMenu(
         model: model,
         databaseService: context.read(),

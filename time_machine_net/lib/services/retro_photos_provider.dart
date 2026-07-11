@@ -41,9 +41,9 @@ class RetroPhotosProvider implements DataProvider {
       queryParameters: {
         'position_in': '${area.minLng}_${area.minLat}_${area.maxLng}_${area.maxLat}',
         if (startDate != null)
-          'later_than': '${startDate.year}-${startDate.month}-${startDate.day}',
+          'later_than': _format(startDate),
         if (endDate != null)
-          'earlier_than': '${endDate.year}-${endDate.month}-${endDate.day}',
+          'earlier_than': _format(endDate),
       },
       options: Options(
         headers: {
@@ -52,10 +52,11 @@ class RetroPhotosProvider implements DataProvider {
         },
       ),
     );
-    return Stream.fromIterable(response.data['rest'] as List)
-      .where((item) => item['position']['type'] == 'Point')
-      .asyncMap(_download)
-      .toList();
+    return [
+      for (final item in response.data['rest'])
+        if (item['position']['type'] == 'Point')
+          _decodeItem(item),
+    ];
   }
 
   @override
@@ -94,9 +95,9 @@ class RetroPhotosProvider implements DataProvider {
         'search': query,
         'ordering': '-creation_time',
         if (startDate != null)
-          'later_than': '${startDate.year}-${startDate.month}-${startDate.day}',
+          'later_than': _format(startDate),
         if (endDate != null)
-          'earlier_than': '${endDate.year}-${endDate.month}-${endDate.day}',
+          'earlier_than': _format(endDate),
       },
       options: Options(
         headers: {
@@ -105,15 +106,17 @@ class RetroPhotosProvider implements DataProvider {
         },
       ),
     );
-    return Stream.fromIterable(response.data['results'] as List)
-        .where((item) => item['position']['type'] == 'Point')
-        .asyncMap(_download)
-        .toList();
+    return [
+      for (final item in response.data['results'])
+        if (item['position']['type'] == 'Point')
+          _decodeItem(item),
+    ];
   }
 
-  Future<Picture> _download(dynamic obj) async {
+  @override
+  Future<Picture> fetch(Picture original) async {
     final userAgent = this.userAgent;
-    final id = obj['id'].toString();
+    final id = original.id;
     final cached = cache[id];
     if (cached != null) {
       return cached;
@@ -126,18 +129,39 @@ class RetroPhotosProvider implements DataProvider {
         },
       ),
     );
-    final item = _decode(obj, response.data);
+    final item = _decodeDetails(details: response.data, original: original);
     cache[id] = item;
     return item;
   }
 
-  Picture _decode(dynamic obj, dynamic details) {
+  String _format(DateTime d) {
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  Picture _decodeDetails({required dynamic details, required Picture original}) {
     return Picture(
-      id: obj['id'].toString(),
+      id: original.id,
       description: details['title'],
       url: details['image']['file_fullscreen'].toString(),
       previewUrl: details['image']['file_thumb'].toString(),
       time: details['image']['creation_date'].toString(),
+      site: original.site,
+      latitude: original.latitude,
+      longitude: original.longitude,
+    );
+  }
+
+  Picture _decodeItem(dynamic obj) {
+    final id = obj['id'].toString();
+
+    final cached = cache[id];
+    if (cached != null) {
+      return cached;
+    }
+
+    return Picture(
+      id: id,
+      url: '',
       site: '${dio.options.baseUrl}/en/template/${obj['id']}/',
       latitude: obj['position']['coordinates'][1] as double,
       longitude: obj['position']['coordinates'][0] as double,

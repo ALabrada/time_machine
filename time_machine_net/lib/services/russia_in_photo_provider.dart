@@ -79,6 +79,9 @@ class RussiaInPhotoProvider implements DataProvider {
     return result;
   }
 
+  @override
+  Future<Picture> fetch(Picture original) async => original;
+
   Picture _decode(dynamic obj) {
     final hash = obj['geohash']?.toString();
     return Picture(

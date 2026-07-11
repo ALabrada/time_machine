@@ -55,15 +55,7 @@ class ScanningPageState extends State<ScanningPage> {
             showDebugInfoSensor: !kReleaseMode,
             annotations: snapshot.data ?? [],
             maxVisibleDistance: widget.maxDistanceInMeters,
-            annotationViewBuilder: (context, annotation) {
-              final model = annotation as PictureAnnotation;
-              return AnnotationView(
-                key: ValueKey(annotation.uid),
-                annotation: model,
-                onLongPress: () => unawaited(_showMenu(model.picture)),
-                onTapPicture: () => unawaited(_showImage(model.picture)),
-              );
-            },
+            annotationViewBuilder: _buildAnnotation,
             onLocationChange: (p) {
               unawaited(arController.loadPictures(p));
             },
@@ -72,19 +64,46 @@ class ScanningPageState extends State<ScanningPage> {
     );
   }
 
+  Widget _buildAnnotation(BuildContext context, ArAnnotation annotation) {
+    final model = annotation as PictureAnnotation;
+    return FutureBuilder(
+      future: arController.fetchPicture(model.picture),
+      builder: (context, snapshot) {
+        final picture = snapshot.data;
+        if (picture == null) {
+          return CircularProgressIndicator();
+        }
+        return AnnotationView(
+          key: ValueKey(annotation.uid),
+          annotation: model,
+          onLongPress: () => unawaited(_showMenu(model.picture)),
+          onTapPicture: () => unawaited(_showImage(model.picture)),
+        );
+      },
+    );
+  }
+
   Future<void> _showImage(Picture? model) async {
     if (model == null) {
       return;
     }
     final db = context.read<DatabaseService?>();
-    final newModel = await db?.savePicture(model);
-    final id = newModel?.localId;
+    final fetchedModel = await arController.fetchPicture(model);
+    if (fetchedModel == null) {
+      return;
+    }
+    final savedModel = await db?.savePicture(model);
+    final id = savedModel?.localId;
     if (mounted && id != null) {
       context.go('/picture/$id');
     }
   }
 
   Future<void> _showMenu(Picture model) async {
+    final fetchedModel = await arController.fetchPicture(model);
+    if (fetchedModel == null || !mounted) {
+      return;
+    }
     await context.showContextMenu(
       model: model,
       databaseService: context.read(),

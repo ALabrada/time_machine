@@ -90,6 +90,9 @@ class SepiaTownProvider implements DataProvider {
     return _decode(response.data);
   }
 
+  @override
+  Future<Picture> fetch(Picture original) async => get(original.id);
+
   Picture _decode(dynamic obj) {
     final id = obj['artifact_id'].toString();
     final ext = obj['file_extension']?.toString() ?? 'jpg';

@@ -58,4 +58,27 @@ class ARController {
           ),
     ];
   }
+
+  Future<Picture?> fetchPicture(Picture picture) async {
+    if (picture.url.isNotEmpty) {
+      return picture;
+    }
+    final result = await networkService?.fetchPicture(picture);
+    if (result == null) {
+      return null;
+    }
+    final annotations = this.annotations.value;
+    this.annotations.value = List.generate(annotations.length, (idx) {
+      final original = annotations[idx] as PictureAnnotation;
+      if (original.picture.id == result.id && original.picture.provider == result.provider) {
+        return PictureAnnotation(
+          uid: original.uid,
+          picture: picture,
+          provider: picture.provider,
+        );
+      }
+      return original;
+    });
+    return result;
+  }
 }

@@ -140,6 +140,9 @@ class PastVuProvider implements DataProvider {
     );
   }
 
+  @override
+  Future<Picture> fetch(Picture original) async => original;
+
   double? _decodeOrientation(String? direction) {
     switch (direction) {
       case 'n': return 0;

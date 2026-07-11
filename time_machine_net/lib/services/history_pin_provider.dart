@@ -45,12 +45,12 @@ class HistoryPinProvider implements DataProvider {
         'swlat': area.minLat,
         'swlng': area.minLng,
         'page': 1,
-        'page_size': 100,
+        'page_size': 10000,
         'primary_media_type': 'image',
         if (startDate != null)
-          'start_date': '${startDate.year}-${startDate.month}-${startDate.day}',
+          'start_date': _format(startDate),
         if (endDate != null)
-          'end_date': '${endDate.year}-${endDate.month}-${endDate.day}'
+          'end_date': _format(endDate),
       },
       options: Options(
         headers: {
@@ -60,9 +60,10 @@ class HistoryPinProvider implements DataProvider {
         },
       ),
     );
-    return Stream.fromIterable(response.data['pins'] as List)
-        .asyncMap(_download)
-        .toList();
+    return [
+      for (final obj in response.data['pins'])
+        _decodeJson(obj),
+    ];
   }
 
   @override
@@ -90,9 +91,10 @@ class HistoryPinProvider implements DataProvider {
     return result;
   }
 
-  Future<Picture> _download(dynamic obj) async {
+  @override
+  Future<Picture> fetch(Picture original) async {
     final userAgent = this.userAgent;
-    final id = obj['id'].toString();
+    final id = original.id;
     final cached = cache[id];
     if (cached != null) {
       return cached;
@@ -108,13 +110,18 @@ class HistoryPinProvider implements DataProvider {
         },
       ),
     );
-    final item = _decode(json: obj, html: response.data);
+    final item = _decodeHtml(html: response.data, original: original);
     cache[id] = item;
     return item;
   }
 
-  Picture _decode({required dynamic html, required dynamic json}) {
-    final id = json['id'].toString();
+  String _format(DateTime d) {
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  Picture _decodeHtml({required String? html, required Picture original}) {
+    final id = original.id;
+
     final document = parse(html);
        
     final sitePath = document.getElementsByClassName('pin-card-link').firstOrNull?.attributes['href'] ?? '/pins/$id';
@@ -128,6 +135,22 @@ class HistoryPinProvider implements DataProvider {
       time: date,
       url: imgUrl ?? '',
       site: '${dio.options.baseUrl}$sitePath',
+      latitude: original.latitude,
+      longitude: original.longitude,
+    );
+  }
+
+  Picture _decodeJson(dynamic json) {
+    final id = json['id'].toString();
+
+    final cached = cache[id];
+    if (cached != null) {
+      return cached;
+    }
+
+    return Picture(
+      id: id,
+      url: '',
       latitude: json['latitude'] as double,
       longitude: json['longitude'] as double,
     );
