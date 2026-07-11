@@ -31,6 +31,20 @@ class GallerySearchBar extends StatelessWidget {
         controller: controller,
         decoration: InputDecoration(
           hintText: hintText,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          suffixIcon: ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) {
+              return AnimatedOpacity(
+                opacity: controller.text.isEmpty ? 0 : 1,
+                duration: Duration(milliseconds: 300),
+                child: IconButton(
+                  onPressed: controller.clear,
+                  icon: Icon(Icons.close),
+                ),
+              );
+            },
+          ),
         ).applyDefaults(searchFieldDecoration),
       ),
     );
