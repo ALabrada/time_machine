@@ -35,7 +35,7 @@ class GeonamesGeocoder implements GeocodingService {
   @override
   Future<List<PlaceInfo>> searchAddress(String query) async {
     final locale = Intl.defaultLocale;
-    final response = await dio.get('findNearbyJSON',
+    final response = await dio.get('/searchJSON',
       queryParameters: {
         'q': query,
         'formatted': 'true',
@@ -60,7 +60,7 @@ class GeonamesGeocoder implements GeocodingService {
 
   @override
   Future<List<PlaceInfo>> searchCoordinates(Location location) async {
-    final response = await dio.get('addressJSON',
+    final response = await dio.get('/findNearbyJSON',
       queryParameters: {
         'lat': location.lat.toStringAsFixed(6),
         'lng': location.lng.toStringAsFixed(6),
@@ -74,8 +74,10 @@ class GeonamesGeocoder implements GeocodingService {
         },
       ),
     );
-    final address = _decode(response.data['address']);
-    return [address];
+    return [
+      for (final item in response.data['geonames'] as List)
+        _decode(item),
+    ];
   }
 
   PlaceInfo _decode(dynamic address) {

@@ -25,7 +25,7 @@ void main() {
 
     test('searchAddress decodes geonames matching raw API', () async {
       adapter.dataFor = (options) {
-        expect(options.path, 'findNearbyJSON');
+        expect(options.path, '/searchJSON');
         expect(options.queryParameters['q'], 'New York, NY');
         return {
           'geonames': [
@@ -47,15 +47,17 @@ void main() {
 
     test('searchCoordinates decodes address matching raw API', () async {
       adapter.dataFor = (options) {
-        expect(options.path, 'addressJSON');
+        expect(options.path, '/findNearbyJSON');
         expect(options.queryParameters['lat'], '40.712800');
         return {
-          'address': {
-            'lat': '40.7128',
-            'lng': '-74.0060',
-            'name': 'New York City',
-            'countryName': 'United States',
-          },
+          'geonames': [
+            {
+              'lat': '40.7128',
+              'lng': '-74.0060',
+              'name': 'New York City',
+              'countryName': 'United States',
+            },
+          ],
         };
       };
 
