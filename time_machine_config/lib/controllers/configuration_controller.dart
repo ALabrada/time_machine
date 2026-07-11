@@ -54,6 +54,10 @@ final class ConfigurationController extends ChangeNotifier {
       configurationService.tileServer = tileServer.value;
       notifyListeners();
     });
+    geocoder.addListener(() {
+      configurationService.geocoder = geocoder.value;
+      notifyListeners();
+    });
     for (final provider in providers) {
       provider.addListener(() {
         updateProvider(provider.item, provider.value);
