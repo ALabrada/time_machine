@@ -143,24 +143,78 @@ void main() {
             ],
           };
         }
-        if (options.path == '/api/template/5001/') {
-          return {
-            'title': 'NYC Retro Photo',
-            'image': {
-              'file_fullscreen': 'https://img.re.photos/full/5001.jpg',
-              'file_thumb': 'https://img.re.photos/thumb/5001.jpg',
-              'creation_date': '1920',
-            },
-          };
-        }
         return null;
       };
 
       final pictures = await provider.findIn(area: nycArea());
       expect(pictures.length, 1);
-      expect(pictures.first.description, 'NYC Retro Photo');
+      expect(pictures.first.id, '5001');
       expect(pictures.first.latitude, closeTo(40.7128, 0.001));
       expect(pictures.first.longitude, closeTo(-74.0060, 0.001));
+      expect(pictures.first.url, '');
+      expect(pictures.first.description, isNull);
+      expect(pictures.first.site, 'https://www.re.photos/en/template/5001/');
+    });
+
+    test('fetch decodes detail from /api/template/<id>/', () async {
+      final original = Picture(
+        id: '5001',
+        url: '',
+        site: 'https://www.re.photos/en/template/5001/',
+        latitude: 40.7128,
+        longitude: -74.0060,
+      );
+
+      int callCount = 0;
+      adapter.dataFor = (options) {
+        callCount++;
+        return {
+          'title': 'NYC Retro Photo',
+          'image': {
+            'file_fullscreen': 'https://img.re.photos/full/5001.jpg',
+            'file_thumb': 'https://img.re.photos/thumb/5001.jpg',
+            'creation_date': '1920',
+          },
+        };
+      };
+
+      final result = await provider.fetch(original);
+      expect(result.id, '5001');
+      expect(result.description, 'NYC Retro Photo');
+      expect(result.url, 'https://img.re.photos/full/5001.jpg');
+      expect(result.previewUrl, 'https://img.re.photos/thumb/5001.jpg');
+      expect(result.time, '1920');
+      expect(result.latitude, closeTo(40.7128, 0.001));
+      expect(result.longitude, closeTo(-74.0060, 0.001));
+      expect(result.site, 'https://www.re.photos/en/template/5001/');
+      expect(callCount, 1);
+    });
+
+    test('fetch returns cached result on second call', () async {
+      final original = Picture(
+        id: '5001',
+        url: '',
+        latitude: 40.7128,
+        longitude: -74.0060,
+      );
+
+      int callCount = 0;
+      adapter.dataFor = (options) {
+        callCount++;
+        return {
+          'title': 'NYC Retro Photo',
+          'image': {
+            'file_fullscreen': 'https://img.re.photos/full/5001.jpg',
+            'file_thumb': 'https://img.re.photos/thumb/5001.jpg',
+            'creation_date': '1920',
+          },
+        };
+      };
+
+      await provider.fetch(original);
+      final result = await provider.fetch(original);
+      expect(callCount, 1);
+      expect(result.description, 'NYC Retro Photo');
     });
   });
 
@@ -176,57 +230,118 @@ void main() {
 
     test('findIn decodes pin/photo items matching raw API', () async {
       adapter.dataFor = (options) {
-        if (options.path == '/pins.json') {
-          return {
-            'pins': [
-              {
-                'id': 3001,
-                'latitude': 40.7128,
-                'longitude': -74.0060,
-              },
-            ],
-          };
-        }
-        if (options.path == '/pins/map') {
-          return '''
-            <a class="pin-card-link" href="/pins/3001"></a>
-            <div class="pin-card-image"><img src="https://www.historypin.org/img/nyc1.jpg"></div>
-            <div class="pin-card-title">Old NYC Building</div>
-            <div class="pin-card-date">1915</div>
-          ''';
-        }
-        return null;
+        return {
+          'pins': [
+            {
+              'id': 3001,
+              'latitude': 40.7128,
+              'longitude': -74.0060,
+            },
+          ],
+        };
       };
 
       final pictures = await provider.findIn(area: nycArea());
       expect(pictures.length, 1);
-      expect(pictures.first.description, 'Old NYC Building');
+      expect(pictures.first.id, '3001');
       expect(pictures.first.latitude, closeTo(40.7128, 0.001));
       expect(pictures.first.longitude, closeTo(-74.0060, 0.001));
-      expect(pictures.first.url, 'https://www.historypin.org/img/nyc1.jpg');
-    });
-
-    test('findIn handles missing HTML fields gracefully', () async {
-      adapter.dataFor = (options) {
-        if (options.path == '/pins.json') {
-          return {
-            'pins': [
-              {'id': 4001, 'latitude': 40.7128, 'longitude': -74.0060},
-            ],
-          };
-        }
-        if (options.path == '/pins/map') {
-          return '<div>No pin-card elements here</div>';
-        }
-        return null;
-      };
-
-      final pictures = await provider.findIn(area: nycArea());
-      expect(pictures.length, 1);
-      expect(pictures.first.id, '4001');
       expect(pictures.first.url, '');
       expect(pictures.first.description, isNull);
       expect(pictures.first.time, isNull);
+    });
+
+    test('findIn handles multiple pins', () async {
+      adapter.dataFor = (options) {
+        return {
+          'pins': [
+            {'id': '4001', 'latitude': 40.7128, 'longitude': -74.0060},
+            {'id': '4002', 'latitude': 40.7130, 'longitude': -74.0055},
+          ],
+        };
+      };
+
+      final pictures = await provider.findIn(area: nycArea());
+      expect(pictures.length, 2);
+      expect(pictures[0].id, '4001');
+      expect(pictures[1].id, '4002');
+    });
+
+    test('fetch decodes detail from /pins/map HTML', () async {
+      final original = Picture(
+        id: '3001',
+        url: '',
+        latitude: 40.7128,
+        longitude: -74.0060,
+      );
+
+      int callCount = 0;
+      adapter.dataFor = (options) {
+        callCount++;
+        return '''
+          <a class="pin-card-link" href="/pins/3001"></a>
+          <div class="pin-card-image"><img src="https://www.historypin.org/img/nyc1.jpg"></div>
+          <div class="pin-card-title">Old NYC Building</div>
+          <div class="pin-card-date">1915</div>
+        ''';
+      };
+
+      final result = await provider.fetch(original);
+      expect(result.id, '3001');
+      expect(result.description, 'Old NYC Building');
+      expect(result.time, '1915');
+      expect(result.url, 'https://www.historypin.org/img/nyc1.jpg');
+      expect(result.site, 'https://www.historypin.org/pins/3001');
+      expect(result.latitude, closeTo(40.7128, 0.001));
+      expect(result.longitude, closeTo(-74.0060, 0.001));
+      expect(callCount, 1);
+    });
+
+    test('fetch returns cached result on second call', () async {
+      final original = Picture(
+        id: '3001',
+        url: '',
+        latitude: 40.7128,
+        longitude: -74.0060,
+      );
+
+      int callCount = 0;
+      adapter.dataFor = (options) {
+        callCount++;
+        return '''
+          <a class="pin-card-link" href="/pins/3001"></a>
+          <div class="pin-card-image"><img src="https://www.historypin.org/img/nyc1.jpg"></div>
+          <div class="pin-card-title">Old NYC Building</div>
+          <div class="pin-card-date">1915</div>
+        ''';
+      };
+
+      await provider.fetch(original);
+      final result = await provider.fetch(original);
+      expect(callCount, 1);
+      expect(result.description, 'Old NYC Building');
+    });
+
+    test('fetch handles missing HTML fields gracefully', () async {
+      final original = Picture(
+        id: '3001',
+        url: '',
+        latitude: 40.7128,
+        longitude: -74.0060,
+      );
+
+      adapter.dataFor = (options) {
+        return '<div>Minimal HTML</div>';
+      };
+
+      final result = await provider.fetch(original);
+      expect(result.id, '3001');
+      expect(result.url, '');
+      expect(result.description, isNull);
+      expect(result.time, isNull);
+      expect(result.site, 'https://www.historypin.org/pins/3001');
+      expect(result.latitude, closeTo(40.7128, 0.001));
+      expect(result.longitude, closeTo(-74.0060, 0.001));
     });
   });
 
