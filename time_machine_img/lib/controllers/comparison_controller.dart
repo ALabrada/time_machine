@@ -128,6 +128,7 @@ class ComparisonController with TaskManager {
       return null;
     }
     final originalFile = await cacheService.fetch(original.url);
+    final ownFile = await cacheService.fetch(picture.url);
 
     similarity = await Isolate.run(() async {
       final originalViewPort = Record.tryParseViewPort(record.originalViewPort);
@@ -157,7 +158,6 @@ class ComparisonController with TaskManager {
         );
       }
 
-      final ownFile = await cacheService.fetch(picture.url);
       var ownImage = kIsWeb
           ? img.decodeImage(await ownFile.readAsBytes())
           : await img.decodeImageFile(ownFile.path);
