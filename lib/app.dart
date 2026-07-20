@@ -193,6 +193,11 @@ class TimeMachineApp extends StatelessWidget {
             channelName: 'history_lens_app',
           ),
         ),
+        Provider<VectorService>(
+          create: (_) => VectorService(
+            userAgent: userAgent,
+          ),
+        ),
       ],
       builder: (context, _) {
         return MaterialApp.router(

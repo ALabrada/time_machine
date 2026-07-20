@@ -36,11 +36,20 @@ final class MapTileServer {
       attributionLogo: (_) => 'assets/images/2gis_logo.png',
       attributionUrl: (_) => 'https://law.2gis.ru/privacy',
     ),
+    MapTileServer(
+      id: 'VK Maps',
+      // url: 'https://tiles.maps.vk.com/tiles/{z}/{x}/{y}.pbf?api_key=6960065e78ec62fc5f7ae70b0472ffcb37ad03630e3073560b9c8dba3e3dff83',
+      url: 'mmr://api/styles/main_style.json',
+      format: TileFormat.vector,
+      attributionLogo: (_) => 'assets/images/2gis_logo.png',
+      attributionUrl: (_) => 'https://law.2gis.ru/privacy',
+    ),
   ];
 
   const MapTileServer({
     required this.id,
     required this.url,
+    this.format=TileFormat.image,
     this.subdomains,
     this.attributionLogo,
     this.attributionLabel,
@@ -49,8 +58,14 @@ final class MapTileServer {
 
   final String id;
   final String url;
+  final TileFormat format;
   final List<String>? subdomains;
   final String Function(BuildContext)? attributionLogo;
   final String Function(BuildContext)? attributionLabel;
   final String Function(BuildContext)? attributionUrl;
+}
+
+enum TileFormat {
+  image,
+  vector
 }

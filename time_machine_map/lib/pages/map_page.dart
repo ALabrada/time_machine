@@ -19,10 +19,15 @@ import 'package:time_machine_map/l10n/map_localizations.dart';
 import 'package:time_machine_map/molecules/map_search_bar.dart';
 import 'package:time_machine_map/molecules/picture_marker_layer.dart';
 import 'package:time_machine_map/services/database_service.dart';
+import 'package:time_machine_map/services/vector_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/molecules/context_menu.dart';
+import 'package:time_machine_res/molecules/loading_container.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:vector_map_tiles/vector_map_tiles.dart';
+
+import '../molecules/adaptive_tile_layer.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({
@@ -162,12 +167,33 @@ class MapPageState extends State<MapPage> {
           }
         ),
         children: [
-          TileLayer( // Display map tiles from any source
-            urlTemplate: _tileServer.url, // OSMF's Tile Server
-            userAgentPackageName: _picturesController.networkService?.userAgent ?? 'com.example.app',
-            tileProvider: CancellableNetworkTileProvider(),
-            subdomains: _tileServer.subdomains ?? const ['a', 'b', 'c'],
-          ),
+          if (_tileServer.format == TileFormat.vector)
+            FutureBuilder(
+              future: context.read<VectorService>().loadStyle(_tileServer.url),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const LoadingView();
+                }
+                final style = snapshot.data;
+                if (style == null) {
+                  return SizedBox.shrink();
+                }
+                return SizedBox.expand(
+                  child: AdaptiveTileLayer(
+                    tileProviders: style.providers,
+                    theme: style.theme,
+                    tileOffset: const TileOffset(zoomOffset: 0),
+                  ),
+                );
+              },
+            )
+          else
+            TileLayer( // Display map tiles from any source
+              urlTemplate: _tileServer.url, // OSMF's Tile Server
+              userAgentPackageName: _picturesController.networkService?.userAgent ?? 'com.example.app',
+              tileProvider: CancellableNetworkTileProvider(),
+              subdomains: _tileServer.subdomains ?? const ['a', 'b', 'c'],
+            ),
           CurrentLocationLayer(
             positionStream: LocationMarkerDataStreamFactory()
                 .fromGeolocatorPositionStream(stream: _picturesController.position),

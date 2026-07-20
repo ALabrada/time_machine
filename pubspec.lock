@@ -417,6 +417,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.0.7"
+  equatable:
+    dependency: transitive
+    description:
+      name: equatable
+      sha256: "3bce007a596ff8b3119c45d68aaef631272537c03d30e5d4534dd24bf4c5eaa2"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
+  executor_lib:
+    dependency: transitive
+    description:
+      name: executor_lib
+      sha256: "95ddf2957d9942d9702855b38dd49677f0ee6a8b77d7b16c0e509c7669d17386"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.2"
   expandable:
     dependency: transitive
     description:
@@ -551,6 +567,19 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.8.1"
+  flutter_gpu:
+    dependency: transitive
+    description: flutter
+    source: sdk
+    version: "0.0.0"
+  flutter_gpu_shaders:
+    dependency: transitive
+    description:
+      name: flutter_gpu_shaders
+      sha256: "98ff2396cd4543883bd4b693a782f9fcbda27e9bf5b3b92475332d36be3bfec6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.0"
   flutter_inappwebview:
     dependency: transitive
     description:
@@ -717,6 +746,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.1.1"
+  flutter_scene:
+    dependency: transitive
+    description:
+      name: flutter_scene
+      sha256: "9a3a427e902b81c6a901113a7e9428b3b29a2643a52ecbc6592cb051ab37c7e8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.2-0"
+  flutter_scene_importer:
+    dependency: transitive
+    description:
+      name: flutter_scene_importer
+      sha256: "81c544627dcbfc7227625b41abeaf23054fec5c36c57d2d6cb61518b3bd8a6cd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.0-0"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -1143,6 +1188,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+  native_assets_cli:
+    dependency: transitive
+    description:
+      name: native_assets_cli
+      sha256: "0907c5b85a21ae08dcdd0d2b75061cc614939911c2cab5ac903f35a9fbb2a50b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.13.0"
   native_device_orientation:
     dependency: transitive
     description:
@@ -1375,6 +1428,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
+  protobuf:
+    dependency: transitive
+    description:
+      name: protobuf
+      sha256: "68645b24e0716782e58948f8467fd42a880f255096a821f9e7d0ec625b00c84d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.0"
   provider:
     dependency: "direct main"
     description:
@@ -1628,6 +1689,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.12.1"
+  stash:
+    dependency: transitive
+    description:
+      name: stash
+      sha256: c1482f64dcaa9b2d9eb112106ef018aad49adb284e1ba371c892c2ad9f99fc12
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.2.0"
+  stash_file:
+    dependency: transitive
+    description:
+      name: stash_file
+      sha256: f2a68f2e7dcf7ca8f2b617959fca305983d5557355ede43cb15601e9533b495b
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.2.0"
+  stash_memory:
+    dependency: transitive
+    description:
+      name: stash_memory
+      sha256: "84ffcc108d345909dc40bd11d43e3fe87a115c30b157ca2bfa8e84c0e313d5c4"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.2.0"
   statusbarz:
     dependency: "direct main"
     description:
@@ -1837,6 +1922,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.5.3"
+  vector_map_tiles:
+    dependency: transitive
+    description:
+      name: vector_map_tiles
+      sha256: abdfd5a134dbe3b7d5ab31c6f0408794eaa41bac3298843679261c11064f1ef4
+      url: "https://pub.dev"
+    source: hosted
+    version: "10.0.0-beta.2"
   vector_math:
     dependency: transitive
     description:
@@ -1845,6 +1938,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
+  vector_tile:
+    dependency: transitive
+    description:
+      name: vector_tile
+      sha256: "7ae290246e3a8734422672dbe791d3f7b8ab631734489fc6d405f1cc2080e38c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.1"
+  vector_tile_renderer:
+    dependency: transitive
+    description:
+      name: vector_tile_renderer
+      sha256: "0e9a2497925be4741211ff7b44b5bee0ae60fe0a225c5d6eb48963f62b65bd64"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.0.0-beta.1"
   vm_service:
     dependency: transitive
     description:
