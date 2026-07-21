@@ -196,6 +196,7 @@ class TimeMachineApp extends StatelessWidget {
         Provider<VectorService>(
           create: (_) => VectorService(
             userAgent: userAgent,
+            vkApiKey: secrets.VK_MAPS_API_KEY,
           ),
         ),
       ],

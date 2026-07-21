@@ -16,7 +16,7 @@ class VectorService {
   void clearStyleCache() => _styleCache.clear();
 
   VectorService({
-    this.vkApiKey = '6960065e78ec62fc5f7ae70b0472ffcb37ad03630e3073560b9c8dba3e3dff83',
+    required this.vkApiKey,
     String? userAgent,
   }) : dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 10),
@@ -24,9 +24,6 @@ class VectorService {
     headers: {
       if (userAgent != null)
         'User-Agent': userAgent,
-      'Referer': 'https://tiles.maps.vk.com/',
-      'Origin': 'https://tiles.maps.vk.com',
-      'Priority': 'u=4',
     },
   )) {
     if (!kReleaseMode) {
@@ -139,10 +136,6 @@ class VectorService {
         providers[entry.key] = NetworkVectorTileProvider(
           type: type,
           urlTemplate: tileUrl,
-          httpHeaders: {
-            'Referer': 'https://tiles.maps.vk.com/',
-            'Origin': 'https://tiles.maps.vk.com',
-          },
           maximumZoom: maxzoom,
           minimumZoom: minzoom,
         );

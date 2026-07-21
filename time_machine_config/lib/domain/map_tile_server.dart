@@ -38,11 +38,10 @@ final class MapTileServer {
     ),
     MapTileServer(
       id: 'VK Maps',
-      // url: 'https://tiles.maps.vk.com/tiles/{z}/{x}/{y}.pbf?api_key=6960065e78ec62fc5f7ae70b0472ffcb37ad03630e3073560b9c8dba3e3dff83',
       url: 'mmr://api/styles/main_style.json',
       format: TileFormat.vector,
-      attributionLogo: (_) => 'assets/images/2gis_logo.png',
-      attributionUrl: (_) => 'https://law.2gis.ru/privacy',
+      attributionLogo: (_) => 'assets/images/vk_logo.png',
+      attributionUrl: (_) => 'https://maps.vk.com/ru/welcome',
     ),
   ];
 
