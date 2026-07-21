@@ -57,6 +57,9 @@ class _HomePageState extends State<HomePage> {
         statusBarBrightness: Brightness.light,
         statusBarIconBrightness: Brightness.dark,
         statusBarColor: Theme.of(context).colorScheme.surface,
+        systemNavigationBarColor: background02,
+        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarContrastEnforced: false,
       ),
       child: Scaffold(
         bottomNavigationBar: NavigationBar(
