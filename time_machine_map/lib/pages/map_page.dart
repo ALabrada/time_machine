@@ -167,8 +167,6 @@ class MapPageState extends State<MapPage> {
           AdaptiveTileLayer(
             tileServer: _tileServer,
             tileOffset: const TileOffset(zoomOffset: 0),
-            concurrency: 10,
-            fileCacheMaximumSizeInBytes: 100 * 1024 * 1024,
             userAgent: _picturesController.networkService?.userAgent ?? 'com.example.app',
           ),
           CurrentLocationLayer(

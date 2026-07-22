@@ -5,11 +5,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_config/time_machine_config.dart';
+import 'package:time_machine_map/domain/rendered_tile_provider.dart';
 import 'package:time_machine_map/services/vector_service.dart';
 import 'package:time_machine_res/molecules/loading_container.dart';
-import 'package:vector_map_tiles/src/cache/cache.dart';
-import 'package:vector_map_tiles/src/model/map_properties.dart';
-import 'package:vector_map_tiles/src/widgets/map_tiles_layer.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 
 class AdaptiveTileLayer extends StatelessWidget {
@@ -42,29 +40,24 @@ class AdaptiveTileLayer extends StatelessWidget {
         subdomains: tileServer.subdomains ?? const ['a', 'b', 'c'],
       );
     }
-    return FutureBuilder(
-      future: context.read<VectorService>().loadStyle(tileServer.url),
+    return FutureBuilder<StyleWithRaw>(
+      future: context.read<VectorService>().loadStyleWithRaw(tileServer.url),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const LoadingView();
         }
-        final style = snapshot.data;
-        if (style == null) {
+        final result = snapshot.data;
+        if (result == null) {
           return const SizedBox.shrink();
         }
-        return SizedBox.expand(
-          child: MapTilesLayer(
-            mapProperties: MapProperties(
-              tileProviders: style.providers,
-              theme: style.theme,
-              tileOffset: tileOffset,
-              concurrency: concurrency,
-              cacheProperties: CacheProperties(
-                fileCacheTtl: fileCacheTtl,
-                fileCacheMaximumSizeInBytes: fileCacheMaximumSizeInBytes,
-                cacheFolder: cacheFolder,
-              ),
-            ),
+        final vectorService = context.read<VectorService>();
+        return TileLayer(
+          urlTemplate: '',
+          tileProvider: RenderedVectorTileProvider(
+            vectorService: vectorService,
+            tileProviders: result.style.providers,
+            styleJson: result.raw,
+            sourceNames: result.style.theme.tileSources.toList(),
           ),
         );
       },
