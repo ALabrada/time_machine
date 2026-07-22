@@ -55,7 +55,6 @@ class AdaptiveTileLayer extends StatelessWidget {
           urlTemplate: '',
           tileProvider: RenderedVectorTileProvider(
             vectorService: vectorService,
-            tileProviders: result.style.providers,
             styleJson: result.raw,
             sourceNames: result.style.theme.tileSources.toList(),
           ),

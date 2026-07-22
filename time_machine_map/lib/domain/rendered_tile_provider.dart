@@ -4,20 +4,16 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:vector_map_tiles/src/tile_identity.dart';
-import 'package:vector_map_tiles/src/tile_providers.dart';
 
 import '../services/vector_service.dart';
 
 class RenderedVectorTileProvider extends TileProvider {
   final VectorService vectorService;
-  final TileProviders tileProviders;
   final Map<String, dynamic> styleJson;
   final List<String> sourceNames;
 
   RenderedVectorTileProvider({
     required this.vectorService,
-    required this.tileProviders,
     required this.styleJson,
     required this.sourceNames,
   });
@@ -39,7 +35,6 @@ class RenderedVectorTileProvider extends TileProvider {
   ) {
     return _RenderedVectorTileImage(
       vectorService: vectorService,
-      tileProviders: tileProviders,
       styleJson: styleJson,
       sourceNames: sourceNames,
       x: coordinates.x,
@@ -53,7 +48,6 @@ class RenderedVectorTileProvider extends TileProvider {
 class _RenderedVectorTileImage
     extends ImageProvider<_RenderedVectorTileImage> {
   final VectorService vectorService;
-  final TileProviders tileProviders;
   final Map<String, dynamic> styleJson;
   final List<String> sourceNames;
   final int x, y, z;
@@ -61,7 +55,6 @@ class _RenderedVectorTileImage
 
   _RenderedVectorTileImage({
     required this.vectorService,
-    required this.tileProviders,
     required this.styleJson,
     required this.sourceNames,
     required this.x,
@@ -95,30 +88,13 @@ class _RenderedVectorTileImage
     ImageDecoderCallback decode,
     TileRenderCanceller canceller,
   ) async {
-    final tileId = TileIdentity(z, x, y);
-    final pbfs = <String, Uint8List>{};
-    for (final source in sourceNames) {
-      try {
-        final pbf = await tileProviders.get(source).provide(tileId);
-        pbfs[source] = pbf;
-      } catch (e) {
-        debugPrint('Error loading tile $z/$x/$y source $source: $e');
-      }
-    }
-
-    if (pbfs.isEmpty) {
-      return decode(
-          await ui.ImmutableBuffer.fromUint8List(TileProvider.transparentImage));
-    }
-
     try {
       final file = await vectorService.renderTile(
         z: z,
         x: x,
         y: y,
         zoom: z.toDouble(),
-        sources: pbfs.keys.toList(),
-        pbfs: pbfs.values.toList(),
+        sources: sourceNames,
         styleJson: styleJson,
         canceller: canceller,
       );

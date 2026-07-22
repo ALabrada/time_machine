@@ -187,7 +187,6 @@ class VectorService {
     required int y,
     required double zoom,
     required List<String> sources,
-    required List<Uint8List> pbfs,
     required Map<String, dynamic> styleJson,
     TileRenderCanceller? canceller,
   }) async {
@@ -199,17 +198,15 @@ class VectorService {
 
     if (canceller?.isCancelled == true) throw 'Tile render cancelled';
 
-    final p = ReceivePort();
-    final isolateData = _IsolateData(
-      pbfs: pbfs.map((b) => TransferableTypedData.fromList([b])).toList(),
-      styleJson: styleJson,
-      sources: sources,
+    final serialized = await Isolate.run(() => _downloadAndParseInIsolate(
+      z: z,
+      x: x,
+      y: y,
       zoom: zoom,
-      sendPort: p.sendPort,
-    );
-    final isolate = await Isolate.spawn(_isolateMain, isolateData);
-    canceller?.attachIsolate(isolate);
-    final serialized = await p.first as Map<String, dynamic>;
+      sources: sources,
+      styleJson: styleJson,
+      apiKey: vkApiKey,
+    ));
 
     if (canceller?.isCancelled == true) throw 'Tile render cancelled';
 
@@ -248,25 +245,59 @@ class VectorService {
 
 /// Allows cancelling an in-progress [VectorService.renderTile] call.
 class TileRenderCanceller {
-  Isolate? _isolate;
   bool _cancelled = false;
 
   bool get isCancelled => _cancelled;
 
   void cancel() {
-    if (_cancelled) return;
     _cancelled = true;
-    _isolate?.kill(priority: Isolate.immediate);
-    _isolate = null;
+  }
+}
+
+Future<Map<String, dynamic>> _downloadAndParseInIsolate({
+  required int z,
+  required int x,
+  required int y,
+  required double zoom,
+  required List<String> sources,
+  required Map<String, dynamic> styleJson,
+  required String apiKey,
+}) async {
+  final uriMapper = ExtendedStyleUriMapper(key: apiKey);
+  final tileId = TileIdentity(z, x, y);
+  final tilesResult = <String, Map<String, dynamic>>{};
+
+  for (final sourceName in sources) {
+    try {
+      final sourceConfig = styleJson['sources']?[sourceName];
+      if (sourceConfig == null) {
+        debugPrint('Source $sourceName not found in style');
+        continue;
+      }
+
+      final tiles = sourceConfig['tiles'] as List?;
+      if (tiles == null || tiles.isEmpty) {
+        debugPrint('No tiles array for source $sourceName');
+        continue;
+      }
+
+      final tileUri = tiles[0] as String;
+      final urlTemplate = uriMapper.mapTiles(tileUri);
+      final provider = NetworkVectorTileProvider(urlTemplate: urlTemplate);
+      final pbfBytes = await provider.provide(tileId);
+
+      final vectorTile = VectorTileReader().read(pbfBytes);
+      final theme = ThemeReader(logger: Logger.console()).read(styleJson);
+      final tileData = TileFactory(theme, Logger.console()).createTileData(
+        vectorTile,
+      );
+      tilesResult[sourceName] = _encodeTileData(tileData);
+    } catch (e) {
+      debugPrint('Error processing source $sourceName in isolate: $e');
+    }
   }
 
-  void attachIsolate(Isolate isolate) {
-    if (_cancelled) {
-      isolate.kill(priority: Isolate.immediate);
-      return;
-    }
-    _isolate = isolate;
-  }
+  return {'tiles': tilesResult};
 }
 
 // --- TileData serialization for isolate transfer ---
@@ -376,41 +407,6 @@ TileData _decodeTileData(Map<String, dynamic> data) => TileData(
           .map((l) => _decodeLayer(l as Map<String, dynamic>))
           .toList(),
     );
-
-class _IsolateData {
-  final List<TransferableTypedData> pbfs;
-  final Map<String, dynamic> styleJson;
-  final List<String> sources;
-  final double zoom;
-  final SendPort sendPort;
-
-  _IsolateData({
-    required this.pbfs,
-    required this.styleJson,
-    required this.sources,
-    required this.zoom,
-    required this.sendPort,
-  });
-}
-
-void _isolateMain(_IsolateData data) {
-  final theme = ThemeReader(logger: Logger.console()).read(data.styleJson);
-  final logger = Logger.console();
-
-  final tilesResult = <String, Map<String, dynamic>>{};
-  for (int i = 0; i < data.sources.length; i++) {
-    try {
-      final pbf = data.pbfs[i].materialize().asUint8List();
-      final vectorTile = VectorTileReader().read(pbf);
-      final tileData = TileFactory(theme, logger).createTileData(vectorTile);
-      tilesResult[data.sources[i]] = _encodeTileData(tileData);
-    } catch (e) {
-      debugPrint('Error processing source ${data.sources[i]}: $e');
-    }
-  }
-
-  data.sendPort.send({'tiles': tilesResult});
-}
 
 String _invalidStyle(String url) =>
     'Uri does not appear to be a valid style: $url';
