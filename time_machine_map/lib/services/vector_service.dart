@@ -198,7 +198,7 @@ class VectorService {
 
     if (canceller?.isCancelled == true) throw 'Tile render cancelled';
 
-    final serialized = await Isolate.run(() => _downloadAndParseInIsolate(
+    await Isolate.run(() => _downloadAndParseInIsolate(
       z: z,
       x: x,
       y: y,
@@ -206,39 +206,8 @@ class VectorService {
       sources: sources,
       styleJson: styleJson,
       apiKey: vkApiKey,
+      fileName: file.path,
     ));
-
-    if (canceller?.isCancelled == true) throw 'Tile render cancelled';
-
-    final tilesData = serialized['tiles'] as Map<String, dynamic>;
-    if (tilesData.isEmpty) throw 'No tiles rendered';
-
-    final theme = ThemeReader(logger: Logger.console()).read(styleJson);
-    final logger = Logger.console();
-
-    final tilesBySource = <String, Tile>{};
-    for (final entry in tilesData.entries) {
-      final tileData = _decodeTileData(entry.value as Map<String, dynamic>);
-      tilesBySource[entry.key] = tileData.toTile();
-    }
-
-    if (canceller?.isCancelled == true) throw 'Tile render cancelled';
-
-    final recorder = ui.PictureRecorder();
-    final canvas = ui.Canvas(recorder);
-
-    Renderer(theme: theme, logger: logger).render(
-      canvas,
-      TileSource(tileset: Tileset(tilesBySource)),
-      zoomScaleFactor: 1.0,
-      zoom: zoom,
-      rotation: 0.0,
-    );
-
-    final picture = recorder.endRecording();
-    final image = await picture.toImage(256, 256);
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    await file.writeAsBytes(byteData!.buffer.asUint8List());
     return file;
   }
 }
@@ -254,7 +223,7 @@ class TileRenderCanceller {
   }
 }
 
-Future<Map<String, dynamic>> _downloadAndParseInIsolate({
+Future<void> _downloadAndParseInIsolate({
   required int z,
   required int x,
   required int y,
@@ -262,10 +231,13 @@ Future<Map<String, dynamic>> _downloadAndParseInIsolate({
   required List<String> sources,
   required Map<String, dynamic> styleJson,
   required String apiKey,
+  required String fileName,
 }) async {
   final uriMapper = ExtendedStyleUriMapper(key: apiKey);
   final tileId = TileIdentity(z, x, y);
-  final tilesResult = <String, Map<String, dynamic>>{};
+
+  final tilesBySource = <String, Tile>{};
+  final theme = ThemeReader(logger: Logger.console()).read(styleJson);
 
   for (final sourceName in sources) {
     try {
@@ -287,126 +259,24 @@ Future<Map<String, dynamic>> _downloadAndParseInIsolate({
       final pbfBytes = await provider.provide(tileId);
 
       final vectorTile = VectorTileReader().read(pbfBytes);
-      final theme = ThemeReader(logger: Logger.console()).read(styleJson);
       final tileData = TileFactory(theme, Logger.console()).createTileData(
         vectorTile,
       );
-      tilesResult[sourceName] = _encodeTileData(tileData);
+      tilesBySource[sourceName] = tileData.toTile();
     } catch (e) {
       debugPrint('Error processing source $sourceName in isolate: $e');
     }
   }
 
-  return {'tiles': tilesResult};
+  final imageRender = ImageRenderer(theme: theme, scale: 1.0);
+  final image = await imageRender.render(
+      TileSource(tileset: Tileset(tilesBySource)),
+      zoom: zoom
+  );
+
+  final data = await image.toPng();
+  await File(fileName).writeAsBytes(data);
 }
-
-// --- TileData serialization for isolate transfer ---
-
-List _encodeFeature(TileDataFeature f) {
-  final typeIdx = f.type.index;
-  final props = f.properties;
-
-  if (f.hasPoints) {
-    return [typeIdx, props, f.points.map((p) => [p.x, p.y]).toList()];
-  }
-  if (f.hasLines) {
-    return [
-      typeIdx,
-      props,
-      f.lines
-          .map((l) => l.points.map((p) => [p.x, p.y]).toList())
-          .toList(),
-    ];
-  }
-  if (f.hasPolygons) {
-    return [
-      typeIdx,
-      props,
-      f.polygons
-          .map((pg) => pg.rings
-              .map((r) => r.points.map((p) => [p.x, p.y]).toList())
-              .toList())
-          .toList(),
-    ];
-  }
-  return [typeIdx, props, []];
-}
-
-TileDataFeature _decodeFeature(List data) {
-  final type = TileFeatureType.values[data[0] as int];
-  final props = data[1] as Map<String, dynamic>;
-  final geom = data[2] as List;
-
-  math.Point<double> pt(dynamic p) =>
-      math.Point<double>(p[0] as double, p[1] as double);
-
-  switch (type) {
-    case TileFeatureType.point: {
-      final pts = <math.Point<double>>[];
-      for (final p in geom) {
-        pts.add(pt(p));
-      }
-      return TileDataFeature(
-        type: type, properties: props, geometry: null, points: pts,
-      );
-    }
-    case TileFeatureType.linestring: {
-      final lines = <TileLine>[];
-      for (final l in geom) {
-        final pts = <math.Point<double>>[];
-        for (final p in l as List) {
-          pts.add(pt(p));
-        }
-        lines.add(TileLine(pts));
-      }
-      return TileDataFeature(
-        type: type, properties: props, geometry: null, lines: lines,
-      );
-    }
-    case TileFeatureType.polygon: {
-      final polys = <TilePolygon>[];
-      for (final pg in geom) {
-        final rings = <TileLine>[];
-        for (final r in pg as List) {
-          final pts = <math.Point<double>>[];
-          for (final p in r as List) {
-            pts.add(pt(p));
-          }
-          rings.add(TileLine(pts));
-        }
-        polys.add(TilePolygon(rings));
-      }
-      return TileDataFeature(
-        type: type, properties: props, geometry: null, polygons: polys,
-      );
-    }
-    case TileFeatureType.background:
-    case TileFeatureType.none:
-      return TileDataFeature(type: type, properties: props, geometry: null);
-  }
-}
-
-Map<String, dynamic> _encodeLayer(TileDataLayer layer) => {
-      'name': layer.name,
-      'extent': layer.extent,
-      'features': layer.features.map(_encodeFeature).toList(),
-    };
-
-TileDataLayer _decodeLayer(Map<String, dynamic> data) => TileDataLayer(
-      name: data['name'] as String,
-      extent: data['extent'] as int,
-      features:
-          (data['features'] as List).map((f) => _decodeFeature(f as List)).toList(),
-    );
-
-Map<String, dynamic> _encodeTileData(TileData data) =>
-    {'layers': data.layers.map(_encodeLayer).toList()};
-
-TileData _decodeTileData(Map<String, dynamic> data) => TileData(
-      layers: (data['layers'] as List)
-          .map((l) => _decodeLayer(l as Map<String, dynamic>))
-          .toList(),
-    );
 
 String _invalidStyle(String url) =>
     'Uri does not appear to be a valid style: $url';
