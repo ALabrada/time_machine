@@ -4,18 +4,17 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:time_machine_map/domain/vector_tile_style.dart';
 
 import '../services/vector_service.dart';
 
-class RenderedVectorTileProvider extends TileProvider {
+class RenderedVectorTileProvider extends FileTileProvider {
   final VectorService vectorService;
-  final Map<String, dynamic> styleJson;
-  final List<String> sourceNames;
+  final VectorTileStyle style;
 
   RenderedVectorTileProvider({
     required this.vectorService,
-    required this.styleJson,
-    required this.sourceNames,
+    required this.style,
   });
 
   @override
@@ -35,8 +34,7 @@ class RenderedVectorTileProvider extends TileProvider {
   ) {
     return _RenderedVectorTileImage(
       vectorService: vectorService,
-      styleJson: styleJson,
-      sourceNames: sourceNames,
+      style: style,
       x: coordinates.x,
       y: coordinates.y,
       z: coordinates.z,
@@ -48,15 +46,13 @@ class RenderedVectorTileProvider extends TileProvider {
 class _RenderedVectorTileImage
     extends ImageProvider<_RenderedVectorTileImage> {
   final VectorService vectorService;
-  final Map<String, dynamic> styleJson;
-  final List<String> sourceNames;
+  final VectorTileStyle style;
   final int x, y, z;
   final Future<void> cancelLoading;
 
   _RenderedVectorTileImage({
     required this.vectorService,
-    required this.styleJson,
-    required this.sourceNames,
+    required this.style,
     required this.x,
     required this.y,
     required this.z,
@@ -94,8 +90,7 @@ class _RenderedVectorTileImage
         x: x,
         y: y,
         zoom: z.toDouble(),
-        sources: sourceNames,
-        styleJson: styleJson,
+        style: style,
         canceller: canceller,
       );
       return decode(

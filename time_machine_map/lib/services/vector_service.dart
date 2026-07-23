@@ -1,38 +1,26 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:vector_map_tiles/src/style/uri_mapper.dart';
-import 'package:vector_tile_renderer/src/model/geometry_model.dart';
 import 'package:vector_tile_renderer/vector_tile_renderer.dart' hide TileLayer;
+
+import '../domain/vector_tile_style.dart';
 
 class VectorService {
   final Dio dio;
   final String vkApiKey;
-  final _styleCache = <String, Style>{};
-  final _rawStyleCache = <String, Map<String, dynamic>>{};
+  final _styleCache = <String, VectorTileStyle>{};
 
-  void clearStyleCache() {
-    _styleCache.clear();
-    _rawStyleCache.clear();
-  }
-
-  Future<Map<String, dynamic>> loadRawStyle(String uri) async {
-    final cached = _rawStyleCache[uri];
-    if (cached != null) return cached;
-    await loadStyle(uri);
-    return _rawStyleCache[uri]!;
-  }
-
-  Future<StyleWithRaw> loadStyleWithRaw(String uri) async {
-    final style = await loadStyle(uri);
-    return StyleWithRaw(style: style, raw: _rawStyleCache[uri]!);
-  }
+  Directory? _tileCacheDir;
 
   VectorService({
     required this.vkApiKey,
@@ -58,19 +46,34 @@ class VectorService {
     }
   }
 
-  Future<Style> loadStyle(String uri) async {
+  Future<Directory> _tileCacheDirectory() async {
+    if (_tileCacheDir != null) return _tileCacheDir!;
+    final cacheDir = await getApplicationCacheDirectory();
+    final dirPath = p.join(cacheDir.path, 'vector_tiles');
+    final dir = Directory(dirPath);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    _tileCacheDir = dir;
+    return dir;
+  }
+
+  void clearStyleCache() {
+    _styleCache.clear();
+  }
+
+  Future<VectorTileStyle> loadStyle(String uri) async {
     final cached = _styleCache[uri];
     if (cached != null) return cached;
     final uriMapper = ExtendedStyleUriMapper(key: vkApiKey);
     final url = uriMapper.map(uri);
     final response = await dio.get(url);
     final styleJson = response.data as Map<String, dynamic>;
-    _rawStyleCache[uri] = styleJson;
     final sources = styleJson['sources'];
     if (sources is! Map) {
       throw _invalidStyle(url);
     }
-    final providerByName = await _readProviderByName(sources, uri);
+    final sourcesByName = await _readSources(sources, uri);
     final name = styleJson['name'] as String?;
 
     final center = styleJson['center'];
@@ -85,35 +88,33 @@ class VectorService {
       centerPoint = null;
     }
     final spriteUri = styleJson['sprite'];
-    SpriteStyle? sprites;
+    VectorSpriteStyle? sprites;
     if (spriteUri is String && spriteUri.trim().isNotEmpty) {
       final spriteUris = uriMapper.mapSprite(uri, spriteUri);
       for (final spriteUri in spriteUris) {
         dynamic spritesJson;
+        Uint8List spritesImage;
         try {
           final spritesResponse = await dio.get(spriteUri.json);
           spritesJson = spritesResponse.data;
+
+          final imageResponse = await dio.get(
+            spriteUri.image,
+            options: Options(responseType: ResponseType.bytes),
+          );
+          spritesImage = imageResponse.data;
         } catch (e) {
           debugPrint('error reading sprite uri: ${spriteUri.json}');
           continue;
         }
 
-        sprites = SpriteStyle(
-          atlasProvider: () async {
-            final imageResponse = await dio.get(
-              spriteUri.image,
-              options: Options(responseType: ResponseType.bytes),
-            );
-            return imageResponse.data;
-          },
-          index: SpriteIndexReader(logger: Logger.console()).read(spritesJson),
-        );
+        sprites = VectorSpriteStyle(atlas: spritesImage, content: spritesJson);
         break;
       }
     }
-    final result = Style(
-      theme: ThemeReader(logger: Logger.console()).read(styleJson),
-      providers: TileProviders(providerByName),
+    final result = VectorTileStyle(
+      theme: styleJson,
+      sources: sourcesByName,
       sprites: sprites,
       name: name,
       center: centerPoint,
@@ -123,61 +124,49 @@ class VectorService {
     return result;
   }
 
-  Future<Map<String, VectorTileProvider>> _readProviderByName(Map sources, String uri) async {
-    final providers = <String, VectorTileProvider>{};
-    final sourceEntries = sources.entries.toList();
-    for (final entry in sourceEntries) {
-      final sourceType = entry.value['type'];
-      var type = TileProviderType.values
-          .where((e) => e.name.replaceAll('_', '-') == sourceType)
-          .firstOrNull;
-      if (type == null) continue;
-      dynamic source;
-      var entryUrl = entry.value['url'] as String?;
-      if (entryUrl != null) {
-        final sourceUrl = ExtendedStyleUriMapper(key: vkApiKey).mapSource(uri, entryUrl);
-        final response = await dio.get(sourceUrl);
-        source = response.data;
-        if (source is! Map) {
-          throw _invalidStyle(sourceUrl);
+  Future<Map<String, VectorTileSource>> _readSources(Map sources, String uri) async {
+    final sourceEntries = await Stream.fromIterable(sources.entries)
+      .asyncMap((entry) async {
+        final sourceType = entry.value['type'];
+        dynamic source;
+        var entryUrl = entry.value['url'] as String?;
+        if (entryUrl != null) {
+          final sourceUrl = ExtendedStyleUriMapper(key: vkApiKey).mapSource(uri, entryUrl);
+          final response = await dio.get(sourceUrl);
+          source = response.data;
+          if (source is! Map) {
+            throw _invalidStyle(sourceUrl);
+          }
+        } else {
+          source = entry.value;
         }
-      } else {
-        source = entry.value;
-      }
-      final entryTiles = source['tiles'];
-      final maxzoom = source['maxzoom'] as int? ?? 14;
-      final minzoom = source['minzoom'] as int? ?? 1;
-      if (entryTiles is List && entryTiles.isNotEmpty) {
-        final tileUri = entryTiles[0] as String;
-        final tileUrl = ExtendedStyleUriMapper(key: vkApiKey).mapTiles(tileUri);
-        providers[entry.key] = NetworkVectorTileProvider(
-          type: type,
-          urlTemplate: tileUrl,
-          maximumZoom: maxzoom,
-          minimumZoom: minzoom,
-        );
-      }
-    }
-    if (providers.isEmpty) {
+        final entryTiles = source['tiles'];
+        final maxzoom = source['maxzoom'] as int? ?? 14;
+        final minzoom = source['minzoom'] as int? ?? 1;
+        if (entryTiles is List && entryTiles.isNotEmpty) {
+          final tileUri = entryTiles[0] as String;
+          final tileUrl = ExtendedStyleUriMapper(key: vkApiKey).mapTiles(tileUri);
+          final source = VectorTileSource(
+            type: sourceType,
+            urlTemplate: tileUrl,
+            maximumZoom: maxzoom,
+            minimumZoom: minzoom,
+          );
+          return MapEntry(entry.key, source);
+        }
+        return null;
+      })
+      .where((e) => e is MapEntry<String, VectorTileSource>)
+      .toList();
+    if (sourceEntries.isEmpty) {
       throw 'Unexpected response';
     }
-    return providers;
+    return Map.fromIterable(sourceEntries);
   }
 
-  Directory? _tileCacheDir;
-
-  Future<Directory> _tileCacheDirectory() async {
-    if (_tileCacheDir != null) return _tileCacheDir!;
-    final dir = Directory(
-        '${(await Directory.systemTemp).path}/time_machine_tiles');
-    if (!dir.existsSync()) dir.createSync(recursive: true);
-    _tileCacheDir = dir;
-    return dir;
-  }
-
-  File _tileFile(Directory cacheDir, int z, int x, int y) {
+  Future<File> _tileFile(Directory cacheDir, int z, int x, int y) async {
     final dir = Directory('${cacheDir.path}/$z/$x');
-    if (!dir.existsSync()) dir.createSync(recursive: true);
+    if (!dir.existsSync()) await dir.create(recursive: true);
     return File('${dir.path}/$y.png');
   }
 
@@ -186,26 +175,23 @@ class VectorService {
     required int x,
     required int y,
     required double zoom,
-    required List<String> sources,
-    required Map<String, dynamic> styleJson,
+    required VectorTileStyle style,
     TileRenderCanceller? canceller,
   }) async {
     if (canceller?.isCancelled == true) throw 'Tile render cancelled';
 
     final cacheDir = await _tileCacheDirectory();
-    final file = _tileFile(cacheDir, z, x, y);
+    final file =  await _tileFile(cacheDir, z, x, y);
     if (await file.exists() && await file.length() > 0) return file;
 
     if (canceller?.isCancelled == true) throw 'Tile render cancelled';
 
-    await Isolate.run(() => _downloadAndParseInIsolate(
+    await Isolate.run(() => _downloadAndRenderInIsolate(
       z: z,
       x: x,
       y: y,
       zoom: zoom,
-      sources: sources,
-      styleJson: styleJson,
-      apiKey: vkApiKey,
+      style: style,
       fileName: file.path,
     ));
     return file;
@@ -223,39 +209,31 @@ class TileRenderCanceller {
   }
 }
 
-Future<void> _downloadAndParseInIsolate({
+Future<void> _downloadAndRenderInIsolate({
   required int z,
   required int x,
   required int y,
   required double zoom,
-  required List<String> sources,
-  required Map<String, dynamic> styleJson,
-  required String apiKey,
+  required VectorTileStyle style,
   required String fileName,
 }) async {
-  final uriMapper = ExtendedStyleUriMapper(key: apiKey);
   final tileId = TileIdentity(z, x, y);
-
   final tilesBySource = <String, Tile>{};
-  final theme = ThemeReader(logger: Logger.console()).read(styleJson);
+  final theme = style.readTheme();
+  final sprites = style.sprites;
+  final vectorType = TileProviderType.vector.name.replaceAll('_', '-');
 
-  for (final sourceName in sources) {
+  for (final source in style.sources.entries) {
+    final sourceName = source.key;
     try {
-      final sourceConfig = styleJson['sources']?[sourceName];
-      if (sourceConfig == null) {
-        debugPrint('Source $sourceName not found in style');
-        continue;
-      }
+      if (source.value.type != vectorType) continue;
 
-      final tiles = sourceConfig['tiles'] as List?;
-      if (tiles == null || tiles.isEmpty) {
-        debugPrint('No tiles array for source $sourceName');
-        continue;
-      }
-
-      final tileUri = tiles[0] as String;
-      final urlTemplate = uriMapper.mapTiles(tileUri);
-      final provider = NetworkVectorTileProvider(urlTemplate: urlTemplate);
+      final provider = NetworkVectorTileProvider(
+        type: TileProviderType.vector,
+        urlTemplate: source.value.urlTemplate,
+        maximumZoom: source.value.maximumZoom,
+        minimumZoom: source.value.minimumZoom,
+      );
       final pbfBytes = await provider.provide(tileId);
 
       final vectorTile = VectorTileReader().read(pbfBytes);
@@ -270,8 +248,12 @@ Future<void> _downloadAndParseInIsolate({
 
   final imageRender = ImageRenderer(theme: theme, scale: 1.0);
   final image = await imageRender.render(
-      TileSource(tileset: Tileset(tilesBySource)),
-      zoom: zoom
+    TileSource(
+      tileset: Tileset(tilesBySource),
+      spriteIndex: sprites?.readContent(),
+      spriteAtlas: await sprites?.readImage(),
+    ),
+    zoom: zoom,
   );
 
   final data = await image.toPng();

@@ -41,7 +41,7 @@ final class MapTileServer {
       url: 'mmr://api/styles/main_style.json',
       format: TileFormat.vector,
       attributionLogo: (_) => 'assets/images/vk_logo.png',
-      attributionUrl: (_) => 'https://maps.vk.com/ru/welcome',
+      attributionUrl: (_) => 'https://help.mail.ru/legal/terms/common/ua/',
     ),
   ];
 

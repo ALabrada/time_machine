@@ -5,7 +5,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_config/time_machine_config.dart';
-import 'package:time_machine_map/domain/rendered_tile_provider.dart';
+import 'package:time_machine_map/molecules/rendered_tile_provider.dart';
+import 'package:time_machine_map/domain/vector_tile_style.dart';
 import 'package:time_machine_map/services/vector_service.dart';
 import 'package:time_machine_res/molecules/loading_container.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
@@ -40,8 +41,8 @@ class AdaptiveTileLayer extends StatelessWidget {
         subdomains: tileServer.subdomains ?? const ['a', 'b', 'c'],
       );
     }
-    return FutureBuilder<StyleWithRaw>(
-      future: context.read<VectorService>().loadStyleWithRaw(tileServer.url),
+    return FutureBuilder<VectorTileStyle>(
+      future: context.read<VectorService>().loadStyle(tileServer.url),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const LoadingView();
@@ -55,8 +56,7 @@ class AdaptiveTileLayer extends StatelessWidget {
           urlTemplate: '',
           tileProvider: RenderedVectorTileProvider(
             vectorService: vectorService,
-            styleJson: result.raw,
-            sourceNames: result.style.theme.tileSources.toList(),
+            style: result,
           ),
         );
       },
