@@ -146,12 +146,14 @@ class VectorService {
         }
         return null;
       })
-      .where((e) => e is MapEntry<String, VectorTileSource>)
+      .where((e) => e != null)
       .toList();
     if (sourceEntries.isEmpty) {
       throw 'Unexpected response';
     }
-    return Map.fromIterable(sourceEntries);
+    return Map.fromEntries(
+      sourceEntries.nonNulls.map((e) => MapEntry<String, VectorTileSource>(e.key as String, e.value)),
+    );
   }
 
   Future<XFile> renderTile({
