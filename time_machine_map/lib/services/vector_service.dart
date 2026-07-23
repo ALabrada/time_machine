@@ -1,30 +1,28 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:isolate';
-import 'dart:ui' as ui;
 
+import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:vector_map_tiles/src/style/uri_mapper.dart';
-import 'package:vector_tile_renderer/vector_tile_renderer.dart' hide TileLayer;
 
 import '../domain/vector_tile_style.dart';
+import 'platform_runner.dart';
+import 'tile_caching_service.dart';
 
 class VectorService {
   final Dio dio;
   final String vkApiKey;
   final _styleCache = <String, VectorTileStyle>{};
-
-  Directory? _tileCacheDir;
+  final TileCachingService cachingService;
 
   VectorService({
     required this.vkApiKey,
     String? userAgent,
+    TileCachingService? cachingService,
+    int fileCacheMaximumSizeInBytes = 100 * 1024 * 1024,
+    Duration fileCacheTtl = const Duration(days: 30),
   }) : dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 15),
@@ -32,7 +30,11 @@ class VectorService {
       if (userAgent != null)
         'User-Agent': userAgent,
     },
-  )) {
+  )),
+       cachingService = cachingService ?? TileCachingService(
+         fileCacheMaximumSizeInBytes: fileCacheMaximumSizeInBytes,
+         fileCacheTtl: fileCacheTtl,
+       ) {
     if (!kReleaseMode) {
       dio.interceptors.add(
         LogInterceptor(
@@ -44,18 +46,6 @@ class VectorService {
         ),
       );
     }
-  }
-
-  Future<Directory> _tileCacheDirectory() async {
-    if (_tileCacheDir != null) return _tileCacheDir!;
-    final cacheDir = await getApplicationCacheDirectory();
-    final dirPath = p.join(cacheDir.path, 'vector_tiles');
-    final dir = Directory(dirPath);
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-    _tileCacheDir = dir;
-    return dir;
   }
 
   void clearStyleCache() {
@@ -164,13 +154,7 @@ class VectorService {
     return Map.fromIterable(sourceEntries);
   }
 
-  Future<File> _tileFile(Directory cacheDir, int z, int x, int y) async {
-    final dir = Directory('${cacheDir.path}/$z/$x');
-    if (!dir.existsSync()) await dir.create(recursive: true);
-    return File('${dir.path}/$y.png');
-  }
-
-  Future<File> renderTile({
+  Future<XFile> renderTile({
     required int z,
     required int x,
     required int y,
@@ -180,21 +164,24 @@ class VectorService {
   }) async {
     if (canceller?.isCancelled == true) throw 'Tile render cancelled';
 
-    final cacheDir = await _tileCacheDirectory();
-    final file =  await _tileFile(cacheDir, z, x, y);
-    if (await file.exists() && await file.length() > 0) return file;
+    if (await cachingService.isTileCached(z, x, y)) {
+      return cachingService.tileFile(z, x, y);
+    }
 
     if (canceller?.isCancelled == true) throw 'Tile render cancelled';
 
-    await Isolate.run(() => _downloadAndRenderInIsolate(
-      z: z,
-      x: x,
-      y: y,
-      zoom: zoom,
-      style: style,
-      fileName: file.path,
-    ));
-    return file;
+    final xfile = await cachingService.tileFile(z, x, y);
+    final result = await renderTileOffThread(
+      z: z, x: x, y: y, zoom: zoom, style: style,
+      outputPath: kIsWeb ? null : xfile.path,
+    );
+
+    if (kIsWeb) {
+      await cachingService.storeTile(z, x, y, await result.readAsBytes());
+    }
+    unawaited(cachingService.reportTileWritten());
+
+    return result;
   }
 }
 
@@ -207,57 +194,6 @@ class TileRenderCanceller {
   void cancel() {
     _cancelled = true;
   }
-}
-
-Future<void> _downloadAndRenderInIsolate({
-  required int z,
-  required int x,
-  required int y,
-  required double zoom,
-  required VectorTileStyle style,
-  required String fileName,
-}) async {
-  final tileId = TileIdentity(z, x, y);
-  final tilesBySource = <String, Tile>{};
-  final theme = style.readTheme();
-  final sprites = style.sprites;
-  final vectorType = TileProviderType.vector.name.replaceAll('_', '-');
-
-  for (final source in style.sources.entries) {
-    final sourceName = source.key;
-    try {
-      if (source.value.type != vectorType) continue;
-
-      final provider = NetworkVectorTileProvider(
-        type: TileProviderType.vector,
-        urlTemplate: source.value.urlTemplate,
-        maximumZoom: source.value.maximumZoom,
-        minimumZoom: source.value.minimumZoom,
-      );
-      final pbfBytes = await provider.provide(tileId);
-
-      final vectorTile = VectorTileReader().read(pbfBytes);
-      final tileData = TileFactory(theme, Logger.console()).createTileData(
-        vectorTile,
-      );
-      tilesBySource[sourceName] = tileData.toTile();
-    } catch (e) {
-      debugPrint('Error processing source $sourceName in isolate: $e');
-    }
-  }
-
-  final imageRender = ImageRenderer(theme: theme, scale: 1.0);
-  final image = await imageRender.render(
-    TileSource(
-      tileset: Tileset(tilesBySource),
-      spriteIndex: sprites?.readContent(),
-      spriteAtlas: await sprites?.readImage(),
-    ),
-    zoom: zoom,
-  );
-
-  final data = await image.toPng();
-  await File(fileName).writeAsBytes(data);
 }
 
 String _invalidStyle(String url) =>

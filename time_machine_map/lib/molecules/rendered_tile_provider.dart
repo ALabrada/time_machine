@@ -85,7 +85,7 @@ class _RenderedVectorTileImage
     TileRenderCanceller canceller,
   ) async {
     try {
-      final file = await vectorService.renderTile(
+      final xfile = await vectorService.renderTile(
         z: z,
         x: x,
         y: y,
@@ -94,7 +94,7 @@ class _RenderedVectorTileImage
         canceller: canceller,
       );
       return decode(
-          await ui.ImmutableBuffer.fromUint8List(await file.readAsBytes()));
+          await ui.ImmutableBuffer.fromUint8List(await xfile.readAsBytes()));
     } catch (e) {
       debugPrint('Error rendering tile $z/$x/$y: $e');
       return decode(
