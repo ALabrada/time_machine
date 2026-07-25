@@ -8,5 +8,6 @@
   "menuActionOpenSource": "Open source",
   "menuActionShare": "Share picture",
   "menuActionView": "Show picture",
-  "searchBarHint": "Search..."
+  "searchBarHint": "Search...",
+  "tileLoadError": "Could not load the map. Please, change to a different map provider in Settings or try again later."
 }

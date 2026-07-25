@@ -159,6 +159,12 @@ abstract class MapLocalizations {
   /// In en, this message translates to:
   /// **'Search...'**
   String get searchBarHint;
+
+  /// No description provided for @tileLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the map. Please, change to a different map provider in Settings or try again later.'**
+  String get tileLoadError;
 }
 
 class _MapLocalizationsDelegate

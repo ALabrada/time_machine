@@ -38,4 +38,8 @@ class MapLocalizationsRu extends MapLocalizations {
 
   @override
   String get searchBarHint => 'Поискать...';
+
+  @override
+  String get tileLoadError =>
+      'Не удалось загрузить карту. Пожалуйста, смените поставщика карт в Настройках или попробуйте позже.';
 }

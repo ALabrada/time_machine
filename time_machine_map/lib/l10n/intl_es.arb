@@ -8,5 +8,6 @@
   "menuActionOpenSource": "Abrir fuente",
   "menuActionShare": "Compartir foto",
   "menuActionView": "Ver foto",
-  "searchBarHint": "Buscar..."
+  "searchBarHint": "Buscar...",
+  "tileLoadError": "No se pudo cargar el mapa. Por favor, cambie a un proveedor de mapas diferente en Configuración o intente más tarde."
 }

@@ -38,4 +38,8 @@ class MapLocalizationsEn extends MapLocalizations {
 
   @override
   String get searchBarHint => 'Search...';
+
+  @override
+  String get tileLoadError =>
+      'Could not load the map. Please, change to a different map provider in Settings or try again later.';
 }

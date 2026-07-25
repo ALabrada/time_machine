@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_config/time_machine_config.dart';
+import 'package:time_machine_map/l10n/map_localizations.dart';
 import 'package:time_machine_map/domain/vector_tile_style.dart';
 import 'package:time_machine_map/services/vector_service.dart';
 import 'package:time_machine_res/molecules/loading_container.dart';
@@ -55,6 +57,18 @@ class AdaptiveTileLayer extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const LoadingView();
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                MapLocalizations.of(context).tileLoadError,
+                textAlign: TextAlign.center,
+                style: TextTheme.of(context).labelLarge,
+              ),
+            ),
+          );
         }
         final style = snapshot.data;
         if (style == null) {
