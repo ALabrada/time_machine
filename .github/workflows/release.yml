@@ -37,12 +37,6 @@ jobs:
       - name: Create android key properties
         run: echo '${{ secrets.ANDROID_KEY }}' > android/key.properties
       
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: 'stable'
-          cache: true
-          pub-cache: true
-      
       - run: flutter pub get
       
       - name: Build APK
@@ -67,12 +61,6 @@ jobs:
 
       - name: Create secrets file
         run: echo '${{ secrets.LIB_SECRETS }}' > lib/secrets.dart
-      
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: 'stable'
-          cache: true
-          pub-cache: true
       
       - run: flutter pub get
       
