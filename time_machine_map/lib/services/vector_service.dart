@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:cachette/cachette.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
@@ -11,7 +10,6 @@ import 'package:vector_map_tiles/src/style/uri_mapper.dart';
 import 'package:vector_tile_renderer/vector_tile_renderer.dart';
 
 import '../domain/vector_tile_style.dart';
-import 'platform_runner.dart';
 import 'tile_caching_service.dart';
 
 class VectorService {
@@ -163,36 +161,6 @@ class VectorService {
     );
   }
 
-  Future<XFile> renderTile({
-    required int z,
-    required int x,
-    required int y,
-    required double zoom,
-    required VectorTileStyle style,
-    TileRenderCanceller? canceller,
-  }) async {
-    if (canceller?.isCancelled == true) throw 'Tile render cancelled';
-
-    if (await cachingService.isTileCached(z, x, y)) {
-      return cachingService.tileFile(z, x, y);
-    }
-
-    if (canceller?.isCancelled == true) throw 'Tile render cancelled';
-
-    final xfile = await cachingService.tileFile(z, x, y);
-    final result = await renderTileOffThread(
-      z: z, x: x, y: y, zoom: zoom, style: style,
-      outputPath: kIsWeb ? null : xfile.path,
-    );
-
-    if (kIsWeb) {
-      await cachingService.storeTile(z, x, y, await result.readAsBytes());
-    }
-    unawaited(cachingService.reportTileWritten());
-
-    return result;
-  }
-
   Future<ui.Image> renderTileImage({
     required int z,
     required int x,
@@ -248,17 +216,6 @@ class VectorService {
         );
       }
     } catch (_) {}
-  }
-}
-
-/// Allows cancelling an in-progress [VectorService.renderTile] call.
-class TileRenderCanceller {
-  bool _cancelled = false;
-
-  bool get isCancelled => _cancelled;
-
-  void cancel() {
-    _cancelled = true;
   }
 }
 

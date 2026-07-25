@@ -11,10 +11,6 @@ void main() {
     expect(VectorService, isA<Type>());
   });
 
-  test('package exports TileRenderCanceller', () {
-    expect(TileRenderCanceller, isA<Type>());
-  });
-
   test('package exports MapPage', () {
     expect(MapPage, isA<Type>());
   });
