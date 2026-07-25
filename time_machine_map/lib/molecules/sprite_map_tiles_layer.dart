@@ -60,6 +60,7 @@ class SpriteMapTilesLayerState
   Widget _toTile(TileDataModel model) {
     final tilePosition = model.tilePosition;
     return Positioned(
+      key: ValueKey(model.tile.key()),
       left: tilePosition.position.topLeft.dx,
       top: tilePosition.position.topLeft.dy,
       width: tilePosition.position.size.width,

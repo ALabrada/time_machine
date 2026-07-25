@@ -9,7 +9,7 @@ import 'package:path_provider/path_provider.dart';
 
 class TileCachingService {
   final _memoryCache = Cachette<String, ui.Image>(
-    100,
+    10000,
     onEvict: (entry) => entry.value.dispose(),
   );
 
