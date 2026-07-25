@@ -101,9 +101,6 @@ class _VectorTileCanvasLayer extends StatelessWidget {
     if (sprites == null) return (null, null);
     final index = sprites.readContent();
     final image = await sprites.readImage();
-    if (index.spriteByName.isNotEmpty) {
-      vectorService.cachingService.clear();
-    }
     return (index, image);
   }
 

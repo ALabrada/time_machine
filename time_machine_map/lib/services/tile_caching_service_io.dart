@@ -40,7 +40,9 @@ class TileCachingService {
   Future<ui.Image?> tileImage(String serverId, int z, int x, int y) async {
     final key = _tileKey(serverId, z, x, y);
     final cached = _memoryCache[key];
-    if (cached != null) return cached;
+    if (cached != null) {
+      return cached;
+    }
 
     try {
       final file = await _tileFile(serverId, z, x, y);
@@ -52,15 +54,19 @@ class TileCachingService {
           codec.dispose();
           final image = frame.image;
           _memoryCache[key] = image;
+          debugPrint("Tile $key loaded from disk");
           return image;
         }
       }
-    } catch (_) {}
+    } catch (e, trace){
+      debugPrint("Error loading tile: $e in $trace");
+    }
     return null;
   }
 
   Future<void> storeTile(String serverId, int z, int x, int y, ui.Image image) async {
-    _memoryCache[_tileKey(serverId, z, x, y)] = image;
+    final key = _tileKey(serverId, z, x, y);
+    _memoryCache[key] = image;
     unawaited(_cacheToDisk(serverId, z, x, y, image));
   }
 
@@ -72,7 +78,9 @@ class TileCachingService {
         await file.writeAsBytes(byteData.buffer.asUint8List());
         unawaited(_reportTileWritten());
       }
-    } catch (_) {}
+    } catch (e, trace){
+      debugPrint("Error saving tile: $e in $trace");
+    }
   }
 
   Future<bool> isTileCached(String serverId, int z, int x, int y) async {
@@ -90,7 +98,7 @@ class TileCachingService {
     final cacheDir = await cacheDirectory;
     final safeId = serverId.replaceAll(RegExp(r'[^\w\-.]'), '_');
     final dir = Directory('${cacheDir.path}/$safeId/$z/$x');
-    if (!dir.existsSync()) await dir.create(recursive: true);
+    if (!await dir.exists()) await dir.create(recursive: true);
     return File('${dir.path}/$y.png');
   }
 
