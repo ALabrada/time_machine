@@ -72,6 +72,7 @@ class SpriteMapTilesLayerState
         vectorService: widget.vectorService,
         spriteIndex: widget.spriteIndex,
         spriteAtlas: widget.spriteAtlas,
+        scale: MediaQuery.of(context).devicePixelRatio,
       ),
     );
   }

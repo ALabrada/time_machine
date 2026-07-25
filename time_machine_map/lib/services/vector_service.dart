@@ -166,16 +166,18 @@ class VectorService {
     required RasterTileset rasterTileset,
     SpriteIndex? spriteIndex,
     ui.Image? spriteAtlas,
+    double scale = 1.0,
   }) async {
     final cached = await cachingService.tileImage(serverId, z, x, y);
     if (cached != null) return cached;
 
-    final renderer = ImageRenderer(theme: theme, scale: 1.0);
+    final renderer = ImageRenderer(theme: theme, scale: scale);
+    final adjustedSpriteIndex = _adjustedSpriteIndex(spriteIndex, scale);
     final image = await renderer.render(
       TileSource(
         tileset: tileset,
         rasterTileset: rasterTileset,
-        spriteIndex: spriteIndex,
+        spriteIndex: adjustedSpriteIndex,
         spriteAtlas: spriteAtlas,
       ),
       zoom: z.toDouble(),
@@ -188,6 +190,31 @@ class VectorService {
 
 String _invalidStyle(String url) =>
     'Uri does not appear to be a valid style: $url';
+
+SpriteIndex? _adjustedSpriteIndex(SpriteIndex? index, double scale) {
+  if (index == null) return null;
+  final target = scale.ceil();
+  if (index.spriteByName.values.every((s) => s.pixelRatio >= target)) {
+    return index;
+  }
+  return SpriteIndex(Map.fromEntries(
+    index.spriteByName.entries.map((e) {
+      final s = e.value;
+      if (s.pixelRatio >= target) return e;
+      return MapEntry(e.key, Sprite(
+        name: s.name,
+        width: s.width,
+        height: s.height,
+        x: s.x,
+        y: s.y,
+        pixelRatio: target,
+        content: s.content,
+        stretchX: s.stretchX,
+        stretchY: s.stretchY,
+      ));
+    }),
+  ));
+}
 
 class ExtendedStyleUriMapper extends StyleUriMapper {
   static const vkScheme = 'mmr';
@@ -219,10 +246,18 @@ class ExtendedStyleUriMapper extends StyleUriMapper {
     if (parsed.scheme == vkScheme) {
       final jsonUri = parsed.replace(path: '${parsed.path}.json');
       final imageUri = parsed.replace(path: '${parsed.path}.png');
-      return [SpriteUri(
-        json: _toVKUri(_authenticate(jsonUri, timestamp: true)),
-        image: _toVKUri(_authenticate(imageUri, timestamp: true)),
-      )];
+      final json2x = parsed.replace(path: '${parsed.path}@2x.json');
+      final image2x = parsed.replace(path: '${parsed.path}@2x.png');
+      return [
+        SpriteUri(
+          json: _toVKUri(_authenticate(json2x, timestamp: true)),
+          image: _toVKUri(_authenticate(image2x, timestamp: true)),
+        ),
+        SpriteUri(
+          json: _toVKUri(_authenticate(jsonUri, timestamp: true)),
+          image: _toVKUri(_authenticate(imageUri, timestamp: true)),
+        ),
+      ];
     }
     return super.mapSprite(styleUri, spriteUri);
   }

@@ -14,6 +14,7 @@ class SpriteTileWidget extends StatefulWidget {
   final VectorService vectorService;
   final SpriteIndex? spriteIndex;
   final ui.Image? spriteAtlas;
+  final double scale;
 
   SpriteTileWidget({
     required this.serverId,
@@ -22,6 +23,7 @@ class SpriteTileWidget extends StatefulWidget {
     required this.vectorService,
     this.spriteIndex,
     this.spriteAtlas,
+    this.scale = 1.0,
   }) : super(key: Key('tile_${model.tile.key()}'));
 
   @override
@@ -69,6 +71,7 @@ class SpriteTileWidgetState extends State<SpriteTileWidget> {
             model.rasterTileset ?? const RasterTileset(tiles: {}),
         spriteIndex: widget.spriteIndex,
         spriteAtlas: widget.spriteAtlas,
+        scale: widget.scale,
       );
 
       if (!mounted || generation != _generation) return;
