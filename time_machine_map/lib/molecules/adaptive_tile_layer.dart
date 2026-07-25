@@ -75,7 +75,7 @@ class AdaptiveTileLayer extends StatelessWidget {
   }
 }
 
-class _VectorTileCanvasLayer extends StatefulWidget {
+class _VectorTileCanvasLayer extends StatelessWidget {
   final String serverId;
   final VectorTileStyle style;
   final TileOffset tileOffset;
@@ -96,91 +96,65 @@ class _VectorTileCanvasLayer extends StatefulWidget {
     required this.vectorService,
   });
 
-  @override
-  State<_VectorTileCanvasLayer> createState() => _VectorTileCanvasLayerState();
-}
-
-class _VectorTileCanvasLayerState extends State<_VectorTileCanvasLayer> {
-  SpriteIndex? _spriteIndex;
-  ui.Image? _spriteAtlas;
-  bool _loadingSprites = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSprites();
-  }
-
-  @override
-  void didUpdateWidget(covariant _VectorTileCanvasLayer oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.style != widget.style) {
-      _loadingSprites = true;
-      _loadSprites();
+  Future<(SpriteIndex?, ui.Image?)> _loadSprites() async {
+    final sprites = style.sprites;
+    if (sprites == null) return (null, null);
+    final index = sprites.readContent();
+    final image = await sprites.readImage();
+    if (index.spriteByName.isNotEmpty) {
+      vectorService.cachingService.clear();
     }
-  }
-
-  Future<void> _loadSprites() async {
-    final sprites = widget.style.sprites;
-    if (sprites != null) {
-      try {
-        final index = sprites.readContent();
-        final image = await sprites.readImage();
-        if (mounted) {
-          spritesLoaded(index, image);
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() => _loadingSprites = false);
-        }
-      }
-    } else {
-      if (mounted) setState(() => _loadingSprites = false);
-    }
-  }
-
-  void spritesLoaded(SpriteIndex index, ui.Image image) {
-    widget.vectorService.cachingService.clear();
-    setState(() {
-      _spriteIndex = index;
-      _spriteAtlas = image;
-      _loadingSprites = false;
-    });
+    return (index, image);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loadingSprites) {
-      return const LoadingView();
-    }
-    final theme = widget.style.readTheme();
-    final tileProviders = TileProviders({
-      for (final entry in widget.style.sources.entries)
-        entry.key: NetworkVectorTileProvider(
-          type: TileProviderType.values.firstWhere(
-            (v) => v.name == entry.value.type,
+    final hasSprites = style.sprites != null;
+    final future = hasSprites
+        ? _loadSprites()
+        : Future<(SpriteIndex?, ui.Image?)>.value((null, null));
+
+    return FutureBuilder<(SpriteIndex?, ui.Image?)>(
+      future: future,
+      builder: (context, snapshot) {
+        if (hasSprites && snapshot.connectionState == ConnectionState.waiting) {
+          return const LoadingView();
+        }
+
+        final spriteIndex = snapshot.data?.$1;
+        final spriteAtlas = snapshot.data?.$2;
+
+        final theme = style.readTheme();
+        final tileProviders = TileProviders({
+          for (final entry in style.sources.entries)
+            entry.key: NetworkVectorTileProvider(
+              type: TileProviderType.values.firstWhere(
+                (v) => v.name == entry.value.type,
+              ),
+              urlTemplate: entry.value.urlTemplate,
+              maximumZoom: entry.value.maximumZoom,
+              minimumZoom: entry.value.minimumZoom,
+            ),
+        });
+
+        return SpriteMapTilesLayer(
+          serverId: serverId,
+          mapProperties: MapProperties(
+            tileProviders: tileProviders,
+            theme: theme,
+            tileOffset: tileOffset,
+            concurrency: concurrency,
+            cacheProperties: CacheProperties(
+              fileCacheTtl: fileCacheTtl,
+              fileCacheMaximumSizeInBytes: fileCacheMaximumSizeInBytes,
+              cacheFolder: cacheFolder,
+            ),
           ),
-          urlTemplate: entry.value.urlTemplate,
-          maximumZoom: entry.value.maximumZoom,
-          minimumZoom: entry.value.minimumZoom,
-        ),
-    });
-    return SpriteMapTilesLayer(
-      serverId: widget.serverId,
-      mapProperties: MapProperties(
-        tileProviders: tileProviders,
-        theme: theme,
-        tileOffset: widget.tileOffset,
-        concurrency: widget.concurrency,
-        cacheProperties: CacheProperties(
-          fileCacheTtl: widget.fileCacheTtl,
-          fileCacheMaximumSizeInBytes: widget.fileCacheMaximumSizeInBytes,
-          cacheFolder: widget.cacheFolder,
-        ),
-      ),
-      spriteIndex: _spriteIndex,
-      spriteAtlas: _spriteAtlas,
-      vectorService: widget.vectorService,
+          spriteIndex: spriteIndex,
+          spriteAtlas: spriteAtlas,
+          vectorService: vectorService,
+        );
+      },
     );
   }
 }
