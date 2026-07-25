@@ -1,0 +1,87 @@
+name: Retry Upload to Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to upload assets to'
+        required: true
+        type: string
+      platform:
+        description: 'Platform to build'
+        required: true
+        type: choice
+        options:
+          - android
+          - ios
+          - both
+
+jobs:
+  get-release-url:
+    name: Get Release Upload URL
+    runs-on: self-hosted
+    outputs:
+      upload_url: ${{ steps.get_release.outputs.upload_url }}
+    steps:
+      - name: Get Release by Tag
+        id: get_release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: release } = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: '${{ github.event.inputs.tag }}'
+            });
+            return release.upload_url;
+      
+  build-android:
+    name: Build Android APK
+    if: github.event.inputs.platform == 'android' || github.event.inputs.platform == 'both'
+    needs: get-release-url
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - name: Upload APK to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.get-release-url.outputs.upload_url }}
+          asset_path: build/app/outputs/flutter-apk/app-release.apk
+          asset_name: Android.apk
+          asset_content_type: application/vnd.android.package-archive
+
+  build-ios:
+    name: Build iOS IPA (Unsigned)
+    if: github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both'
+    needs: get-release-url
+    runs-on: [self-hosted, macOS]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+      - run: flutter pub get
+      - name: Build iOS (unsigned)
+        run: flutter build ios --release --no-codesign
+      - name: Package as IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/ios/iphoneos/Runner.app build/Payload/
+          cd build
+          zip -r Runner.ipa Payload/
+      - name: Upload IPA to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.get-release-url.outputs.upload_url }}
+          asset_path: build/Runner.ipa
+          asset_name: iOS.ipa
+          asset_content_type: application/octet-stream
