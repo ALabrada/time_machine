@@ -134,6 +134,10 @@ class TimeMachineApp extends StatelessWidget {
                 'OSM': OsmSearchEngine(
                   userAgent: userAgent!,
                 ),
+              'VKMaps': VKMapsGeocoder(
+                userAgent: userAgent,
+                apiKey: secrets.VK_MAPS_API_KEY,
+              ),
               'Geonames': GeonamesGeocoder(
                 userAgent: userAgent,
                 userName: 'historylens',

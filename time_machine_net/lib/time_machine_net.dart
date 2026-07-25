@@ -10,4 +10,5 @@ export 'services/pastvu_provider.dart';
 export 'services/retro_photos_provider.dart';
 export 'services/russia_in_photo_provider.dart';
 export 'services/sepia_town_provider.dart';
+export 'services/vkmaps_geocoder.dart';
 export 'services/yandex_geocoder.dart';
