@@ -1,11 +1,22 @@
-import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:time_machine_map/services/tile_caching_service_stub.dart';
 
+Future<ui.Image> _createTestImage() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawColor(const ui.Color(0xFFFF0000), ui.BlendMode.src);
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(1, 1);
+  picture.dispose();
+  return image;
+}
+
 void main() {
   group('TileCachingService', () {
     late TileCachingService service;
+    const serverId = 'test_server';
 
     setUp(() {
       service = TileCachingService(
@@ -30,103 +41,93 @@ void main() {
     });
 
     test('isTileCached returns false for uncached tile', () async {
-      expect(await service.isTileCached(0, 0, 0), isFalse);
-      expect(await service.isTileCached(10, 100, 200), isFalse);
+      expect(await service.isTileCached(serverId, 0, 0, 0), isFalse);
+      expect(await service.isTileCached(serverId, 10, 100, 200), isFalse);
     });
 
     test('isTileCached returns true after storeTile', () async {
-      await service.storeTile(1, 2, 3, Uint8List.fromList([1, 2, 3]));
-      expect(await service.isTileCached(1, 2, 3), isTrue);
+      final image = await _createTestImage();
+      await service.storeTile(serverId, 1, 2, 3, image);
+      expect(await service.isTileCached(serverId, 1, 2, 3), isTrue);
+      image.dispose();
     });
 
-    test('tileFile returns stored bytes', () async {
-      final bytes = Uint8List.fromList([10, 20, 30, 40, 50]);
-      await service.storeTile(5, 10, 15, bytes);
-
-      final file = await service.tileFile(5, 10, 15);
-      expect(await file.readAsBytes(), bytes);
+    test('tileImage returns null for uncached tile', () async {
+      expect(await service.tileImage(serverId, 7, 14, 21), isNull);
     });
 
-    test('tileFile returns XFile with empty bytes for uncached tile', () async {
-      final file = await service.tileFile(7, 14, 21);
-      expect(await file.readAsBytes(), Uint8List(0));
+    test('tileImage returns stored image', () async {
+      final image = await _createTestImage();
+      await service.storeTile(serverId, 5, 10, 15, image);
+
+      final result = await service.tileImage(serverId, 5, 10, 15);
+      expect(result, isA<ui.Image>());
+      expect(result, same(image));
     });
 
     test('multiple tiles are stored and retrieved independently', () async {
-      await service.storeTile(1, 1, 1, Uint8List.fromList([11]));
-      await service.storeTile(1, 1, 2, Uint8List.fromList([12]));
-      await service.storeTile(2, 1, 1, Uint8List.fromList([21]));
+      final image1 = await _createTestImage();
+      final image2 = await _createTestImage();
+      final image3 = await _createTestImage();
 
-      expect(await service.isTileCached(1, 1, 1), isTrue);
-      expect(await service.isTileCached(1, 1, 2), isTrue);
-      expect(await service.isTileCached(2, 1, 1), isTrue);
-      expect(await service.isTileCached(1, 2, 1), isFalse);
+      await service.storeTile(serverId, 1, 1, 1, image1);
+      await service.storeTile(serverId, 1, 1, 2, image2);
+      await service.storeTile(serverId, 2, 1, 1, image3);
 
-      expect(await (await service.tileFile(1, 1, 1)).readAsBytes(), [11]);
-      expect(await (await service.tileFile(1, 1, 2)).readAsBytes(), [12]);
-      expect(await (await service.tileFile(2, 1, 1)).readAsBytes(), [21]);
+      expect(await service.isTileCached(serverId, 1, 1, 1), isTrue);
+      expect(await service.isTileCached(serverId, 1, 1, 2), isTrue);
+      expect(await service.isTileCached(serverId, 2, 1, 1), isTrue);
+      expect(await service.isTileCached(serverId, 1, 2, 1), isFalse);
+
+      expect(await service.tileImage(serverId, 1, 1, 1), same(image1));
+      expect(await service.tileImage(serverId, 1, 1, 2), same(image2));
+      expect(await service.tileImage(serverId, 2, 1, 1), same(image3));
+
+      image1.dispose();
+      image2.dispose();
+      image3.dispose();
     });
 
-    test('storeTile overwrites existing tile bytes', () async {
-      await service.storeTile(3, 6, 9, Uint8List.fromList([1, 2, 3]));
-      await service.storeTile(3, 6, 9, Uint8List.fromList([4, 5, 6]));
-      expect(await (await service.tileFile(3, 6, 9)).readAsBytes(), [4, 5, 6]);
+    test('storeTile overwrites existing tile', () async {
+      final image1 = await _createTestImage();
+      final image2 = await _createTestImage();
+
+      await service.storeTile(serverId, 3, 6, 9, image1);
+      await service.storeTile(serverId, 3, 6, 9, image2);
+
+      expect(await service.tileImage(serverId, 3, 6, 9), same(image2));
+
+      image1.dispose();
+      image2.dispose();
     });
 
     test('clear removes all cached tiles', () async {
-      await service.storeTile(1, 2, 3, Uint8List.fromList([1, 2, 3]));
-      await service.storeTile(4, 5, 6, Uint8List.fromList([4, 5, 6]));
+      final image1 = await _createTestImage();
+      final image2 = await _createTestImage();
+
+      await service.storeTile(serverId, 1, 2, 3, image1);
+      await service.storeTile(serverId, 4, 5, 6, image2);
       await service.clear();
 
-      expect(await service.isTileCached(1, 2, 3), isFalse);
-      expect(await service.isTileCached(4, 5, 6), isFalse);
+      expect(await service.isTileCached(serverId, 1, 2, 3), isFalse);
+      expect(await service.isTileCached(serverId, 4, 5, 6), isFalse);
+
+      image1.dispose();
+      image2.dispose();
     });
 
-    test('clear resets write count so reportTileWritten takes 20 more calls to trigger evict', () async {
-      for (int i = 0; i < 19; i++) {
-        await service.reportTileWritten();
-      }
+    test('different server IDs are stored separately', () async {
+      final imageA = await _createTestImage();
+      final imageB = await _createTestImage();
 
-      await service.clear();
+      await service.storeTile('server_a', 1, 2, 3, imageA);
+      await service.storeTile('server_b', 1, 2, 3, imageB);
 
-      await service.storeTile(0, 0, 0, Uint8List.fromList([0]));
+      expect(await service.tileImage('server_a', 1, 2, 3), same(imageA));
+      expect(await service.tileImage('server_b', 1, 2, 3), same(imageB));
 
-      for (int i = 0; i < 19; i++) {
-        await service.reportTileWritten();
-      }
-
-      expect(await service.isTileCached(0, 0, 0), isTrue);
-    });
-
-    test('evict is safe on empty cache', () async {
-      await service.evict();
-    });
-
-    test('evict does not remove entries when cache is under limit', () async {
-      for (int i = 0; i < 10; i++) {
-        await service.storeTile(0, 0, i, Uint8List.fromList([i]));
-      }
-      await service.evict();
-      for (int i = 0; i < 10; i++) {
-        expect(await service.isTileCached(0, 0, i), isTrue);
-      }
-    });
-
-    test('reportTileWritten does not trigger eviction before threshold', () async {
-      for (int i = 0; i < 19; i++) {
-        final before = service.isTileCached(0, 0, 0);
-        await service.reportTileWritten();
-      }
-    });
-
-    test('reportTileWritten resets writeCount and triggers evict on 20th call', () async {
-      await service.storeTile(0, 0, 0, Uint8List.fromList([42]));
-
-      for (int i = 0; i < 20; i++) {
-        await service.reportTileWritten();
-      }
-
-      expect(await service.isTileCached(0, 0, 0), isTrue);
+      imageA.dispose();
+      imageB.dispose();
     });
   });
 }

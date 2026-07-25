@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
-import 'package:cross_file/cross_file.dart';
 import 'package:vector_tile_renderer/vector_tile_renderer.dart';
 
 import 'package:dio/dio.dart';
@@ -394,6 +394,7 @@ void main() {
         );
         try {
           await s.renderTileImage(
+            serverId: 'test',
             z: 5,
             x: 10,
             y: 15,
@@ -411,9 +412,6 @@ void main() {
 
 class _TileNotCachedService extends TileCachingService {
   @override
-  Future<bool> isTileCached(int z, int x, int y) => Future.value(false);
-
-  @override
-  Future<XFile> tileFile(int z, int x, int y) =>
-      Future.error('not cached');
+  Future<ui.Image?> tileImage(String serverId, int z, int x, int y) async =>
+      null;
 }

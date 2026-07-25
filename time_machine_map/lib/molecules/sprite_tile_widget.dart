@@ -8,6 +8,7 @@ import 'package:vector_tile_renderer/vector_tile_renderer.dart';
 import '../services/vector_service.dart';
 
 class SpriteTileWidget extends StatefulWidget {
+  final String serverId;
   final TileDataModel model;
   final MapProperties mapProperties;
   final VectorService vectorService;
@@ -15,6 +16,7 @@ class SpriteTileWidget extends StatefulWidget {
   final ui.Image? spriteAtlas;
 
   SpriteTileWidget({
+    required this.serverId,
     required this.model,
     required this.mapProperties,
     required this.vectorService,
@@ -57,6 +59,7 @@ class SpriteTileWidgetState extends State<SpriteTileWidget> {
 
     try {
       final image = await widget.vectorService.renderTileImage(
+        serverId: widget.serverId,
         z: model.tile.z,
         x: model.tile.x,
         y: model.tile.y,

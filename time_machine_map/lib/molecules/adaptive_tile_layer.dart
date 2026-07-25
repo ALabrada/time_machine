@@ -61,6 +61,7 @@ class AdaptiveTileLayer extends StatelessWidget {
           return const SizedBox.shrink();
         }
         return _VectorTileCanvasLayer(
+          serverId: tileServer.url,
           style: style,
           tileOffset: tileOffset,
           concurrency: concurrency,
@@ -75,6 +76,7 @@ class AdaptiveTileLayer extends StatelessWidget {
 }
 
 class _VectorTileCanvasLayer extends StatefulWidget {
+  final String serverId;
   final VectorTileStyle style;
   final TileOffset tileOffset;
   final int concurrency;
@@ -84,6 +86,7 @@ class _VectorTileCanvasLayer extends StatefulWidget {
   final VectorService vectorService;
 
   const _VectorTileCanvasLayer({
+    required this.serverId,
     required this.style,
     required this.tileOffset,
     this.concurrency = 4,
@@ -158,6 +161,7 @@ class _VectorTileCanvasLayerState extends State<_VectorTileCanvasLayer> {
         ),
     });
     return SpriteMapTilesLayer(
+      serverId: widget.serverId,
       mapProperties: MapProperties(
         tileProviders: tileProviders,
         theme: theme,

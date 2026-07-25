@@ -10,12 +10,14 @@ import '../services/vector_service.dart';
 import 'sprite_tile_widget.dart';
 
 class SpriteMapTilesLayer extends AbstractMapLayer {
+  final String serverId;
   final SpriteIndex? spriteIndex;
   final ui.Image? spriteAtlas;
   final VectorService vectorService;
 
   const SpriteMapTilesLayer({
     super.key,
+    required this.serverId,
     required super.mapProperties,
     this.spriteIndex,
     this.spriteAtlas,
@@ -63,6 +65,7 @@ class SpriteMapTilesLayerState
       width: tilePosition.position.size.width,
       height: tilePosition.position.size.height,
       child: SpriteTileWidget(
+        serverId: widget.serverId,
         mapProperties: widget.mapProperties,
         model: model,
         vectorService: widget.vectorService,

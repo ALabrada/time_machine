@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 
-import 'package:cachette/cachette.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
@@ -17,10 +16,6 @@ class VectorService {
   final String vkApiKey;
   final _styleCache = <String, VectorTileStyle>{};
   final TileCachingService cachingService;
-  final _tileImageCache = Cachette<String, ui.Image>(
-    100,
-    onEvict: (entry) => entry.value.dispose(),
-  );
 
   VectorService({
     required this.vkApiKey,
@@ -162,6 +157,7 @@ class VectorService {
   }
 
   Future<ui.Image> renderTileImage({
+    required String serverId,
     required int z,
     required int x,
     required int y,
@@ -171,24 +167,8 @@ class VectorService {
     SpriteIndex? spriteIndex,
     ui.Image? spriteAtlas,
   }) async {
-    final key = '$z/$x/$y';
-
-    final cached = _tileImageCache[key];
+    final cached = await cachingService.tileImage(serverId, z, x, y);
     if (cached != null) return cached;
-
-    final diskCached = await cachingService.isTileCached(z, x, y);
-    if (diskCached) {
-      try {
-        final xfile = await cachingService.tileFile(z, x, y);
-        final bytes = await xfile.readAsBytes();
-        final codec = await ui.instantiateImageCodec(bytes);
-        final frame = await codec.getNextFrame();
-        codec.dispose();
-        final image = frame.image;
-        _tileImageCache[key] = image;
-        return image;
-      } catch (_) {}
-    }
 
     final renderer = ImageRenderer(theme: theme, scale: 1.0);
     final image = await renderer.render(
@@ -201,21 +181,8 @@ class VectorService {
       zoom: z.toDouble(),
     );
 
-    _tileImageCache[key] = image;
-    unawaited(_cacheTileImage(z, x, y, image));
-
+    unawaited(cachingService.storeTile(serverId, z, x, y, image));
     return image;
-  }
-
-  Future<void> _cacheTileImage(int z, int x, int y, ui.Image image) async {
-    try {
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData != null) {
-        await cachingService.storeTile(
-          z, x, y, byteData.buffer.asUint8List(),
-        );
-      }
-    } catch (_) {}
   }
 }
 

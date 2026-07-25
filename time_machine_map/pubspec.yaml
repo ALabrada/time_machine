@@ -25,7 +25,6 @@ dependencies:
   adaptive_action_sheet: 2.0.3
   cachette: ^1.0.0
   cached_network_image: ^3.4.1
-  cross_file: any
   dio: ^5.7.0
   flutter_map: ^8.3.1
   flutter_map_cancellable_tile_provider: ^3.1.0

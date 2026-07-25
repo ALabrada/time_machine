@@ -1,12 +1,18 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
-import 'package:cross_file/cross_file.dart';
+import 'package:cachette/cachette.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 class TileCachingService {
+  final _memoryCache = Cachette<String, ui.Image>(
+    100,
+    onEvict: (entry) => entry.value.dispose(),
+  );
+
   TileCachingService({
     this.fileCacheMaximumSizeInBytes = 100 * 1024 * 1024,
     this.fileCacheTtl = const Duration(days: 30),
@@ -31,32 +37,71 @@ class TileCachingService {
     return dir;
   }
 
-  Future<XFile> tileFile(int z, int x, int y) async {
-    final cacheDir = await cacheDirectory;
-    final dir = Directory('${cacheDir.path}/$z/$x');
-    if (!dir.existsSync()) await dir.create(recursive: true);
-    return XFile('${dir.path}/$y.png');
+  Future<ui.Image?> tileImage(String serverId, int z, int x, int y) async {
+    final key = _tileKey(serverId, z, x, y);
+    final cached = _memoryCache[key];
+    if (cached != null) return cached;
+
+    try {
+      final file = await _tileFile(serverId, z, x, y);
+      if (await file.exists()) {
+        final bytes = await file.readAsBytes();
+        if (bytes.isNotEmpty) {
+          final codec = await ui.instantiateImageCodec(bytes);
+          final frame = await codec.getNextFrame();
+          codec.dispose();
+          final image = frame.image;
+          _memoryCache[key] = image;
+          return image;
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
-  Future<bool> isTileCached(int z, int x, int y) async {
-    final cacheDir = await cacheDirectory;
-    final file = File('${cacheDir.path}/$z/$x/$y.png');
-    return await file.exists() && await file.length() > 0;
+  Future<void> storeTile(String serverId, int z, int x, int y, ui.Image image) async {
+    _memoryCache[_tileKey(serverId, z, x, y)] = image;
+    unawaited(_cacheToDisk(serverId, z, x, y, image));
   }
 
-  Future<void> storeTile(int z, int x, int y, Uint8List bytes) async {
-    final xfile = await tileFile(z, x, y);
-    await File(xfile.path).writeAsBytes(bytes);
+  Future<void> _cacheToDisk(String serverId, int z, int x, int y, ui.Image image) async {
+    try {
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData != null) {
+        final file = await _tileFile(serverId, z, x, y);
+        await file.writeAsBytes(byteData.buffer.asUint8List());
+        unawaited(_reportTileWritten());
+      }
+    } catch (_) {}
   }
 
-  Future<void> reportTileWritten() async {
-    if (++_writeCount >= _cleanupInterval) {
-      _writeCount = 0;
-      unawaited(evict());
+  Future<bool> isTileCached(String serverId, int z, int x, int y) async {
+    final key = _tileKey(serverId, z, x, y);
+    if (_memoryCache.containsKey(key)) return true;
+    try {
+      final file = await _tileFile(serverId, z, x, y);
+      return await file.exists() && await file.length() > 0;
+    } catch (_) {
+      return false;
     }
   }
 
-  Future<void> evict() async {
+  Future<File> _tileFile(String serverId, int z, int x, int y) async {
+    final cacheDir = await cacheDirectory;
+    final safeId = serverId.replaceAll(RegExp(r'[^\w\-.]'), '_');
+    final dir = Directory('${cacheDir.path}/$safeId/$z/$x');
+    if (!dir.existsSync()) await dir.create(recursive: true);
+    return File('${dir.path}/$y.png');
+  }
+
+  Future<void> _reportTileWritten() async {
+    if (++_writeCount >= _cleanupInterval) {
+      _writeCount = 0;
+      unawaited(_evict());
+    }
+  }
+
+  Future<void> _evict() async {
     try {
       final dir = await cacheDirectory;
       final allFiles = <FileSystemEntity>[];
@@ -101,6 +146,7 @@ class TileCachingService {
   }
 
   Future<void> clear() async {
+    _memoryCache.clear();
     try {
       final dir = await cacheDirectory;
       if (await dir.exists()) {
@@ -128,4 +174,7 @@ class TileCachingService {
       }
     } catch (_) {}
   }
+
+  static String _tileKey(String serverId, int z, int x, int y) =>
+      '$serverId/$z/$x/$y';
 }
