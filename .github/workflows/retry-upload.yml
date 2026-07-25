@@ -42,6 +42,8 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: true
 
       - name: Create secrets file
         run: echo '${{ secrets.LIB_SECRETS }}' > lib/secrets.dart
@@ -68,6 +70,8 @@ jobs:
     runs-on: [self-hosted, macOS]
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: true
 
       - name: Create secrets file
         run: echo '${{ secrets.LIB_SECRETS }}' > lib/secrets.dart
