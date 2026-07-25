@@ -127,11 +127,7 @@ class _VectorTileCanvasLayerState extends State<_VectorTileCanvasLayer> {
         final index = sprites.readContent();
         final image = await sprites.readImage();
         if (mounted) {
-          setState(() {
-            _spriteIndex = index;
-            _spriteAtlas = image;
-            _loadingSprites = false;
-          });
+          spritesLoaded(index, image);
         }
       } catch (e) {
         if (mounted) {
@@ -141,6 +137,15 @@ class _VectorTileCanvasLayerState extends State<_VectorTileCanvasLayer> {
     } else {
       if (mounted) setState(() => _loadingSprites = false);
     }
+  }
+
+  void spritesLoaded(SpriteIndex index, ui.Image image) {
+    widget.vectorService.cachingService.clear();
+    setState(() {
+      _spriteIndex = index;
+      _spriteAtlas = image;
+      _loadingSprites = false;
+    });
   }
 
   @override
