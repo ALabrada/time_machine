@@ -51,15 +51,25 @@ class VectorTileSource {
 /// Recursively replace unsupported expressions in JSON.
 /// Converts [boolean, input, fallback] → input
 /// Converts [feature-state, prop] → [get, prop]
+/// Converts [interpolate, [exponential, base], ...] → [interpolate, [linear], ...]
+///   when stop outputs are color strings (exponential doesn't handle non-numeric outputs).
 dynamic _patchUnsupported(dynamic node) {
   if (node is List) {
     if (node.isNotEmpty && node[0] == 'boolean' && node.length == 3) {
-      // [boolean, input, fallback] → just use the input directly
       return _patchUnsupported(node[1]);
     }
     if (node.isNotEmpty && node[0] == 'feature-state' && node.length == 2) {
-      // [feature-state, prop] → [get, prop]
       return ['get', _patchUnsupported(node[1])];
+    }
+    if (node.length >= 4 &&
+        node[0] == 'interpolate' &&
+        node[1] is List &&
+        node[1].length >= 2 &&
+        node[1][0] == 'exponential' &&
+        _hasColorOutputs(node)) {
+      final patched = [...node];
+      patched[1] = ['linear'];
+      return patched.map(_patchUnsupported).toList(growable: false);
     }
     return node.map(_patchUnsupported).toList(growable: false);
   }
@@ -69,6 +79,18 @@ dynamic _patchUnsupported(dynamic node) {
   return node;
 }
 
+bool _hasColorOutputs(List node) {
+  for (int i = 3; i + 1 < node.length; i += 2) {
+    final output = node[i + 1];
+    if (output is String && _isColorString(output)) return true;
+  }
+  return false;
+}
+
+bool _isColorString(String s) {
+  return s.startsWith('#') || s.startsWith('rgb') || s.startsWith('hsl');
+}
+
 
 extension StyleExtensions on VectorTileStyle {
   Theme readTheme() {
@@ -76,12 +98,22 @@ extension StyleExtensions on VectorTileStyle {
     final patched = Map<String, dynamic>.from(theme);
     patched['layers'] = (patched['layers'] as List<dynamic>)
         .map((layer) {
-          final patched = _patchUnsupported(layer);
-          // Ensure all symbol layers have a paint section
-          if (patched is Map<String, dynamic> &&
-              patched['type'] == 'symbol' &&
-              patched['paint'] == null) {
-            patched['paint'] = <String, dynamic>{};
+          var patched = _patchUnsupported(layer);
+          if (patched is Map<String, dynamic>) {
+            // Ensure all symbol layers have a paint section
+            if (patched['type'] == 'symbol' && patched['paint'] == null) {
+              patched['paint'] = <String, dynamic>{};
+            }
+            // FillRenderer doesn't convert pixel widths to tile space,
+            // so the default 0.1 tile-unit outline width (~0.006px) is invisible.
+            // Set to 16 tile units (~1px at 256/4096) when outline color exists.
+            if (patched['type'] == 'fill' && patched['paint'] is Map) {
+              final paint = patched['paint'] as Map;
+              if (paint['fill-outline-color'] != null &&
+                  paint['fill-outline-width'] == null) {
+                paint['fill-outline-width'] = 16;
+              }
+            }
           }
           return patched;
         })

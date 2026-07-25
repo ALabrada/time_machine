@@ -22,7 +22,7 @@ dynamic _patchUnsupported(dynamic node) {
 
 void main() {
   test('parse main_style.json with ThemeReader (patched)', () {
-    final file = File('/home/alexei/Escritorio/main_style.json');
+    final file = File('test/assets/main_style.json');
     final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
 
     final layers = json['layers'] as List<dynamic>;
