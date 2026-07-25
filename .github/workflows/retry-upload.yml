@@ -46,10 +46,16 @@ jobs:
           submodules: true
 
       - name: Create secrets file
-        run: echo '${{ secrets.LIB_SECRETS }}' > lib/secrets.dart
+        run: |
+          cat << 'EOF' > lib/secrets.dart
+          ${{ secrets.LIB_SECRETS }}
+          EOF
       
       - name: Create android key properties
-        run: echo '${{ secrets.ANDROID_KEY }}' > android/key.properties
+        run: |
+          cat << 'EOF' > android/key.properties
+          ${{ secrets.ANDROID_KEY }}
+          EOF
 
       - run: flutter pub get
       - run: flutter build apk --release
@@ -74,7 +80,10 @@ jobs:
           submodules: true
 
       - name: Create secrets file
-        run: echo '${{ secrets.LIB_SECRETS }}' > lib/secrets.dart
+        run: |
+          cat << 'EOF' > lib/secrets.dart
+          ${{ secrets.LIB_SECRETS }}
+          EOF
 
       - run: flutter pub get
       - name: Build iOS (unsigned)
