@@ -73,9 +73,10 @@ extension StyleExtensions on VectorTileStyle {
 extension SpriteExtensions on VectorSpriteStyle {
   SpriteIndex readContent() => SpriteIndexReader().read(content);
 
-  Future<ui.Image> readImage() {
-    final completer = Completer<ui.Image>();
-    ui.decodeImageFromList(atlas, (image) => completer.complete(image));
-    return completer.future;
+  Future<ui.Image> readImage() async {
+    final codec = await ui.instantiateImageCodec(atlas);
+    final frame = await codec.getNextFrame();
+    codec.dispose();
+    return frame.image;
   }
 }

@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
+import 'package:cachette/cachette.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:vector_map_tiles/src/style/uri_mapper.dart';
+import 'package:vector_tile_renderer/vector_tile_renderer.dart';
 
 import '../domain/vector_tile_style.dart';
 import 'platform_runner.dart';
@@ -16,6 +19,10 @@ class VectorService {
   final String vkApiKey;
   final _styleCache = <String, VectorTileStyle>{};
   final TileCachingService cachingService;
+  final _tileImageCache = Cachette<String, ui.Image>(
+    100,
+    onEvict: (entry) => entry.value.dispose(),
+  );
 
   VectorService({
     required this.vkApiKey,
@@ -184,6 +191,63 @@ class VectorService {
     unawaited(cachingService.reportTileWritten());
 
     return result;
+  }
+
+  Future<ui.Image> renderTileImage({
+    required int z,
+    required int x,
+    required int y,
+    required Theme theme,
+    required Tileset tileset,
+    required RasterTileset rasterTileset,
+    SpriteIndex? spriteIndex,
+    ui.Image? spriteAtlas,
+  }) async {
+    final key = '$z/$x/$y';
+
+    final cached = _tileImageCache[key];
+    if (cached != null) return cached;
+
+    final diskCached = await cachingService.isTileCached(z, x, y);
+    if (diskCached) {
+      try {
+        final xfile = await cachingService.tileFile(z, x, y);
+        final bytes = await xfile.readAsBytes();
+        final codec = await ui.instantiateImageCodec(bytes);
+        final frame = await codec.getNextFrame();
+        codec.dispose();
+        final image = frame.image;
+        _tileImageCache[key] = image;
+        return image;
+      } catch (_) {}
+    }
+
+    final renderer = ImageRenderer(theme: theme, scale: 1.0);
+    final image = await renderer.render(
+      TileSource(
+        tileset: tileset,
+        rasterTileset: rasterTileset,
+        spriteIndex: spriteIndex,
+        spriteAtlas: spriteAtlas,
+      ),
+      zoom: z.toDouble(),
+    );
+
+    _tileImageCache[key] = image;
+    unawaited(_cacheTileImage(z, x, y, image));
+
+    return image;
+  }
+
+  Future<void> _cacheTileImage(int z, int x, int y, ui.Image image) async {
+    try {
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData != null) {
+        await cachingService.storeTile(
+          z, x, y, byteData.buffer.asUint8List(),
+        );
+      }
+    } catch (_) {}
   }
 }
 

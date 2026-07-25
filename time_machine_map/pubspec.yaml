@@ -23,6 +23,7 @@ dependencies:
     path: ../time_machine_res
 
   adaptive_action_sheet: 2.0.3
+  cachette: ^1.0.0
   cached_network_image: ^3.4.1
   cross_file: any
   dio: ^5.7.0
