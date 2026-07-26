@@ -125,9 +125,9 @@ extension RecordRepository on Repository<Record> {
     DateTime? since,
   }) async {
     final finder = Finder(
-      filter: since == null ? null : Filter.greaterThan('updatedAt', since),
+      filter: since == null ? null : Filter.greaterThan('updateAt', since),
       sortOrders: [
-        SortOrder('updatedAt', false),
+        SortOrder('updateAt', false),
       ],
     );
     final result = await find(finder);

@@ -5,36 +5,46 @@ import 'package:time_machine_db/time_machine_db.dart';
 
 class CloudSyncService {
   final DatabaseService db;
+  final _eventQueue = <RepositoryEvent>[];
 
   CloudSyncProvider? _provider;
   StreamSubscription? _cloudSubscription;
+  StreamSubscription? _eventSubscription;
   DateTime? _lastChange;
   bool _syncInProgress = false;
   bool _hasPendingChanges = false;
+    bool _disposed = false;
+  bool _processingEvents = false;
 
   bool get isActive => _provider != null;
 
   CloudSyncService({required this.db}) {
-    unawaited(_processEvents(db.events));
+    _eventSubscription = db.events.listen(_onEvent);
+  }
+
+  Future<void> dispose() async {
+    _disposed = true;
+    _eventSubscription?.cancel();
+    _cloudSubscription?.cancel();
+    await Future<void>.delayed(Duration.zero);
   }
 
   Future<void> setProvider(CloudSyncProvider? provider) async {
     _cloudSubscription?.cancel();
+    _cloudSubscription = null;
     _provider = provider;
     _lastChange = null;
 
-    if (provider != null && provider.supportsEvents) {
-      _cloudSubscription = provider.changes.listen((_) => syncWithCloud());
-    }
-
-    syncWithCloud();
+    await syncWithCloud();
   }
 
   Future<void> syncWithCloud() async {
-    if (_syncInProgress) {
+    if (_syncInProgress || _processingEvents) {
       return;
     }
     _syncInProgress = true;
+    _cloudSubscription?.cancel();
+    _cloudSubscription = null;
 
     try {
       final dt = _lastChange;
@@ -52,7 +62,7 @@ class CloudSyncService {
           await pushRecord(record);
         } else {
           final incomingRecord = incomingRecords.where((e) => e.cloudId == record.cloudId).firstOrNull;
-          if (incomingRecord != null && record.updateAt.isAfter(incomingRecord.updateAt)) {
+          if (incomingRecord == null || record.updateAt.isAfter(incomingRecord.updateAt)) {
             await pushRecord(record);
           }
         }
@@ -70,11 +80,26 @@ class CloudSyncService {
     if (_hasPendingChanges) {
       _hasPendingChanges = false;
       unawaited(syncWithCloud());
+    } else {
+      final provider = _provider;
+      if (provider != null && provider.supportsEvents) {
+        _cloudSubscription = provider.changes.listen((_) => syncWithCloud());
+      }
     }
   }
 
-  Future<void> _processEvents(Stream<RepositoryEvent> events) async {
-    await for (final event in events) {
+  void _onEvent(RepositoryEvent event) {
+    _eventQueue.add(event);
+    if (!_processingEvents) {
+      _processingEvents = true;
+      unawaited(_processQueue());
+    }
+  }
+
+  Future<void> _processQueue() async {
+    while (_eventQueue.isNotEmpty) {
+      if (_disposed) break;
+      final event = _eventQueue.removeAt(0);
       if (_syncInProgress) {
         _hasPendingChanges = true;
         continue;
@@ -92,6 +117,7 @@ class CloudSyncService {
         debugPrint("Failed processing $event: $error");
       }
     }
+    _processingEvents = false;
   }
 }
 
@@ -143,7 +169,7 @@ extension SyncExtensions on CloudSyncService {
 
   Future<Record?> pullRecord(String id) async {
     final provider = _provider;
-    final collection = _provider?.collectionNames[Picture];
+    final collection = _provider?.collectionNames[Record];
     if (provider == null || collection == null) {
       return null;
     }
@@ -194,12 +220,10 @@ extension SyncExtensions on CloudSyncService {
       final repository = db.createRepository<Record>();
       final localCopy = await repository.findRecordByCloudId(cloudId);
 
-      if (localCopy != null && !record.updateAt.isBefore(localCopy.updateAt)) {
-        return record;
+      if (localCopy == null || localCopy.updateAt.isBefore(record.updateAt)) {
+        record.localId = localCopy?.localId;
+        await repository.upsert(record);
       }
-
-      record.localId = localCopy?.localId;
-      repository.upsert(record);
     }
 
     return record;

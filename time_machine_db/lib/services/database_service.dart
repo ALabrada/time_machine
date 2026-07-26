@@ -12,7 +12,7 @@ class DatabaseService {
 
   final String? dataPath;
   final Database db;
-  final _eventsController = StreamController<RepositoryEvent>();
+  final _eventsController = StreamController<RepositoryEvent>.broadcast();
 
   String? get filePath => dataPath == null ? null : p.join(dataPath!, 'files');
   Stream<RepositoryEvent> get events => _eventsController.stream;
