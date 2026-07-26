@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:time_machine_db/domain/location.dart';
 import 'package:time_machine_net/domain/place_info.dart';
 
-import 'network_service.dart';
+import '../network_service.dart';
 
 class YandexGeocoder implements GeocodingService {
   final dio = Dio(

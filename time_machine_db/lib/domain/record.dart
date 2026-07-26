@@ -21,6 +21,7 @@ class Record {
     this.width,
     this.originalViewPort,
     this.pictureViewPort,
+    this.cloudId,
   });
 
   @JsonKey(includeToJson: false, includeFromJson: false)
@@ -43,6 +44,7 @@ class Record {
   double? width;
   String? originalViewPort;
   String? pictureViewPort;
+  String? cloudId;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   double? get originalAspectRatio {
@@ -99,6 +101,12 @@ extension RecordRepository on Repository<Record> {
     return result;
   }
 
+  Future<Record?> findRecordByCloudId(String cloudId) async {
+    final finder = Finder(filter: Filter.equals('cloudId', cloudId), limit: 1);
+    final result = await findFirst(finder);
+    return result;
+  }
+
   Future<List<Record>> findVisitedRecords({
     int limit = 20,
   }) async {
@@ -108,6 +116,19 @@ extension RecordRepository on Repository<Record> {
         SortOrder('visitedAt', false),
       ],
       limit: limit,
+    );
+    final result = await find(finder);
+    return result;
+  }
+
+  Future<List<Record>> findUpdatedRecords({
+    DateTime? since,
+  }) async {
+    final finder = Finder(
+      filter: since == null ? null : Filter.greaterThan('updatedAt', since),
+      sortOrders: [
+        SortOrder('updatedAt', false),
+      ],
     );
     final result = await find(finder);
     return result;

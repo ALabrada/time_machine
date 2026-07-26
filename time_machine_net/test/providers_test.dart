@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/domain/area.dart';
-import 'package:time_machine_net/services/history_pin_provider.dart';
-import 'package:time_machine_net/services/pastvu_provider.dart';
-import 'package:time_machine_net/services/retro_photos_provider.dart';
-import 'package:time_machine_net/services/russia_in_photo_provider.dart';
-import 'package:time_machine_net/services/sepia_town_provider.dart';
+import 'package:time_machine_net/services/providers/history_pin_provider.dart';
+import 'package:time_machine_net/services/providers/pastvu_provider.dart';
+import 'package:time_machine_net/services/providers/retro_photos_provider.dart';
+import 'package:time_machine_net/services/providers/russia_in_photo_provider.dart';
+import 'package:time_machine_net/services/providers/sepia_town_provider.dart';
 
 import 'mock_adapter.dart';
 

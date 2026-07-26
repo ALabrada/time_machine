@@ -4,10 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:time_machine_db/domain/location.dart';
 import 'package:time_machine_net/domain/place_info.dart';
-import 'package:time_machine_net/services/geonames_geocoder.dart';
+import 'package:time_machine_net/services/geocoders/geonames_geocoder.dart';
 import 'package:time_machine_net/services/native_geocoder.dart';
 import 'package:time_machine_net/services/osm_geocoder.dart';
-import 'package:time_machine_net/services/vkmaps_geocoder.dart';
+import 'package:time_machine_net/services/geocoders/vkmaps_geocoder.dart';
 import 'package:time_machine_net/services/yandex_geocoder.dart';
 
 import 'mock_adapter.dart';

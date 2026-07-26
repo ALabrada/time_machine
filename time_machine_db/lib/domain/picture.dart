@@ -21,6 +21,7 @@ class Picture {
     this.margin,
     this.site,
     this.visitedAt,
+    this.cloudId,
   });
 
   String id;
@@ -39,6 +40,7 @@ class Picture {
   String? site;
   @DateTimeConverter()
   DateTime? visitedAt;
+  String? cloudId;
 
   @JsonKey(includeToJson: false, includeFromJson: false)
   Location get location => Location(lat: latitude, lng: longitude);
@@ -59,6 +61,40 @@ class Picture {
   factory Picture.fromJson(Map<String, dynamic> json) => _$PictureFromJson(json);
 
   Map<String, dynamic> toJson() => _$PictureToJson(this);
+
+  Picture copy({
+    String? id,
+    int? localId,
+    String? provider,
+    String? url,
+    String? previewUrl,
+    String? description,
+    double? latitude,
+    double? longitude,
+    double? altitude,
+    double? bearing,
+    String? time,
+    String? margin,
+    String? site,
+    DateTime? visitedAt,
+    String? cloudId,
+  }) => Picture(
+    id: id ?? this.id,
+    localId: localId ?? this.localId,
+    provider:  provider ?? this.provider,
+    url: url ?? this.url,
+    previewUrl: previewUrl ?? this.previewUrl,
+    description: description ?? this.description,
+    latitude: latitude ?? this.latitude,
+    longitude: longitude ?? this.longitude,
+    altitude: altitude ?? this.altitude,
+    bearing: bearing ?? this.bearing,
+    time: time ?? this.time,
+    margin: margin ?? this.margin,
+    site: site ?? this.site,
+    visitedAt: visitedAt ?? this.visitedAt,
+    cloudId: cloudId ?? this.cloudId,
+  );
 }
 
 extension PictureRepository on Repository<Picture> {
@@ -67,6 +103,12 @@ extension PictureRepository on Repository<Picture> {
       Filter.equals('id', id),
       Filter.equals('provider', provider),
     ]));
+    final result = await findFirst(finder);
+    return result;
+  }
+
+  Future<Picture?> findPictureByCloudId(String cloudId) async {
+    final finder = Finder(filter: Filter.equals('cloudId', cloudId), limit: 1);
     final result = await findFirst(finder);
     return result;
   }

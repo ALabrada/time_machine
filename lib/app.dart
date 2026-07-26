@@ -11,6 +11,7 @@ import 'package:time_machine/pages/home_page.dart';
 import 'package:time_machine/secrets.dart' as secrets;
 import 'package:time_machine_cam/time_machine_cam.dart';
 import 'package:time_machine_config/time_machine_config.dart';
+import 'package:time_machine_db/services/cloud_sync_service.dart';
 import 'package:time_machine_db/services/database_service.dart';
 import 'package:time_machine_img/services/telegram_service.dart';
 import 'package:time_machine_img/time_machine_img.dart';
@@ -168,6 +169,11 @@ class TimeMachineApp extends StatelessWidget {
           initialData: null,
           create: (_) => DatabaseService.load(),
           lazy: false,
+        ),
+        Provider<CloudSyncService>(
+          create: (context) => CloudSyncService(
+            db: context.read(),
+          ),
         ),
         Provider<CacheService>(
           create: (context) => CacheService(

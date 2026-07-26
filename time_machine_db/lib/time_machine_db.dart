@@ -4,7 +4,12 @@ export 'domain/date_time_converter.dart';
 export 'domain/location.dart';
 export 'domain/picture.dart';
 export 'domain/record.dart';
+export 'services/repository.dart';
+export 'services/cloud_sync_provider.dart';
+export 'services/cloud_sync_service.dart';
 export 'services/database_service.dart';
+
+const filePathPlaceholder = '/[FILES]';
 
 Rectangle<int> cropImage({
   required int width,
@@ -20,4 +25,11 @@ Rectangle<int> cropImage({
   final w = scaleX * intersection.width;
   final h = scaleY * intersection.height;
   return Rectangle<int>(x.toInt(), y.toInt(), w.toInt(), h.toInt());
+}
+
+String expandPathGlobal(String path, String? filePath) {
+  if (filePath == null) {
+    return path;
+  }
+  return Uri.decodeFull(path).replaceAll(filePathPlaceholder, filePath);
 }
