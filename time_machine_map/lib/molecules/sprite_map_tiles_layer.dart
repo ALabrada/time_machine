@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:vector_map_tiles/src/loader/caching_tile_loader.dart';
 import 'package:vector_map_tiles/src/model/tile_data_model.dart';
 import 'package:vector_map_tiles/src/widgets/abstract_map_layer_state.dart';
@@ -45,8 +46,17 @@ class SpriteMapTilesLayerState
       onTilesChanged();
     }
 
+    final camera = MapCamera.maybeOf(context);
+    final correction = camera != null
+        ? Offset(
+            (camera.size.width - camera.nonRotatedSize.width) / 2,
+            (camera.size.height - camera.nonRotatedSize.height) / 2,
+          )
+        : Offset.zero;
+
     return Stack(
-      children: displayReadyModels.map(_toTile).toList(),
+      children:
+          displayReadyModels.map((m) => _toTile(m, correction)).toList(),
     );
   }
 
@@ -57,12 +67,12 @@ class SpriteMapTilesLayerState
     return setA.length == setB.length && setA.containsAll(setB);
   }
 
-  Widget _toTile(TileDataModel model) {
+  Widget _toTile(TileDataModel model, Offset correction) {
     final tilePosition = model.tilePosition;
     return Positioned(
       key: ValueKey(model.tile.key()),
-      left: tilePosition.position.topLeft.dx,
-      top: tilePosition.position.topLeft.dy,
+      left: tilePosition.position.topLeft.dx + correction.dx,
+      top: tilePosition.position.topLeft.dy + correction.dy,
       width: tilePosition.position.size.width,
       height: tilePosition.position.size.height,
       child: SpriteTileWidget(
