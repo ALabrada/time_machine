@@ -7,7 +7,7 @@ class MockCloudSyncProvider implements CloudSyncProvider {
   final Map<Type, String> _collectionNames = {};
   final Map<String, Map<String, Map<String, dynamic>>> _collections = {};
   final Map<String, Uint8List> _files = {};
-  final _changesController = StreamController<void>.broadcast();
+  final _changesController = StreamController<CloudSyncEvent>.broadcast();
 
   @override
   bool supportsEvents = false;
@@ -33,10 +33,10 @@ class MockCloudSyncProvider implements CloudSyncProvider {
   Map<Type, String> get collectionNames => _collectionNames;
 
   @override
-  Stream<void> get changes => _changesController.stream;
+  Stream<CloudSyncEvent> get changes => _changesController.stream;
 
-  void emitChange() {
-    _changesController.add(null);
+  void emitChange([CloudSyncEvent event = const UnknownEvent()]) {
+    _changesController.add(event);
   }
 
   @override

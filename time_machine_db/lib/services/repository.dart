@@ -128,15 +128,15 @@ abstract class RepositoryEvent {}
 
 class EntityRemoved<T> implements RepositoryEvent {
   final T entity;
-  EntityRemoved(this.entity);
+  const EntityRemoved(this.entity);
 }
 
 class EntityInserted<T> implements RepositoryEvent {
   final T entity;
-  EntityInserted(this.entity);
+  const EntityInserted(this.entity);
 }
 
 class EntityUpdated<T> implements RepositoryEvent {
   final T entity;
-  EntityUpdated(this.entity);
+  const EntityUpdated(this.entity);
 }

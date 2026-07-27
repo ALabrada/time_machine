@@ -5,7 +5,7 @@ import 'package:time_machine_db/time_machine_db.dart';
 
 class CloudSyncService {
   final DatabaseService db;
-  final _eventQueue = <RepositoryEvent>[];
+  final _eventQueue = <Object>[];
 
   CloudSyncProvider? _provider;
   StreamSubscription? _cloudSubscription;
@@ -19,7 +19,7 @@ class CloudSyncService {
   bool get isActive => _provider != null;
 
   CloudSyncService({required this.db}) {
-    _eventSubscription = db.events.listen(_onEvent);
+    _eventSubscription = db.events.listen(_onDBEvent);
   }
 
   Future<void> dispose() async {
@@ -83,12 +83,20 @@ class CloudSyncService {
     } else {
       final provider = _provider;
       if (provider != null && provider.supportsEvents) {
-        _cloudSubscription = provider.changes.listen((_) => syncWithCloud());
+        _cloudSubscription = provider.changes.listen(_onCloudEvent);
       }
     }
   }
 
-  void _onEvent(RepositoryEvent event) {
+  void _onCloudEvent(CloudSyncEvent event) {
+    _eventQueue.add(event);
+    if (!_processingEvents) {
+      _processingEvents = true;
+      unawaited(_processQueue());
+    }
+  }
+
+  void _onDBEvent(RepositoryEvent event) {
     _eventQueue.add(event);
     if (!_processingEvents) {
       _processingEvents = true;
@@ -97,6 +105,7 @@ class CloudSyncService {
   }
 
   Future<void> _processQueue() async {
+    var requiresResync = false;
     while (_eventQueue.isNotEmpty) {
       if (_disposed) break;
       final event = _eventQueue.removeAt(0);
@@ -105,6 +114,7 @@ class CloudSyncService {
         continue;
       }
 
+      final recordCollection = _provider?.collectionNames[Record];
       try {
         if (event is EntityInserted<Record>) {
           await pushRecord(event.entity);
@@ -112,12 +122,32 @@ class CloudSyncService {
           await pushRecord(event.entity);
         } else if (event is EntityRemoved<Record>) {
           await deleteRecord(event.entity);
+        } else if (event is CloudReconnectedEvent || event is UnknownEvent) {
+          requiresResync = true;
+          _eventQueue.clear();
+        } else if (event is CloudInsertedEvent && event.collection == recordCollection) {
+          if (event.data is Map<String, dynamic>) {
+            await _loadRecord(event.data!, event.id);
+          } else {
+            await pullRecord(event.id);
+          }
+        } else if (event is CloudUpdatedEvent && event.collection == recordCollection) {
+          if (event.data is Map<String, dynamic>) {
+            await _loadRecord(event.data!, event.id);
+          } else {
+            await pullRecord(event.id);
+          }
+        } else if (event is CloudDeletedEvent && event.collection == recordCollection) {
+          await _deleteRecord(event.id);
         }
       } catch (error) {
         debugPrint("Failed processing $event: $error");
       }
     }
     _processingEvents = false;
+    if (requiresResync) {
+      unawaited(syncWithCloud());
+    }
   }
 }
 
@@ -148,6 +178,24 @@ extension SyncExtensions on CloudSyncService {
     }
 
     await provider.deleteRecord(collection, id);
+  }
+
+  Future<void> _deleteRecord(String cloudId) async {
+    final repo = db.createRepository<Record>();
+    final local = await repo.findRecordByCloudId(cloudId);
+    if (local == null) return;
+
+    if (local.pictureId != 0) {
+      final pictureRepo = db.createRepository<Picture>();
+      final picture = await pictureRepo.getById(local.pictureId);
+      if (picture != null) {
+        try {
+          await db.deleteFiles('pictures/${picture.id}.jpg');
+        } catch (_) {}
+        await pictureRepo.delete(picture.localId!);
+      }
+    }
+    await repo.delete(local.localId!);
   }
 
   Future<Picture?> pullPicture(String id) async {
@@ -222,6 +270,7 @@ extension SyncExtensions on CloudSyncService {
 
       if (localCopy == null || localCopy.updateAt.isBefore(record.updateAt)) {
         record.localId = localCopy?.localId;
+        record.cloudId = cloudId;
         await repository.upsert(record);
       }
     }

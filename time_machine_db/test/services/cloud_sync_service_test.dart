@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sembast/sembast.dart';
 import 'package:sembast/sembast_memory.dart';
 
 import 'package:time_machine_db/time_machine_db.dart';
@@ -544,6 +545,224 @@ void main() {
       final localCopy = await recordRepo.findRecordByCloudId('cloud_newer_rec');
       expect(localCopy, isNotNull);
       expect(localCopy!.height, 100.0);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('CloudInsertedEvent pulls cloud record to local', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_cloud_inserted.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+        supportsEvents: true,
+      );
+      final syncService = CloudSyncService(db: dbService);
+      await syncService.setProvider(mockProvider);
+
+      final now = DateTime.now();
+      final cloudData = <String, dynamic>{
+        'pictureId': 0,
+        'originalId': null,
+        'createdAt': now.millisecondsSinceEpoch,
+        'updateAt': now.millisecondsSinceEpoch,
+        'visitedAt': null,
+        'height': 150.0,
+        'width': 250.0,
+      };
+      mockProvider.addRecord('records', 'cloud_ins_1', cloudData);
+      mockProvider.emitChange(CloudInsertedEvent(id: 'cloud_ins_1', collection: 'records'));
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final localRepo = dbService.createRepository<Record>();
+      final localRecords = await localRepo.list();
+      expect(localRecords, hasLength(1));
+      expect(localRecords.first.width, 250.0);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('CloudUpdatedEvent updates local record with newer cloud data', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_cloud_updated.db');
+      final recordStore = intMapStoreFactory.store('record');
+      final now = DateTime.now();
+      final ts = now.millisecondsSinceEpoch;
+
+      await recordStore.add(db, {
+        'pictureId': 0,
+        'createdAt': ts,
+        'updateAt': ts,
+        'height': 10.0,
+        'width': 20.0,
+        'cloudId': 'cloud_upd_1',
+      });
+
+      final dbService = DatabaseService(db: db);
+      final mockProvider = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+        supportsEvents: true,
+      );
+      mockProvider.addRecord('records', 'cloud_upd_1', {
+        'pictureId': 0,
+        'originalId': null,
+        'createdAt': ts,
+        'updateAt': ts,
+        'visitedAt': null,
+        'height': 10.0,
+        'width': 20.0,
+      });
+
+      final syncService = CloudSyncService(db: dbService);
+      await syncService.setProvider(mockProvider);
+
+      final laterTs = now.add(const Duration(hours: 2)).millisecondsSinceEpoch;
+      mockProvider.addRecord('records', 'cloud_upd_1', {
+        'pictureId': 0,
+        'originalId': null,
+        'createdAt': ts,
+        'updateAt': laterTs,
+        'visitedAt': null,
+        'height': 99.0,
+        'width': 199.0,
+      });
+      mockProvider.emitChange(CloudUpdatedEvent(id: 'cloud_upd_1', collection: 'records'));
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final recordRepo = dbService.createRepository<Record>();
+      final updated = await recordRepo.findRecordByCloudId('cloud_upd_1');
+      expect(updated, isNotNull);
+      expect(updated!.height, 99.0);
+      expect(updated.width, 199.0);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('CloudDeletedEvent removes local record and picture', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_cloud_deleted.db');
+      final pictureStore = intMapStoreFactory.store('picture');
+      final recordStore = intMapStoreFactory.store('record');
+      final now = DateTime.now();
+      final ts = now.millisecondsSinceEpoch;
+
+      final picKey = await pictureStore.add(db, {
+        'id': 'del_evt_pic',
+        'url': 'data:image/jpg;base64,AA==',
+        'latitude': 1.0,
+        'longitude': 2.0,
+      });
+      await recordStore.add(db, {
+        'pictureId': picKey,
+        'createdAt': ts,
+        'updateAt': ts,
+        'height': 10.0,
+        'width': 20.0,
+        'cloudId': 'cloud_del_1',
+      });
+
+      final dbService = DatabaseService(db: db);
+      final mockProvider = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+        supportsEvents: true,
+      );
+      mockProvider.addRecord('records', 'cloud_del_1', {
+        'pictureId': 0,
+        'originalId': null,
+        'createdAt': ts,
+        'updateAt': ts,
+        'visitedAt': null,
+        'height': 10.0,
+        'width': 20.0,
+      });
+
+      final syncService = CloudSyncService(db: dbService);
+      await syncService.setProvider(mockProvider);
+
+      mockProvider.emitChange(CloudDeletedEvent(id: 'cloud_del_1', collection: 'records'));
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final recordRepo = dbService.createRepository<Record>();
+      final pictureRepo = dbService.createRepository<Picture>();
+      expect(await recordRepo.findRecordByCloudId('cloud_del_1'), isNull);
+      final deletedPic = await pictureRepo.getById(picKey);
+      expect(deletedPic, isNull);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('CloudReconnectedEvent triggers full sync', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_cloud_reconnected.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+        supportsEvents: true,
+      );
+      final syncService = CloudSyncService(db: dbService);
+      await syncService.setProvider(mockProvider);
+
+      final now = DateTime.now();
+      final cloudData = <String, dynamic>{
+        'pictureId': 0,
+        'originalId': null,
+        'createdAt': now.millisecondsSinceEpoch,
+        'updateAt': now.millisecondsSinceEpoch,
+        'visitedAt': null,
+        'height': 300.0,
+        'width': 400.0,
+      };
+      mockProvider.addRecord('records', 'cloud_rec_1', cloudData);
+      mockProvider.emitChange(const CloudReconnectedEvent());
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final localRepo = dbService.createRepository<Record>();
+      final localRecords = await localRepo.list();
+      expect(localRecords, hasLength(1));
+      expect(localRecords.first.width, 400.0);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('UnknownEvent triggers full sync', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_unknown_event.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+        supportsEvents: true,
+      );
+      final syncService = CloudSyncService(db: dbService);
+      await syncService.setProvider(mockProvider);
+
+      final now = DateTime.now();
+      final cloudData = <String, dynamic>{
+        'pictureId': 0,
+        'originalId': null,
+        'createdAt': now.millisecondsSinceEpoch,
+        'updateAt': now.millisecondsSinceEpoch,
+        'visitedAt': null,
+        'height': 50.0,
+        'width': 60.0,
+      };
+      mockProvider.addRecord('records', 'cloud_unk_1', cloudData);
+      mockProvider.emitChange();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final localRepo = dbService.createRepository<Record>();
+      final localRecords = await localRepo.list();
+      expect(localRecords, hasLength(1));
+      expect(localRecords.first.width, 60.0);
 
       await syncService.dispose();
       mockProvider.dispose();
