@@ -1,6 +1,8 @@
 export 'domain/area.dart';
 export 'domain/place_info.dart';
 export 'services/cache_service.dart';
+export 'services/cloud/cloud_base.dart';
+export 'services/cloud/supabase_cloud.dart';
 export 'services/geocoders/geonames_geocoder.dart';
 export 'services/providers/history_pin_provider.dart';
 export 'services/geocoders/native_geocoder.dart';

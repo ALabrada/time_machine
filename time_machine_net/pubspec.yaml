@@ -25,11 +25,14 @@ dependencies:
   intl: any
   latlong2: any
   osm_nominatim: ^4.0.1
+  supabase: ^2.6.0
+  meta: any
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  http: ^1.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
