@@ -148,22 +148,24 @@ class _VectorTileCanvasLayer extends StatelessWidget {
             ),
         });
 
-        return SpriteMapTilesLayer(
-          serverId: serverId,
-          mapProperties: MapProperties(
-            tileProviders: tileProviders,
-            theme: theme,
-            tileOffset: tileOffset,
-            concurrency: concurrency,
-            cacheProperties: CacheProperties(
-              fileCacheTtl: fileCacheTtl,
-              fileCacheMaximumSizeInBytes: fileCacheMaximumSizeInBytes,
-              cacheFolder: cacheFolder,
+        return MobileLayerTransformer(
+          child: SpriteMapTilesLayer(
+            serverId: serverId,
+            mapProperties: MapProperties(
+              tileProviders: tileProviders,
+              theme: theme,
+              tileOffset: tileOffset,
+              concurrency: concurrency,
+              cacheProperties: CacheProperties(
+                fileCacheTtl: fileCacheTtl,
+                fileCacheMaximumSizeInBytes: fileCacheMaximumSizeInBytes,
+                cacheFolder: cacheFolder,
+              ),
             ),
+            spriteIndex: spriteIndex,
+            spriteAtlas: spriteAtlas,
+            vectorService: vectorService,
           ),
-          spriteIndex: spriteIndex,
-          spriteAtlas: spriteAtlas,
-          vectorService: vectorService,
         );
       },
     );
