@@ -346,7 +346,7 @@ void main() {
       );
       mockProvider.addRecord('records', 'cloud_del_rec', record.toJson());
 
-      await syncService.deleteRecord(record);
+      await syncService.deleteRecordFromCould(record);
 
       expect(mockProvider.hasRecord('records', 'cloud_del_rec'), false);
       expect(mockProvider.hasRecord('pictures', 'cloud_del_pic'), false);
@@ -766,6 +766,135 @@ void main() {
 
       await syncService.dispose();
       mockProvider.dispose();
+      await db.close();
+    });
+
+    test('EntityUpdated event triggers pushRecord to update cloud', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_entity_updated.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+      );
+      final syncService = CloudSyncService(db: dbService);
+      await syncService.setProvider(mockProvider);
+
+      final recordRepo = dbService.createRepository<Record>();
+      final now = DateTime.now();
+      final record = Record(
+        pictureId: 0,
+        createdAt: now,
+        updateAt: now,
+        height: 100,
+        width: 200,
+      );
+      await recordRepo.insert(record);
+      await syncService.pushRecord(record);
+      final cloudId = record.cloudId!;
+
+      record.height = 999;
+      record.updateAt = now.add(const Duration(hours: 1));
+      await recordRepo.update(record);
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final cloudData = mockProvider.getRecordData('records', cloudId);
+      expect(cloudData, isNotNull);
+      expect(cloudData!['height'], 999);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('EntityRemoved event removes record from cloud', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_entity_removed.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+      );
+      final syncService = CloudSyncService(db: dbService);
+      await syncService.setProvider(mockProvider);
+
+      final now = DateTime.now();
+      final record = Record(
+        pictureId: 0,
+        createdAt: now,
+        updateAt: now,
+        cloudId: 'cloud_del_evt',
+      );
+      final recordRepo = dbService.createRepository<Record>();
+      await recordRepo.insert(record);
+      mockProvider.addRecord('records', 'cloud_del_evt', record.toJson());
+      expect(mockProvider.hasRecord('records', 'cloud_del_evt'), true);
+
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      print('--- before delete ---');
+      print('mock has record: ${mockProvider.hasRecord('records', 'cloud_del_evt')}');
+      await recordRepo.delete(record.localId!);
+      print('--- after delete ---');
+      print('mock has record: ${mockProvider.hasRecord('records', 'cloud_del_evt')}');
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      print('--- after delay ---');
+      print('mock has record: ${mockProvider.hasRecord('records', 'cloud_del_evt')}');
+
+      expect(mockProvider.hasRecord('records', 'cloud_del_evt'), false);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('changing provider invalidates old cloudId and re-pushes record to new provider', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_provider_change.db');
+      final dbService = DatabaseService(db: db);
+
+      final providerA = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+        id: 'prov_a/',
+      );
+      final syncService = CloudSyncService(db: dbService);
+      await syncService.setProvider(providerA);
+
+      final recordRepo = dbService.createRepository<Record>();
+      final now = DateTime.now();
+      final record = Record(
+        pictureId: 0,
+        createdAt: now,
+        updateAt: now,
+      );
+      await recordRepo.insert(record);
+      await syncService.syncWithCloud();
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final localA = await recordRepo.list();
+      expect(localA, hasLength(1));
+      expect(localA.first.cloudId, startsWith('prov_a/'));
+      final oldStripped = localA.first.cloudId!.substring('prov_a/'.length);
+      expect(providerA.hasRecord('records', oldStripped), true);
+
+      final providerB = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+        id: 'prov_b/',
+      );
+      await syncService.setProvider(providerB);
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final localB = await recordRepo.list();
+      expect(localB, hasLength(1));
+      expect(localB.first.cloudId, startsWith('prov_b/'));
+      expect(providerA.hasRecord('records', oldStripped), true);
+
+      final newStripped = localB.first.cloudId!.substring('prov_b/'.length);
+      expect(providerB.hasRecord('records', newStripped), true);
+
+      await syncService.dispose();
+      providerA.dispose();
+      providerB.dispose();
       await db.close();
     });
   });

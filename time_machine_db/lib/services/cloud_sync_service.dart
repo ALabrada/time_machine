@@ -13,8 +13,9 @@ class CloudSyncService {
   DateTime? _lastChange;
   bool _syncInProgress = false;
   bool _hasPendingChanges = false;
-    bool _disposed = false;
+  bool _disposed = false;
   bool _processingEvents = false;
+  bool _skipDbEvents = false;
 
   bool get isActive => _provider != null;
 
@@ -27,6 +28,19 @@ class CloudSyncService {
     _eventSubscription?.cancel();
     _cloudSubscription?.cancel();
     await Future<void>.delayed(Duration.zero);
+  }
+
+  String? _stripPrefix(String? prefixed) {
+    final prefix = _provider?.id;
+    if (prefixed == null || prefix == null) return null;
+    if (prefix.isEmpty) return prefixed;
+    if (prefixed.startsWith(prefix)) return prefixed.substring(prefix.length);
+    return null;
+  }
+
+  String _addPrefix(String id) {
+    final prefix = _provider?.id ?? '';
+    return '$prefix$id';
   }
 
   Future<void> setProvider(CloudSyncProvider? provider) async {
@@ -96,7 +110,9 @@ class CloudSyncService {
     }
   }
 
-  void _onDBEvent(RepositoryEvent event) {
+  void _onDBEvent(event) {
+    if (_skipDbEvents && event is EntityUpdated) return;
+    print('_onDBEvent: $event (skip=$_skipDbEvents, processing=$_processingEvents)');
     _eventQueue.add(event);
     if (!_processingEvents) {
       _processingEvents = true;
@@ -105,10 +121,12 @@ class CloudSyncService {
   }
 
   Future<void> _processQueue() async {
+    print('_processQueue started, queue size: ${_eventQueue.length}');
     var requiresResync = false;
     while (_eventQueue.isNotEmpty) {
       if (_disposed) break;
       final event = _eventQueue.removeAt(0);
+      print('_processQueue processing: $event');
       if (_syncInProgress) {
         _hasPendingChanges = true;
         continue;
@@ -121,30 +139,32 @@ class CloudSyncService {
         } else if (event is EntityUpdated<Record>) {
           await pushRecord(event.entity);
         } else if (event is EntityRemoved<Record>) {
-          await deleteRecord(event.entity);
+          print('_processQueue: calling deleteRecordFromCould for ${(event as EntityRemoved).entity.cloudId}');
+          await deleteRecordFromCould(event.entity);
         } else if (event is CloudReconnectedEvent || event is UnknownEvent) {
           requiresResync = true;
           _eventQueue.clear();
         } else if (event is CloudInsertedEvent && event.collection == recordCollection) {
           if (event.data is Map<String, dynamic>) {
-            await _loadRecord(event.data!, event.id);
+            await _loadRecordFromCloud(event.data!, event.id);
           } else {
             await pullRecord(event.id);
           }
         } else if (event is CloudUpdatedEvent && event.collection == recordCollection) {
           if (event.data is Map<String, dynamic>) {
-            await _loadRecord(event.data!, event.id);
+            await _loadRecordFromCloud(event.data!, event.id);
           } else {
             await pullRecord(event.id);
           }
         } else if (event is CloudDeletedEvent && event.collection == recordCollection) {
-          await _deleteRecord(event.id);
+          await _deleteRecordFromDB(event.id);
         }
       } catch (error) {
-        debugPrint("Failed processing $event: $error");
+        print("Failed processing $event: $error");
       }
     }
     _processingEvents = false;
+    print('_processQueue done');
     if (requiresResync) {
       unawaited(syncWithCloud());
     }
@@ -152,7 +172,7 @@ class CloudSyncService {
 }
 
 extension SyncExtensions on CloudSyncService {
-  Future<void> deletePicture(Picture item) async {
+  Future<void> deletePictureFromCloud(Picture item) async {
     final provider = _provider;
     final collection = _provider?.collectionNames[Picture];
     final id = item.cloudId;
@@ -161,26 +181,36 @@ extension SyncExtensions on CloudSyncService {
     }
 
     await provider.deleteFile('${item.id.toString()}.jpg');
-    await provider.deleteRecord(collection, id);
+
+    final strippedId = _stripPrefix(id);
+    if (strippedId != null) {
+      await provider.deleteRecord(collection, strippedId);
+    }
   }
 
-  Future<void> deleteRecord(Record item) async {
+  Future<void> deleteRecordFromCould(Record item) async {
     final provider = _provider;
     final collection = _provider?.collectionNames[Record];
     final id = item.cloudId;
+    print('deleteRecordFromCould: collection=$collection, id=$id, stripped=${_stripPrefix(id)}');
     if (provider == null || collection == null || id == null) {
+      print('deleteRecordFromCould: early return');
       return;
     }
 
     final picture = item.picture ?? await db.createRepository<Picture>().getById(item.pictureId);
     if (picture != null) {
-      await deletePicture(picture);
+      await deletePictureFromCloud(picture);
     }
 
-    await provider.deleteRecord(collection, id);
+    final strippedId = _stripPrefix(id);
+    if (strippedId != null) {
+      print('deleteRecordFromCould: deleting $strippedId from $collection');
+      await provider.deleteRecord(collection, strippedId);
+    }
   }
 
-  Future<void> _deleteRecord(String cloudId) async {
+  Future<void> _deleteRecordFromDB(String cloudId) async {
     final repo = db.createRepository<Record>();
     final local = await repo.findRecordByCloudId(cloudId);
     if (local == null) return;
@@ -205,7 +235,10 @@ extension SyncExtensions on CloudSyncService {
       return null;
     }
 
-    final json = await provider.getRecord(collection, id);
+    final strippedId = _stripPrefix(id);
+    if (strippedId == null) return null;
+
+    final json = await provider.getRecord(collection, strippedId);
     if (json == null) {
       return null;
     }
@@ -222,8 +255,11 @@ extension SyncExtensions on CloudSyncService {
       return null;
     }
 
-    final json = await provider.getRecord(collection, id);
-    return json is Map<String, dynamic> ? await _loadRecord(json, id) : null;
+    final strippedId = _stripPrefix(id);
+    if (strippedId == null) return null;
+
+    final json = await provider.getRecord(collection, strippedId);
+    return json is Map<String, dynamic> ? await _loadRecordFromCloud(json, id) : null;
   }
 
   Future<List<Record>> pullRecords({DateTime? since}) async {
@@ -236,14 +272,17 @@ extension SyncExtensions on CloudSyncService {
     final list = await provider.listRecords(collection, since: since);
     return [
       for (final json in list)
-        await _loadRecord(json),
+        await _loadRecordFromCloud(json),
     ];
   }
 
-  Future<Record> _loadRecord(Map<String, dynamic> json, [String? id]) async {
+  Future<Record> _loadRecordFromCloud(Map<String, dynamic> json, [String? id]) async {
     Future<Picture?> loadPicture(String cloudId) async {
       final localCopy = await db.createRepository<Picture>().findPictureByCloudId(cloudId);
-      return localCopy ?? await pullPicture(cloudId);
+      if (localCopy == null || await _loadData(localCopy) == null) {
+        return await pullPicture(cloudId);
+      }
+      return localCopy;
     }
 
     final originalId = json['originalId'];
@@ -251,11 +290,11 @@ extension SyncExtensions on CloudSyncService {
     Picture? original, picture;
 
     if (originalId is String) {
-      original = await loadPicture(originalId);
+      original = await loadPicture(_addPrefix(originalId));
       json['originalId'] = original?.localId;
     }
     if (pictureId is String) {
-      picture = await loadPicture(pictureId);
+      picture = await loadPicture(_addPrefix(pictureId));
       json['pictureId'] = picture?.localId;
     }
 
@@ -263,7 +302,7 @@ extension SyncExtensions on CloudSyncService {
     record.original = original;
     record.picture = picture;
 
-    final cloudId = id ?? record.cloudId;
+    final cloudId = id ?? (record.cloudId != null ? _addPrefix(record.cloudId!) : null);
     if (cloudId != null) {
       final repository = db.createRepository<Record>();
       final localCopy = await repository.findRecordByCloudId(cloudId);
@@ -278,22 +317,31 @@ extension SyncExtensions on CloudSyncService {
     return record;
   }
 
-  Future<void> pushPicture(Picture picture) async {
+  Future<bool> pushPicture(Picture picture) async {
     final provider = _provider;
     final collection = _provider?.collectionNames[Picture];
     if (provider == null || collection == null) {
-      return;
+      return false;
+    }
+
+    final strippedId = _stripPrefix(picture.cloudId);
+    if (strippedId != null) {
+      return false;
     }
 
     final newPicture = await _uploadPictureFile(picture);
-    picture.cloudId = await provider.saveRecord(collection, newPicture.cloudId, newPicture.toJson());
+    final json = newPicture.toJson();
+    json['cloudId'] = strippedId;
+    final result = await provider.saveRecord(collection, strippedId, json);
+    picture.cloudId = _addPrefix(result);
+    return true;
   }
 
-  Future<void> pushRecord(Record record) async {
+  Future<bool> pushRecord(Record record) async {
     final provider = _provider;
     final collection = _provider?.collectionNames[Record];
     if (provider == null || collection == null) {
-      return;
+      return false;
     }
 
     final json = record.toJson();
@@ -303,20 +351,28 @@ extension SyncExtensions on CloudSyncService {
         : await pictureRepository.getById(record.originalId!));
     final picture = record.picture ?? await pictureRepository.getById(record.pictureId);
 
-    if (original != null && original.cloudId == null) {
-      await pushPicture(original);
+    if (original != null && await pushPicture(original)) {
       await pictureRepository.upsert(original);
     }
-    if (picture != null && picture.cloudId == null) {
-      await pushPicture(picture);
+    if (picture != null && await pushPicture(picture)) {
       await pictureRepository.upsert(picture);
     }
 
-    json['originalId'] = original?.cloudId;
-    json['pictureId'] = picture?.cloudId;
+    json['originalId'] = _stripPrefix(original?.cloudId);
+    json['pictureId'] = _stripPrefix(picture?.cloudId);
+    json['cloudId'] = _stripPrefix(record.cloudId);
 
-    record.cloudId = await provider.saveRecord(collection, record.cloudId, json);
+    final strippedId = _stripPrefix(record.cloudId);
+    print('pushRecord: saving with id=$strippedId, cloudId=${record.cloudId}');
+    final result = await provider.saveRecord(collection, strippedId, json);
+    print('pushRecord: saved, result=$result');
+    record.cloudId = _addPrefix(result);
+    print('pushRecord: new cloudId=${record.cloudId}');
+    _skipDbEvents = true;
     await db.createRepository<Record>().update(record);
+    _skipDbEvents = false;
+    print('pushRecord: done, skipDbEvents=$_skipDbEvents');
+    return true;
   }
 
   Future<Picture> _downloadPictureFile(Picture picture) async {

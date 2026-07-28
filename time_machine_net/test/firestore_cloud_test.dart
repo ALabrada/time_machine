@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/services/cloud/firestore_cloud.dart';
 
-const prefix = FirestoreCloud.idPrefix;
+
 
 void main() {
   late FakeFirebaseFirestore fakeFirestore;
@@ -17,20 +17,6 @@ void main() {
   }
 
   group('FirestoreCloud', () {
-    test('stripPrefix returns suffix for prefixed id', () {
-      expect(FirestoreCloud.stripPrefix('${prefix}abc123'), 'abc123');
-      expect(FirestoreCloud.stripPrefix(prefix), '');
-    });
-
-    test('stripPrefix returns null for unprefixed id', () {
-      expect(FirestoreCloud.stripPrefix('local-id'), isNull);
-      expect(FirestoreCloud.stripPrefix(null), isNull);
-    });
-
-    test('addPrefix prepends prefix', () {
-      expect(FirestoreCloud.addPrefix('abc123'), '${prefix}abc123');
-    });
-
     test('collectionNames returns expected mapping', () async {
       await setUpCloud();
       expect(cloud.collectionNames[Picture], 'pictures');
@@ -60,7 +46,7 @@ void main() {
       final events = <CloudSyncEvent>[];
       cloud.changes.listen(events.add);
       final event = CloudInsertedEvent(
-        id: '${prefix}123',
+        id: '123',
         collection: 'pictures',
       );
       cloud.publishEvent(event);
@@ -89,12 +75,10 @@ void main() {
           'name': 'Test Picture',
         });
 
-        expect(id, startsWith(prefix));
-        expect(FirestoreCloud.stripPrefix(id), isNotNull);
+        expect(id, isNotEmpty);
 
-        final strippedId = FirestoreCloud.stripPrefix(id);
         final snapshot =
-            await fakeFirestore.collection('pictures').doc(strippedId).get();
+            await fakeFirestore.collection('pictures').doc(id).get();
         expect(snapshot.exists, isTrue);
         final data = snapshot.data()!;
         expect(data['_id'], 'source-456');
@@ -114,11 +98,11 @@ void main() {
 
         final id = await cloud.saveRecord(
           'pictures',
-          '${prefix}my-existing-id',
+          'my-existing-id',
           {'id': 'source-789', 'name': 'Updated Picture'},
         );
 
-        expect(id, '${prefix}my-existing-id');
+        expect(id, 'my-existing-id');
 
         // Verify document was updated
         final snapshot = await fakeFirestore
@@ -133,29 +117,27 @@ void main() {
         expect(data['id'], 'my-existing-id');
       });
 
-      test('inserts new record when id has no prefix and returns prefixed id',
+      test('upserts when id is not null',
           () async {
         await setUpCloud();
 
         final id = await cloud.saveRecord(
           'pictures',
-          'unprefixed-local-id',
+          'any-id',
           {'id': 'source-abc', 'name': 'Local Picture'},
         );
 
-        expect(id, startsWith(prefix));
-        expect(FirestoreCloud.stripPrefix(id), isNotNull);
+        expect(id, 'any-id');
 
-        final strippedId = FirestoreCloud.stripPrefix(id);
         final snapshot =
-            await fakeFirestore.collection('pictures').doc(strippedId!).get();
+            await fakeFirestore.collection('pictures').doc(id).get();
         expect(snapshot.exists, isTrue);
         final data = snapshot.data()!;
         expect(data['_id'], 'source-abc');
         expect(data['name'], 'Local Picture');
-        expect(data.containsKey('id'), isFalse);
-        expect(data['created_at'], isNotNull);
+        expect(data['id'], 'any-id');
         expect(data['updated_at'], isNotNull);
+        expect(data.containsKey('created_at'), isFalse);
       });
     });
 
@@ -170,10 +152,10 @@ void main() {
         });
 
         final result =
-            await cloud.getRecord('pictures', '${prefix}test-id');
+            await cloud.getRecord('pictures', 'test-id');
 
         expect(result, isNotNull);
-        expect(result!['id'], '${prefix}source-111');
+        expect(result!['id'], 'source-111');
         expect(result['name'], 'Found Picture');
         expect(result.containsKey('_id'), isFalse);
       });
@@ -182,7 +164,7 @@ void main() {
         await setUpCloud();
 
         final result =
-            await cloud.getRecord('pictures', '${prefix}nonexistent');
+            await cloud.getRecord('pictures', 'nonexistent');
 
         expect(result, isNull);
       });
@@ -215,10 +197,10 @@ void main() {
         final results = await cloud.listRecords('pictures');
 
         expect(results.length, 2);
-        expect(results[0]['id'], '${prefix}src-1');
+        expect(results[0]['id'], 'src-1');
         expect(results[0]['name'], 'Pic 1');
         expect(results[0].containsKey('_id'), isFalse);
-        expect(results[1]['id'], '${prefix}src-2');
+        expect(results[1]['id'], 'src-2');
         expect(results[1]['name'], 'Pic 2');
         expect(results[1].containsKey('_id'), isFalse);
       });
@@ -243,7 +225,7 @@ void main() {
             await cloud.listRecords('pictures', since: since);
 
         expect(results.length, 1);
-        expect(results[0]['id'], '${prefix}src-new');
+        expect(results[0]['id'], 'src-new');
         expect(results[0]['name'], 'New');
       });
     });
@@ -263,7 +245,7 @@ void main() {
           isTrue,
         );
 
-        await cloud.deleteRecord('pictures', '${prefix}pic-to-delete');
+        await cloud.deleteRecord('pictures', 'pic-to-delete');
 
         expect(
           (await fakeFirestore.collection('pictures').doc('pic-to-delete').get())
@@ -308,9 +290,9 @@ void main() {
         expect(events.first, isA<CloudInsertedEvent>());
 
         final event = events.first as CloudInsertedEvent;
-        expect(event.id, '${prefix}src-1');
+        expect(event.id, 'src-1');
         expect(event.collection, 'pictures');
-        expect(event.data!['id'], '${prefix}src-1');
+        expect(event.data!['id'], 'src-1');
         expect(event.data!['name'], 'Inserted');
         expect(event.data!.containsKey('_id'), isFalse);
       });
@@ -337,9 +319,9 @@ void main() {
         expect(events.first, isA<CloudInsertedEvent>());
 
         final event = events.first as CloudInsertedEvent;
-        expect(event.id, '$prefix${docRef.id}');
+        expect(event.id, docRef.id);
         expect(event.collection, 'pictures');
-        expect(event.data!['id'], '$prefix${docRef.id}');
+        expect(event.data!['id'], docRef.id);
         expect(event.data!['name'], 'No Source Id');
       });
 
@@ -375,7 +357,7 @@ void main() {
         expect(events.first, isA<CloudUpdatedEvent>());
 
         final event = events.first as CloudUpdatedEvent;
-        expect(event.id, '${prefix}src-3');
+        expect(event.id, 'src-3');
         expect(event.collection, 'pictures');
         expect(event.data!['name'], 'Updated');
       });
@@ -408,7 +390,7 @@ void main() {
         expect(events.first, isA<CloudDeletedEvent>());
 
         final event = events.first as CloudDeletedEvent;
-        expect(event.id, '${prefix}src-4');
+        expect(event.id, 'src-4');
         expect(event.collection, 'pictures');
         expect(event.data!['name'], 'To Delete');
       });
@@ -447,9 +429,9 @@ void main() {
 
         expect(events.length, 2);
         expect(events[0], isA<CloudUpdatedEvent>());
-        expect((events[0] as CloudUpdatedEvent).id, '${prefix}src-a');
+        expect((events[0] as CloudUpdatedEvent).id, 'src-a');
         expect(events[1], isA<CloudUpdatedEvent>());
-        expect((events[1] as CloudUpdatedEvent).id, '${prefix}src-b');
+        expect((events[1] as CloudUpdatedEvent).id, 'src-b');
       });
     });
   });

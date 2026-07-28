@@ -10,6 +10,9 @@ class MockCloudSyncProvider implements CloudSyncProvider {
   final _changesController = StreamController<CloudSyncEvent>.broadcast();
 
   @override
+  String id = '';
+
+  @override
   bool supportsEvents = false;
 
   @override
@@ -21,6 +24,7 @@ class MockCloudSyncProvider implements CloudSyncProvider {
 
   MockCloudSyncProvider({
     Map<Type, String>? collectionNames,
+    this.id = '',
     this.supportsEvents = false,
     this.supportsFiles = false,
   }) {

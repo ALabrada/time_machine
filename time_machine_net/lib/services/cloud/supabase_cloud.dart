@@ -11,12 +11,14 @@ class SupabaseCloud extends EventfulCloudBase {
   static const idColumn = 'id';
   static const sourceIdColumn = '_id';
   static const dateColumn = 'updated_at';
-  static const idPrefix = 'supabase/';
 
   final SupabaseClient _client;
   final String _bucketName;
   final List<RealtimeChannel> _realtimeChannels = [];
   bool _realtimeSubscribed = false;
+
+  @override
+  String get id => 'supabase/';
 
   @override
   bool get supportsFiles => true;
@@ -44,16 +46,6 @@ class SupabaseCloud extends EventfulCloudBase {
     _initRealtime();
   }
 
-  static String? stripPrefix(String? prefixed) {
-    if (prefixed == null) return null;
-    if (prefixed.startsWith(idPrefix)) {
-      return prefixed.substring(idPrefix.length);
-    }
-    return null;
-  }
-
-  static String addPrefix(String id) => '$idPrefix$id';
-
   void _preserveSourceId(Map<String, dynamic> data) {
     if (data.containsKey(idColumn)) {
       data[sourceIdColumn] = data.remove(idColumn);
@@ -63,12 +55,6 @@ class SupabaseCloud extends EventfulCloudBase {
   void _restoreSourceId(Map<String, dynamic> data) {
     if (data.containsKey(sourceIdColumn)) {
       data[idColumn] = data.remove(sourceIdColumn);
-    }
-  }
-
-  void _prefixId(Map<String, dynamic> data) {
-    if (data.containsKey(idColumn)) {
-      data[idColumn] = addPrefix(data[idColumn] as String);
     }
   }
 
@@ -102,7 +88,6 @@ class SupabaseCloud extends EventfulCloudBase {
       case PostgresChangeEvent.insert:
         if (newRecord.isNotEmpty) {
           _restoreSourceId(newRecord);
-          _prefixId(newRecord);
           final eventId = newRecord[idColumn] as String?;
           if (eventId != null) {
             publishEvent(CloudInsertedEvent(
@@ -116,7 +101,6 @@ class SupabaseCloud extends EventfulCloudBase {
       case PostgresChangeEvent.update:
         if (newRecord.isNotEmpty) {
           _restoreSourceId(newRecord);
-          _prefixId(newRecord);
           final eventId = newRecord[idColumn] as String?;
           if (eventId != null) {
             publishEvent(CloudUpdatedEvent(
@@ -130,7 +114,6 @@ class SupabaseCloud extends EventfulCloudBase {
       case PostgresChangeEvent.delete:
         if (oldRecord.isNotEmpty) {
           _restoreSourceId(oldRecord);
-          _prefixId(oldRecord);
           final eventId = oldRecord[idColumn] as String?;
           if (eventId != null) {
             publishEvent(CloudDeletedEvent(
@@ -182,11 +165,10 @@ class SupabaseCloud extends EventfulCloudBase {
     _preserveSourceId(data);
     data[dateColumn] = data[dateColumn] ?? DateTime.now().toIso8601String();
 
-    final strippedId = stripPrefix(id);
-    if (strippedId != null) {
-      data[idColumn] = strippedId;
+    if (id != null) {
+      data[idColumn] = id;
       await _client.from(collection).upsert(data);
-      return id!;
+      return id;
     }
 
     data.remove(idColumn);
@@ -195,23 +177,19 @@ class SupabaseCloud extends EventfulCloudBase {
     if (response.isEmpty) {
       throw Exception('Failed to insert record');
     }
-    return addPrefix(response.first[idColumn] as String);
+    return response.first[idColumn] as String;
   }
 
   @override
   Future<Map<String, dynamic>?> getRecord(String collection, String id) async {
-    final strippedId = stripPrefix(id);
-    if (strippedId == null) return null;
-
     final result = await _client
         .from(collection)
         .select()
-        .eq(idColumn, strippedId)
+        .eq(idColumn, id)
         .maybeSingle();
     if (result == null) return null;
 
     _restoreSourceId(result);
-    _prefixId(result);
     return result;
   }
 
@@ -227,18 +205,13 @@ class SupabaseCloud extends EventfulCloudBase {
     final results = await query.order(dateColumn);
     for (final result in results) {
       _restoreSourceId(result);
-      _prefixId(result);
     }
     return results;
   }
 
   @override
   Future<void> deleteRecord(String collection, String id) async {
-    final strippedId = stripPrefix(id);
-    if (strippedId == null) {
-      return;
-    }
-    await _client.from(collection).delete().eq(idColumn, strippedId);
+    await _client.from(collection).delete().eq(idColumn, id);
   }
 
   @override

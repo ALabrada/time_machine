@@ -57,10 +57,12 @@ class Repository<T> {
 
   Future<bool> delete(Object id)  async {
     final record = box.record(id as int);
-    final item = await record.get(db);
-    if (item == null || await record.delete(db) == null) {
+    final raw = await record.get(db);
+    if (raw == null || await record.delete(db) == null) {
       return false;
     }
+    final item = fromJson(Map<String, dynamic>.from(raw));
+    setKey(item, id as int);
     events?.add(EntityRemoved(item));
     return true;
   }

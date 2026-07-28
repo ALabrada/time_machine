@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 abstract class CloudSyncProvider {
+  String get id;
   Stream<CloudSyncEvent> get changes;
   bool get supportsEvents;
   bool get supportsFiles;

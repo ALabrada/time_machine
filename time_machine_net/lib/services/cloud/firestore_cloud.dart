@@ -12,7 +12,6 @@ class FirestoreCloud extends EventfulCloudBase {
   static const idColumn = 'id';
   static const sourceIdColumn = '_id';
   static const dateColumn = 'updated_at';
-  static const idPrefix = 'firestore/';
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage? _storage;
@@ -20,6 +19,9 @@ class FirestoreCloud extends EventfulCloudBase {
   final List<StreamSubscription<QuerySnapshot>> _subscriptions = [];
   bool _realtimeSubscribed = false;
   bool _initialSnapshotReceived = false;
+
+  @override
+  String get id => 'firestore/';
 
   @override
   bool get supportsFiles => _storage != null;
@@ -40,16 +42,6 @@ class FirestoreCloud extends EventfulCloudBase {
     _initRealtime();
   }
 
-  static String? stripPrefix(String? prefixed) {
-    if (prefixed == null) return null;
-    if (prefixed.startsWith(idPrefix)) {
-      return prefixed.substring(idPrefix.length);
-    }
-    return null;
-  }
-
-  static String addPrefix(String id) => '$idPrefix$id';
-
   void _preserveSourceId(Map<String, dynamic> data) {
     if (data.containsKey(idColumn)) {
       data[sourceIdColumn] = data.remove(idColumn);
@@ -59,12 +51,6 @@ class FirestoreCloud extends EventfulCloudBase {
   void _restoreSourceId(Map<String, dynamic> data) {
     if (data.containsKey(sourceIdColumn)) {
       data[idColumn] = data.remove(sourceIdColumn);
-    }
-  }
-
-  void _prefixId(Map<String, dynamic> data) {
-    if (data.containsKey(idColumn)) {
-      data[idColumn] = addPrefix(data[idColumn] as String);
     }
   }
 
@@ -104,7 +90,6 @@ class FirestoreCloud extends EventfulCloudBase {
     if (!record.containsKey(idColumn)) {
       record[idColumn] = change.doc.id;
     }
-    _prefixId(record);
     final eventId = record[idColumn] as String?;
     if (eventId == null) return;
 
@@ -148,28 +133,24 @@ class FirestoreCloud extends EventfulCloudBase {
     _preserveSourceId(data);
     data[dateColumn] = data[dateColumn] ?? DateTime.now().toIso8601String();
 
-    final strippedId = stripPrefix(id);
-    if (strippedId != null) {
-      data[idColumn] = strippedId;
-      await _firestore.collection(collection).doc(strippedId).set(
+    if (id != null) {
+      data[idColumn] = id;
+      await _firestore.collection(collection).doc(id).set(
         data,
         SetOptions(merge: true),
       );
-      return id!;
+      return id;
     }
 
     data.remove(idColumn);
     data['created_at'] = data['created_at'] ?? DateTime.now().toIso8601String();
     final docRef = await _firestore.collection(collection).add(data);
-    return addPrefix(docRef.id);
+    return docRef.id;
   }
 
   @override
   Future<Map<String, dynamic>?> getRecord(String collection, String id) async {
-    final strippedId = stripPrefix(id);
-    if (strippedId == null) return null;
-
-    final snapshot = await _firestore.collection(collection).doc(strippedId).get();
+    final snapshot = await _firestore.collection(collection).doc(id).get();
     if (!snapshot.exists) return null;
 
     final data = Map<String, dynamic>.from(
@@ -179,7 +160,6 @@ class FirestoreCloud extends EventfulCloudBase {
     if (!data.containsKey(idColumn)) {
       data[idColumn] = snapshot.id;
     }
-    _prefixId(data);
     return data;
   }
 
@@ -204,7 +184,6 @@ class FirestoreCloud extends EventfulCloudBase {
       if (!data.containsKey(idColumn)) {
         data[idColumn] = doc.id;
       }
-      _prefixId(data);
       return data;
     }).toList();
     return results;
@@ -212,9 +191,7 @@ class FirestoreCloud extends EventfulCloudBase {
 
   @override
   Future<void> deleteRecord(String collection, String id) async {
-    final strippedId = stripPrefix(id);
-    if (strippedId == null) return;
-    await _firestore.collection(collection).doc(strippedId).delete();
+    await _firestore.collection(collection).doc(id).delete();
   }
 
   @override
