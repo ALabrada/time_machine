@@ -829,16 +829,9 @@ void main() {
 
       await Future.delayed(const Duration(milliseconds: 50));
 
-      print('--- before delete ---');
-      print('mock has record: ${mockProvider.hasRecord('records', 'cloud_del_evt')}');
       await recordRepo.delete(record.localId!);
-      print('--- after delete ---');
-      print('mock has record: ${mockProvider.hasRecord('records', 'cloud_del_evt')}');
 
       await Future.delayed(const Duration(milliseconds: 200));
-
-      print('--- after delay ---');
-      print('mock has record: ${mockProvider.hasRecord('records', 'cloud_del_evt')}');
 
       expect(mockProvider.hasRecord('records', 'cloud_del_evt'), false);
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:sembast/sembast.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 
 class CloudSyncService {
@@ -15,7 +16,6 @@ class CloudSyncService {
   bool _hasPendingChanges = false;
   bool _disposed = false;
   bool _processingEvents = false;
-  bool _skipDbEvents = false;
 
   bool get isActive => _provider != null;
 
@@ -111,8 +111,6 @@ class CloudSyncService {
   }
 
   void _onDBEvent(event) {
-    if (_skipDbEvents && event is EntityUpdated) return;
-    print('_onDBEvent: $event (skip=$_skipDbEvents, processing=$_processingEvents)');
     _eventQueue.add(event);
     if (!_processingEvents) {
       _processingEvents = true;
@@ -121,12 +119,10 @@ class CloudSyncService {
   }
 
   Future<void> _processQueue() async {
-    print('_processQueue started, queue size: ${_eventQueue.length}');
     var requiresResync = false;
     while (_eventQueue.isNotEmpty) {
       if (_disposed) break;
       final event = _eventQueue.removeAt(0);
-      print('_processQueue processing: $event');
       if (_syncInProgress) {
         _hasPendingChanges = true;
         continue;
@@ -139,7 +135,6 @@ class CloudSyncService {
         } else if (event is EntityUpdated<Record>) {
           await pushRecord(event.entity);
         } else if (event is EntityRemoved<Record>) {
-          print('_processQueue: calling deleteRecordFromCould for ${(event as EntityRemoved).entity.cloudId}');
           await deleteRecordFromCould(event.entity);
         } else if (event is CloudReconnectedEvent || event is UnknownEvent) {
           requiresResync = true;
@@ -159,12 +154,10 @@ class CloudSyncService {
         } else if (event is CloudDeletedEvent && event.collection == recordCollection) {
           await _deleteRecordFromDB(event.id);
         }
-      } catch (error) {
-        print("Failed processing $event: $error");
+      } catch (_) {
       }
     }
     _processingEvents = false;
-    print('_processQueue done');
     if (requiresResync) {
       unawaited(syncWithCloud());
     }
@@ -192,9 +185,7 @@ extension SyncExtensions on CloudSyncService {
     final provider = _provider;
     final collection = _provider?.collectionNames[Record];
     final id = item.cloudId;
-    print('deleteRecordFromCould: collection=$collection, id=$id, stripped=${_stripPrefix(id)}');
     if (provider == null || collection == null || id == null) {
-      print('deleteRecordFromCould: early return');
       return;
     }
 
@@ -205,7 +196,6 @@ extension SyncExtensions on CloudSyncService {
 
     final strippedId = _stripPrefix(id);
     if (strippedId != null) {
-      print('deleteRecordFromCould: deleting $strippedId from $collection');
       await provider.deleteRecord(collection, strippedId);
     }
   }
@@ -363,15 +353,10 @@ extension SyncExtensions on CloudSyncService {
     json['cloudId'] = _stripPrefix(record.cloudId);
 
     final strippedId = _stripPrefix(record.cloudId);
-    print('pushRecord: saving with id=$strippedId, cloudId=${record.cloudId}');
     final result = await provider.saveRecord(collection, strippedId, json);
-    print('pushRecord: saved, result=$result');
     record.cloudId = _addPrefix(result);
-    print('pushRecord: new cloudId=${record.cloudId}');
-    _skipDbEvents = true;
-    await db.createRepository<Record>().update(record);
-    _skipDbEvents = false;
-    print('pushRecord: done, skipDbEvents=$_skipDbEvents');
+    final store = intMapStoreFactory.store('record');
+    await store.record(record.localId!).put(db.db, record.toJson());
     return true;
   }
 
