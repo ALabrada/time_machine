@@ -21,6 +21,7 @@ class Picture {
     this.margin,
     this.site,
     this.visitedAt,
+    this.deletedAt,
     this.cloudId,
   });
 
@@ -40,6 +41,8 @@ class Picture {
   String? site;
   @DateTimeConverter()
   DateTime? visitedAt;
+  @DateTimeConverter()
+  DateTime? deletedAt;
   String? cloudId;
 
   @JsonKey(includeToJson: false, includeFromJson: false)
@@ -77,6 +80,7 @@ class Picture {
     String? margin,
     String? site,
     DateTime? visitedAt,
+    DateTime? deletedAt,
     String? cloudId,
   }) => Picture(
     id: id ?? this.id,
@@ -93,6 +97,7 @@ class Picture {
     margin: margin ?? this.margin,
     site: site ?? this.site,
     visitedAt: visitedAt ?? this.visitedAt,
+    deletedAt: deletedAt ?? this.deletedAt,
     cloudId: cloudId ?? this.cloudId,
   );
 }

@@ -10,7 +10,7 @@ class Repository<T> {
   final Map<String, dynamic> Function(T item) toJson;
   final int? Function(T item) getKey;
   final void Function(T item, int id) setKey;
-  final String Function(T item) getRemoteId;
+  final void Function(T item, DateTime dt)? setDeleted;
   final StreamSink<RepositoryEvent>? events;
 
   const Repository({
@@ -20,7 +20,7 @@ class Repository<T> {
     required this.toJson,
     required this.getKey,
     required this.setKey,
-    required this.getRemoteId,
+    this.setDeleted,
     this.events,
   });
 
@@ -36,7 +36,7 @@ class Repository<T> {
         toJson: (x) => x.toJson(),
         getKey: (x) => x.localId,
         setKey: (x, v) => x.localId = v,
-        getRemoteId: (x) => x.id,
+        setDeleted: (x, v) => x.deletedAt = v,
         events: events,
       ) as Repository<T>;
     }
@@ -48,7 +48,7 @@ class Repository<T> {
         toJson: (x) => x.toJson(),
         getKey: (x) => x.localId,
         setKey: (x, v) => x.localId = v,
-        getRemoteId: (x) => x.createdAt.toUtc().toIso8601String(),
+        setDeleted: (x, v) => x.deletedAt = v,
         events: events,
       ) as Repository<T>;
     }
@@ -62,7 +62,8 @@ class Repository<T> {
       return false;
     }
     final item = fromJson(Map<String, dynamic>.from(raw));
-    setKey(item, id as int);
+    setKey(item, id);
+    setDeleted?.call(item, DateTime.now());
     events?.add(EntityRemoved(item));
     return true;
   }
