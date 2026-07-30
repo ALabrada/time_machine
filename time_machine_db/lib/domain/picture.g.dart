@@ -24,6 +24,7 @@ Picture _$PictureFromJson(Map<String, dynamic> json) => Picture(
       deletedAt: _$JsonConverterFromJson<Object, DateTime>(
           json['deletedAt'], const DateTimeConverter().fromJson),
       cloudId: json['cloudId'] as String?,
+      fileHash: json['fileHash'] as String?,
     );
 
 Map<String, dynamic> _$PictureToJson(Picture instance) => <String, dynamic>{
@@ -44,6 +45,7 @@ Map<String, dynamic> _$PictureToJson(Picture instance) => <String, dynamic>{
       'deletedAt': _$JsonConverterToJson<Object, DateTime>(
           instance.deletedAt, const DateTimeConverter().toJson),
       'cloudId': instance.cloudId,
+      'fileHash': instance.fileHash,
     };
 
 Value? _$JsonConverterFromJson<Json, Value>(

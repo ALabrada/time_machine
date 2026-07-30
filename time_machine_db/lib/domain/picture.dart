@@ -23,6 +23,7 @@ class Picture {
     this.visitedAt,
     this.deletedAt,
     this.cloudId,
+    this.fileHash,
   });
 
   String id;
@@ -44,6 +45,7 @@ class Picture {
   @DateTimeConverter()
   DateTime? deletedAt;
   String? cloudId;
+  String? fileHash;
 
   @JsonKey(includeToJson: false, includeFromJson: false)
   Location get location => Location(lat: latitude, lng: longitude);
@@ -82,6 +84,7 @@ class Picture {
     DateTime? visitedAt,
     DateTime? deletedAt,
     String? cloudId,
+    String? fileHash,
   }) => Picture(
     id: id ?? this.id,
     localId: localId ?? this.localId,
@@ -99,6 +102,7 @@ class Picture {
     visitedAt: visitedAt ?? this.visitedAt,
     deletedAt: deletedAt ?? this.deletedAt,
     cloudId: cloudId ?? this.cloudId,
+    fileHash: fileHash ?? this.fileHash,
   );
 }
 

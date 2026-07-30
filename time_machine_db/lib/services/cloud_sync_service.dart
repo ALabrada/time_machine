@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 
@@ -194,14 +195,24 @@ extension SyncExtensions on CloudSyncService {
       return;
     }
 
-    await provider.deleteFile('${item.id.toString()}.jpg');
-
     final strippedId = _stripPrefix(id);
-    if (strippedId != null) {
-      item.deletedAt = item.deletedAt ?? DateTime.now();
-      final json = item.toJson();
-      await provider.saveRecord(collection, strippedId, json);
+    if (strippedId == null) {
+      return;
     }
+
+    final cloudJson = await provider.getRecord(collection, strippedId);
+    if (cloudJson != null) {
+      final cloudPicture = Picture.fromJson(cloudJson);
+      if (provider.supportsFiles && await _loadData(cloudPicture) == null) {
+        try {
+          await provider.deleteFile(cloudPicture.url);
+        } catch(_) {}
+      }
+    }
+
+    item.deletedAt = item.deletedAt ?? DateTime.now();
+    final json = item.toJson();
+    await provider.saveRecord(collection, strippedId, json);
   }
 
   Future<void> deleteRecordFromCould(Record item) async {
@@ -265,9 +276,20 @@ extension SyncExtensions on CloudSyncService {
       return picture;
     }
 
-    picture.cloudId = id;
-    await _downloadPictureFile(picture);
-    return await _createRepository<Picture>().upsert(picture);
+    final localCopy = await _createRepository<Picture>().findPictureByCloudId(id);
+    if (localCopy != null && picture.fileHash != null) {
+      final localData = await _loadData(localCopy);
+      if (localData != null) {
+        final hash = sha256.convert(localData).toString();
+        if (hash == picture.fileHash) {
+          return localCopy;
+        }
+      }
+    }
+
+    final downloaded = await _downloadPictureFile(picture);
+    downloaded.cloudId = id;
+    return await _createRepository<Picture>().upsert(downloaded);
   }
 
   Future<Record?> pullRecord(String id) async {
@@ -299,24 +321,16 @@ extension SyncExtensions on CloudSyncService {
   }
 
   Future<Record> _loadRecordFromCloud(Map<String, dynamic> json, [String? id]) async {
-    Future<Picture?> loadPicture(String cloudId) async {
-      final localCopy = await _createRepository<Picture>().findPictureByCloudId(cloudId);
-      if (localCopy == null || await _loadData(localCopy) == null) {
-        return await pullPicture(cloudId);
-      }
-      return localCopy;
-    }
-
     final originalId = json['originalId'];
     final pictureId = json['pictureId'];
     Picture? original, picture;
 
     if (originalId is String) {
-      original = await loadPicture(_addPrefix(originalId));
+      original = await pullPicture(_addPrefix(originalId));
       json['originalId'] = original?.localId;
     }
     if (pictureId is String) {
-      picture = await loadPicture(_addPrefix(pictureId));
+      picture = await pullPicture(_addPrefix(pictureId));
       json['pictureId'] = picture?.localId;
     }
 
@@ -441,13 +455,15 @@ extension SyncExtensions on CloudSyncService {
       return picture;
     }
 
+    final hash = sha256.convert(data).toString();
+
     if (provider.supportsFiles) {
       final newUrl = await provider.uploadFile(
         name: '${picture.id.toString()}.jpg',
         fileData: data,
         mimeType: 'image/jpg',
       );
-      return picture.copy(url: newUrl);
+      return picture.copy(url: newUrl, fileHash: hash);
     } else {
       final newUrl = UriData.fromBytes(data).toString();
       return picture.copy(url: newUrl);
