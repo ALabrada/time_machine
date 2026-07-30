@@ -49,7 +49,7 @@ class Record {
   String? pictureViewPort;
   String? cloudId;
 
-  DateTime get lastDate => deletedAt ?? createdAt;
+  DateTime get lastDate => deletedAt ?? updateAt;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   double? get originalAspectRatio {
@@ -130,7 +130,7 @@ extension RecordRepository on Repository<Record> {
     DateTime? since,
   }) async {
     final finder = Finder(
-      filter: since == null ? null : Filter.greaterThan('updateAt', since),
+      filter: since == null ? null : Filter.greaterThan('updateAt', DateTimeConverter().toJson(since)),
       sortOrders: [
         SortOrder('updateAt', false),
       ],

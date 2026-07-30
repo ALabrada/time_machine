@@ -112,7 +112,8 @@ class Repository<T> {
     if (id == null) {
       return;
     }
-    await box.record(id).put(db, toJson(entity));
+    final json = toJson(entity);
+    await box.record(id).put(db, json);
     events?.add(EntityUpdated(entity));
   }
 

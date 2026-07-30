@@ -130,12 +130,14 @@ class CloudSyncService {
 
       final recordCollection = _provider?.collectionNames[Record];
       try {
-        if (event is EntityInserted<Record> && lastChange != null && event.entity.updateAt.isAfter(lastChange)) {
+        if (event is EntityInserted<Record> && event.entity.cloudId == null && lastChange != null && event.entity.updateAt.isAfter(lastChange)) {
+          final ts = event.entity.updateAt;
           await pushRecord(event.entity);
-          _lastChange = event.entity.updateAt;
+          _lastChange = ts;
         } else if (event is EntityUpdated<Record> && lastChange != null && event.entity.updateAt.isAfter(lastChange)) {
+          final ts = event.entity.updateAt;
           await pushRecord(event.entity);
-          _lastChange = event.entity.updateAt;
+          _lastChange = ts;
         } else if (event is EntityRemoved<Record> && event.entity.deletedAt != null) {
           if (lastChange != null && event.entity.deletedAt!.isAfter(lastChange)) {
             await deleteRecordFromCould(event.entity);
@@ -223,15 +225,14 @@ extension SyncExtensions on CloudSyncService {
     }
   }
 
-  Future<void> _deletePictureFromDB(String cloudId, {Map<String, dynamic>? json}) async {
-    final pictureRepo = _createRepository<Picture>();
-    final picture = await pictureRepo.getById(cloudId);
-    if (picture != null) {
-      try {
-        await db.deleteFiles('pictures/${picture.id}.jpg');
-      } catch (_) {}
-      await pictureRepo.delete(picture.localId!);
+  Future<void> _deletePictureFromDB(Picture? picture) async {
+    if (picture == null || picture.localId == null) {
+      return;
     }
+    try {
+      await db.deleteFiles('pictures/${picture.id}.jpg');
+    } catch (_) {}
+    await _createRepository<Picture>().delete(picture.localId!);
   }
 
   Future<void> _deleteRecordFromDB(String cloudId) async {
@@ -239,9 +240,7 @@ extension SyncExtensions on CloudSyncService {
     final local = await repo.findRecordByCloudId(cloudId);
     if (local == null) return;
 
-    if (local.pictureId != 0) {
-      await _deletePictureFromDB(cloudId);
-    }
+    await _deletePictureFromDB(local.picture ?? await _createRepository<Picture>().getById(local.pictureId));
     await repo.delete(local.localId!);
   }
 
@@ -261,7 +260,8 @@ extension SyncExtensions on CloudSyncService {
     }
     final picture = Picture.fromJson(json);
     if (picture.deletedAt != null) {
-      await _deletePictureFromDB(id, json: json);
+      final local = await _createRepository<Picture>().findPictureByCloudId(id);
+      await _deletePictureFromDB(local);
       return picture;
     }
 

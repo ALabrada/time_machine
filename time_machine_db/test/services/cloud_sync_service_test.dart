@@ -83,6 +83,7 @@ void main() {
       );
       await recordRepo.insert(record);
 
+      await Future.delayed(Duration(milliseconds: 100));
       await syncService.syncWithCloud();
 
       final cloudRecords = await mockProvider.listRecords('records');
@@ -374,6 +375,7 @@ void main() {
       );
       await recordRepo.insert(record);
 
+      await Future.delayed(Duration(milliseconds: 100));
       await syncService.syncWithCloud();
 
       // syncWithCloud creates new Record objects from the DB, so check the DB
@@ -490,6 +492,7 @@ void main() {
       };
       mockProvider.addRecord('records', 'conflict_rec', cloudJson);
 
+      await Future.delayed(Duration(milliseconds: 100));
       await syncService.syncWithCloud();
 
       final cloudData = mockProvider.getRecordData('records', 'conflict_rec');

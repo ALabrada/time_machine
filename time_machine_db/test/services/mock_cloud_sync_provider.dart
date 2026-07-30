@@ -120,7 +120,9 @@ class MockCloudSyncProvider implements CloudSyncProvider {
   }
 
   bool hasRecord(String collection, String id) {
-    return _collections[collection]?.containsKey(id) ?? false;
+    final record = _collections[collection]?[id];
+    if (record == null) return false;
+    return record['deletedAt'] == null;
   }
 
   Map<String, dynamic>? getRecordData(String collection, String id) {
