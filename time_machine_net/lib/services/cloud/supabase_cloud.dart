@@ -10,7 +10,6 @@ import 'cloud_base.dart';
 class SupabaseCloud extends EventfulCloudBase {
   static const idColumn = 'id';
   static const sourceIdColumn = '_id';
-  static const dateColumn = 'updated_at';
 
   final SupabaseClient _client;
   final String _bucketName;
@@ -163,7 +162,6 @@ class SupabaseCloud extends EventfulCloudBase {
     Map<String, dynamic> data,
   ) async {
     _preserveSourceId(data);
-    data[dateColumn] = data[dateColumn] ?? DateTime.now().toIso8601String();
 
     if (id != null) {
       data[idColumn] = id;
@@ -172,7 +170,6 @@ class SupabaseCloud extends EventfulCloudBase {
     }
 
     data.remove(idColumn);
-    data['created_at'] = data['created_at'] ?? DateTime.now().toIso8601String();
     final response = await _client.from(collection).insert(data).select();
     if (response.isEmpty) {
       throw Exception('Failed to insert record');
@@ -199,10 +196,7 @@ class SupabaseCloud extends EventfulCloudBase {
     DateTime? since,
   }) async {
     var query = _client.from(collection).select();
-    if (since != null) {
-      query = query.gte(dateColumn, since.toIso8601String());
-    }
-    final results = await query.order(dateColumn);
+    final results = await query;
     for (final result in results) {
       _restoreSourceId(result);
     }

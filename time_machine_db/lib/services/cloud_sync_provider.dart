@@ -9,7 +9,7 @@ abstract class CloudSyncProvider {
 
   Future<String> saveRecord(String collection, String? id, Map<String, dynamic> data);
   Future<Map<String, dynamic>?> getRecord(String collection, String id);
-  Future<List<Map<String, dynamic>>> listRecords(String collection, {DateTime? since});
+  Future<List<Map<String, dynamic>>> listRecords(String collection);
   Future<void> deleteRecord(String collection, String id);
 
   Future<String> uploadFile({

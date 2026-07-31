@@ -83,8 +83,6 @@ void main() {
         final data = snapshot.data()!;
         expect(data['_id'], 'source-456');
         expect(data['name'], 'Test Picture');
-        expect(data['updated_at'], isNotNull);
-        expect(data['created_at'], isNotNull);
         expect(data.containsKey('id'), isFalse);
       });
 
@@ -113,7 +111,6 @@ void main() {
         final data = snapshot.data()!;
         expect(data['_id'], 'source-789');
         expect(data['name'], 'Updated Picture');
-        expect(data['updated_at'], isNotNull);
         expect(data['id'], 'my-existing-id');
       });
 
@@ -136,7 +133,6 @@ void main() {
         expect(data['_id'], 'source-abc');
         expect(data['name'], 'Local Picture');
         expect(data['id'], 'any-id');
-        expect(data['updated_at'], isNotNull);
         expect(data.containsKey('created_at'), isFalse);
       });
     });
@@ -203,30 +199,6 @@ void main() {
         expect(results[1]['id'], 'src-2');
         expect(results[1]['name'], 'Pic 2');
         expect(results[1].containsKey('_id'), isFalse);
-      });
-
-      test('filters by updated_at when since is provided', () async {
-        await setUpCloud();
-
-        // Pre-seed documents with different dates
-        await fakeFirestore.collection('pictures').doc('old').set({
-          '_id': 'src-old',
-          'name': 'Old',
-          'updated_at': '2023-06-01T00:00:00',
-        });
-        await fakeFirestore.collection('pictures').doc('new').set({
-          '_id': 'src-new',
-          'name': 'New',
-          'updated_at': '2024-06-01T00:00:00',
-        });
-
-        final since = DateTime(2024, 1, 1);
-        final results =
-            await cloud.listRecords('pictures', since: since);
-
-        expect(results.length, 1);
-        expect(results[0]['id'], 'src-new');
-        expect(results[0]['name'], 'New');
       });
     });
 

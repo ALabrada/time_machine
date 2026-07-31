@@ -50,7 +50,7 @@ class CloudSyncService {
 
     try {
       final dt = _lastChange;
-      final incomingRecords = await pullRecords(since: dt);
+      final incomingRecords = await pullRecords();
       for (final record in incomingRecords) {
         final date = record.lastDate;
         if (_lastChange == null || date.isAfter(_lastChange!)) {
@@ -302,14 +302,14 @@ extension SyncExtensions on CloudSyncService {
     return json is Map<String, dynamic> ? await _loadRecordFromCloud(json) : null;
   }
 
-  Future<List<Record>> pullRecords({DateTime? since}) async {
+  Future<List<Record>> pullRecords() async {
     final provider = _provider;
     final collection = _provider?.collectionNames[Record];
     if (provider == null || collection == null) {
       return [];
     }
 
-    final list = await provider.listRecords(collection, since: since);
+    final list = await provider.listRecords(collection);
     return [
       for (final json in list)
         await _loadRecordFromCloud(json),

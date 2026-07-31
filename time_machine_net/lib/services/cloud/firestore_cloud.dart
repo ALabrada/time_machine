@@ -11,7 +11,6 @@ import 'cloud_base.dart';
 class FirestoreCloud extends EventfulCloudBase {
   static const idColumn = 'id';
   static const sourceIdColumn = '_id';
-  static const dateColumn = 'updated_at';
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage? _storage;
@@ -131,7 +130,6 @@ class FirestoreCloud extends EventfulCloudBase {
     Map<String, dynamic> data,
   ) async {
     _preserveSourceId(data);
-    data[dateColumn] = data[dateColumn] ?? DateTime.now().toIso8601String();
 
     if (id != null) {
       data[idColumn] = id;
@@ -143,7 +141,6 @@ class FirestoreCloud extends EventfulCloudBase {
     }
 
     data.remove(idColumn);
-    data['created_at'] = data['created_at'] ?? DateTime.now().toIso8601String();
     final docRef = await _firestore.collection(collection).add(data);
     return docRef.id;
   }
@@ -164,18 +161,9 @@ class FirestoreCloud extends EventfulCloudBase {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> listRecords(
-    String collection, {
-    DateTime? since,
-  }) async {
+  Future<List<Map<String, dynamic>>> listRecords(String collection) async {
     var query = _firestore.collection(collection) as Query;
-    if (since != null) {
-      query = query.where(
-        dateColumn,
-        isGreaterThanOrEqualTo: since.toIso8601String(),
-      );
-    }
-    final snapshots = await query.orderBy(dateColumn, descending: false).get();
+    final snapshots = await query.get();
     final results = snapshots.docs.map((doc) {
       final data = Map<String, dynamic>.from(
         doc.data() as Map<String, dynamic>,

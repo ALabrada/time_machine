@@ -200,8 +200,6 @@ void main() {
               as Map<String, dynamic>;
           expect(body['_id'], 'source-456');
           expect(body.containsKey('id'), isFalse);
-          expect(body['created_at'], isNotNull);
-          expect(body['updated_at'], isNotNull);
           expect(request.method, 'POST');
           expect(request.url.toString(), contains('/rest/v1/pictures'));
         });
@@ -221,7 +219,6 @@ void main() {
           expect(body['id'], 'my-existing-id');
           expect(body['_id'], 'source-789');
           expect(body['name'], 'Updated Picture');
-          expect(body['updated_at'], isNotNull);
           expect(body.containsKey('created_at'), isFalse);
           expect(request.headers['Prefer'],
               contains('resolution=merge-duplicates'));
@@ -244,7 +241,6 @@ void main() {
           expect(body['id'], 'any-id');
           expect(body['_id'], 'source-abc');
           expect(body['name'], 'Local Picture');
-          expect(body['updated_at'], isNotNull);
           expect(body.containsKey('created_at'), isFalse);
           expect(request.headers['Prefer'],
               contains('resolution=merge-duplicates'));
@@ -327,7 +323,6 @@ void main() {
           assertFn: (request) async {
             expect(request.method, 'GET');
             expect(request.url.toString(), contains('/rest/v1/pictures'));
-            expect(request.url.toString(), contains('order=updated_at'));
           },
           mockFor: (request) {
             final uri = Uri.parse(request.url.toString());
@@ -359,19 +354,6 @@ void main() {
         expect(results[0].containsKey('_id'), isFalse);
         expect(results[1]['id'], 'src-2');
         expect(results[1]['name'], 'Pic 2');
-      });
-
-      test('filters by updated_at when since is provided', () async {
-        final since = DateTime(2024, 1, 1);
-        await setUpCloud(assertFn: (request) async {
-          expect(request.method, 'GET');
-          final url = request.url.toString();
-          expect(url, contains('updated_at=gte.'));
-          expect(url, contains('2024-01-01'));
-        });
-
-        final results = await cloud.listRecords('pictures', since: since);
-        expect(results, isEmpty);
       });
     });
 

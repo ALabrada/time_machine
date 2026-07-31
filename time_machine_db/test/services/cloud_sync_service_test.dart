@@ -311,29 +311,6 @@ void main() {
       await db.close();
     });
 
-    test('pullRecords respects since filter', () async {
-      final db = await databaseFactoryMemory.openDatabase('test_pull_since.db');
-      final dbService = DatabaseService(db: db);
-      final mockProvider = createProvider();
-      final syncService = CloudSyncService(db: dbService);
-      await syncService.setProvider(mockProvider);
-
-      final now = DateTime.now();
-      for (int i = 0; i < 3; i++) {
-        final key = 'pastvu/cr_since_$i';
-        mockProvider.addRecord('pictures', key, cloudPictureJson(id: 'cr_since_$i', provider: 'pastvu'));
-        mockProvider.addRecord('records', key, cloudRecordJson(pictureKey: key, updateAt: now.add(Duration(hours: i)), height: 100.0 + i, width: 200.0 + i));
-      }
-
-      final since = now.add(const Duration(hours: 1));
-      final records = await syncService.pullRecords(since: since);
-      expect(records, hasLength(1));
-
-      await syncService.dispose();
-      mockProvider.dispose();
-      await db.close();
-    });
-
     test('deleteRecord deletes from cloud and cloud picture', () async {
       final db = await databaseFactoryMemory.openDatabase('test_delete_record.db');
       final dbService = DatabaseService(db: db);
