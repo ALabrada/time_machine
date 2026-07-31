@@ -30,19 +30,6 @@ class CloudSyncService {
     await Future<void>.delayed(Duration.zero);
   }
 
-  String? _stripPrefix(String? prefixed) {
-    final prefix = _provider?.id;
-    if (prefixed == null || prefix == null) return null;
-    if (prefix.isEmpty) return prefixed;
-    if (prefixed.startsWith(prefix)) return prefixed.substring(prefix.length);
-    return null;
-  }
-
-  String _addPrefix(String id) {
-    final prefix = _provider?.id ?? '';
-    return '$prefix$id';
-  }
-
   Future<void> setProvider(CloudSyncProvider? provider) async {
     _cloudSubscription?.cancel();
     _cloudSubscription = null;
@@ -73,14 +60,21 @@ class CloudSyncService {
 
       final outgoingRecords = await _createRepository<Record>().findUpdatedRecords(since: dt);
       final newestRecord = outgoingRecords.firstOrNull;
+      final providerId = _provider?.id;
       for (final record in outgoingRecords) {
-        if (record.cloudId == null) {
+        final picture = record.picture ?? await _createRepository<Picture>().getById(record.pictureId);
+        if (picture == null) {
+          continue;
+        }
+
+        final key = _pictureKey(picture);
+        final incomingRecord = incomingRecords
+            .where((e) => e.picture != null && _pictureKey(e.picture!) == key)
+            .firstOrNull;
+        if (record.cloudId != providerId ||
+            incomingRecord == null ||
+            record.lastDate.isAfter(incomingRecord.lastDate)) {
           await pushRecord(record);
-        } else {
-          final incomingRecord = incomingRecords.where((e) => e.cloudId == record.cloudId).firstOrNull;
-          if (incomingRecord == null || record.lastDate.isAfter(incomingRecord.lastDate)) {
-            await pushRecord(record);
-          }
         }
       }
 
@@ -190,17 +184,12 @@ extension SyncExtensions on CloudSyncService {
   Future<void> deletePictureFromCloud(Picture item) async {
     final provider = _provider;
     final collection = _provider?.collectionNames[Picture];
-    final id = item.cloudId;
-    if (provider == null || collection == null || id == null) {
+    if (provider == null || collection == null || item.cloudId != provider.id) {
       return;
     }
 
-    final strippedId = _stripPrefix(id);
-    if (strippedId == null) {
-      return;
-    }
-
-    final cloudJson = await provider.getRecord(collection, strippedId);
+    final key = _pictureKey(item);
+    final cloudJson = await provider.getRecord(collection, key);
     if (cloudJson != null) {
       final cloudPicture = Picture.fromJson(cloudJson);
       if (provider.supportsFiles && await _loadData(cloudPicture) == null) {
@@ -211,29 +200,29 @@ extension SyncExtensions on CloudSyncService {
     }
 
     item.deletedAt = item.deletedAt ?? DateTime.now();
-    final json = item.toJson();
-    await provider.saveRecord(collection, strippedId, json);
+    final json = item.toJson()..remove('cloudId');
+    await provider.saveRecord(collection, key, json);
   }
 
   Future<void> deleteRecordFromCould(Record item) async {
     final provider = _provider;
     final collection = _provider?.collectionNames[Record];
-    final id = item.cloudId;
-    if (provider == null || collection == null || id == null) {
+    if (provider == null || collection == null || item.cloudId != provider.id) {
       return;
     }
 
     final picture = item.picture ?? await _createRepository<Picture>().getById(item.pictureId);
-    if (picture != null) {
-      await deletePictureFromCloud(picture);
+    if (picture == null) {
+      return;
     }
 
-    final strippedId = _stripPrefix(id);
-    if (strippedId != null) {
-      item.deletedAt = item.deletedAt ?? DateTime.now();
-      final json = item.toJson();
-      await provider.saveRecord(collection, strippedId, json);
-    }
+    await deletePictureFromCloud(picture);
+
+    item.deletedAt = item.deletedAt ?? DateTime.now();
+    final json = item.toJson()
+      ..remove('cloudId')
+      ..['pictureId'] = _pictureKey(picture);
+    await provider.saveRecord(collection, _pictureKey(picture), json);
   }
 
   Future<void> _deletePictureFromDB(Picture? picture) async {
@@ -246,13 +235,21 @@ extension SyncExtensions on CloudSyncService {
     await _createRepository<Picture>().delete(picture.localId!);
   }
 
-  Future<void> _deleteRecordFromDB(String cloudId) async {
-    final repo = _createRepository<Record>();
-    final local = await repo.findRecordByCloudId(cloudId);
+  Future<void> _deleteRecordFromDB(String pictureKey) async {
+    final split = _splitPictureKey(pictureKey);
+    if (split == null) return;
+    final (sourceProvider, sourceId) = split;
+
+    final pictureRepository = _createRepository<Picture>();
+    final picture = await pictureRepository.findPictureByIdAndProvider(sourceId, sourceProvider);
+    if (picture == null || picture.localId == null) return;
+
+    final recordRepository = _createRepository<Record>();
+    final local = await recordRepository.findRecordByPictureId(picture.localId!);
     if (local == null) return;
 
-    await _deletePictureFromDB(local.picture ?? await _createRepository<Picture>().getById(local.pictureId));
-    await repo.delete(local.localId!);
+    await _deletePictureFromDB(local.picture ?? picture);
+    await recordRepository.delete(local.localId!);
   }
 
   Future<Picture?> pullPicture(String id) async {
@@ -262,21 +259,22 @@ extension SyncExtensions on CloudSyncService {
       return null;
     }
 
-    final strippedId = _stripPrefix(id);
-    if (strippedId == null) return null;
+    final split = _splitPictureKey(id);
+    if (split == null) return null;
+    final (sourceProvider, sourceId) = split;
 
-    final json = await provider.getRecord(collection, strippedId);
+    final json = await provider.getRecord(collection, id);
     if (json == null) {
       return null;
     }
     final picture = Picture.fromJson(json);
+    final localCopy = await _createRepository<Picture>().findPictureByIdAndProvider(sourceId, sourceProvider);
+
     if (picture.deletedAt != null) {
-      final local = await _createRepository<Picture>().findPictureByCloudId(id);
-      await _deletePictureFromDB(local);
+      await _deletePictureFromDB(localCopy);
       return picture;
     }
 
-    final localCopy = await _createRepository<Picture>().findPictureByCloudId(id);
     if (localCopy != null && picture.fileHash != null) {
       final localData = await _loadData(localCopy);
       if (localData != null) {
@@ -288,7 +286,8 @@ extension SyncExtensions on CloudSyncService {
     }
 
     final downloaded = await _downloadPictureFile(picture);
-    downloaded.cloudId = id;
+    downloaded.cloudId = provider.id;
+    downloaded.localId = localCopy?.localId;
     return await _createRepository<Picture>().upsert(downloaded);
   }
 
@@ -299,11 +298,8 @@ extension SyncExtensions on CloudSyncService {
       return null;
     }
 
-    final strippedId = _stripPrefix(id);
-    if (strippedId == null) return null;
-
-    final json = await provider.getRecord(collection, strippedId);
-    return json is Map<String, dynamic> ? await _loadRecordFromCloud(json, id) : null;
+    final json = await provider.getRecord(collection, id);
+    return json is Map<String, dynamic> ? await _loadRecordFromCloud(json) : null;
   }
 
   Future<List<Record>> pullRecords({DateTime? since}) async {
@@ -325,12 +321,12 @@ extension SyncExtensions on CloudSyncService {
     final pictureId = json['pictureId'];
     Picture? original, picture;
 
-    if (originalId is String) {
-      original = await pullPicture(_addPrefix(originalId));
+    if (originalId is String && originalId.isNotEmpty) {
+      original = await pullPicture(originalId);
       json['originalId'] = original?.localId;
     }
-    if (pictureId is String) {
-      picture = await pullPicture(_addPrefix(pictureId));
+    if (pictureId is String && pictureId.isNotEmpty) {
+      picture = await pullPicture(pictureId);
       json['pictureId'] = picture?.localId;
     }
 
@@ -338,20 +334,23 @@ extension SyncExtensions on CloudSyncService {
     record.original = original;
     record.picture = picture;
 
-    final cloudId = id ?? (record.cloudId != null ? _addPrefix(record.cloudId!) : null);
-    if (cloudId != null) {
-      if (record.deletedAt != null) {
-        await _deleteRecordFromDB(cloudId);
-        return record;
-      }
+    final key = pictureId is String && pictureId.isNotEmpty ? pictureId : id;
+    if (key == null || key.isEmpty) {
+      return record;
+    }
 
+    if (record.deletedAt != null) {
+      await _deleteRecordFromDB(key);
+      return record;
+    }
+
+    if (picture != null && picture.localId != null) {
       final repository = db.createRepository<Record>();
-      final localCopy = await repository.findRecordByCloudId(cloudId);
+      final localCopy = await repository.findRecordByPictureId(picture.localId!);
 
       if (localCopy == null || localCopy.updateAt.isBefore(record.updateAt)) {
         record.localId = localCopy?.localId;
-        record.cloudId = cloudId;
-
+        record.cloudId = _provider?.id;
         await repository.upsert(record);
       }
     }
@@ -362,20 +361,14 @@ extension SyncExtensions on CloudSyncService {
   Future<bool> pushPicture(Picture picture) async {
     final provider = _provider;
     final collection = _provider?.collectionNames[Picture];
-    if (provider == null || collection == null) {
-      return false;
-    }
-
-    final strippedId = _stripPrefix(picture.cloudId);
-    if (strippedId != null) {
+    if (provider == null || collection == null || picture.cloudId == provider.id) {
       return false;
     }
 
     final newPicture = await _uploadPictureFile(picture);
-    final json = newPicture.toJson();
-    json['cloudId'] = strippedId;
-    final result = await provider.saveRecord(collection, strippedId, json);
-    picture.cloudId = _addPrefix(result);
+    final json = newPicture.toJson()..remove('cloudId');
+    await provider.saveRecord(collection, _pictureKey(picture), json);
+    picture.cloudId = provider.id;
     await _createRepository<Picture>().upsert(picture);
     return true;
   }
@@ -394,20 +387,23 @@ extension SyncExtensions on CloudSyncService {
         : await pictureRepository.getById(record.originalId!));
     final picture = record.picture ?? await pictureRepository.getById(record.pictureId);
 
+    if (picture == null) {
+      return false;
+    }
+
     if (original != null && await pushPicture(original)) {
       await pictureRepository.upsert(original);
     }
-    if (picture != null && await pushPicture(picture)) {
+    if (await pushPicture(picture)) {
       await pictureRepository.upsert(picture);
     }
 
-    json['originalId'] = _stripPrefix(original?.cloudId);
-    json['pictureId'] = _stripPrefix(picture?.cloudId);
-    json['cloudId'] = _stripPrefix(record.cloudId);
+    json['originalId'] = original == null ? null : _pictureKey(original);
+    json['pictureId'] = _pictureKey(picture);
+    json.remove('cloudId');
 
-    final strippedId = _stripPrefix(record.cloudId);
-    final result = await provider.saveRecord(collection, strippedId, json);
-    record.cloudId = _addPrefix(result);
+    await provider.saveRecord(collection, _pictureKey(picture), json);
+    record.cloudId = provider.id;
     await _createRepository<Record>().upsert(record);
     return true;
   }
@@ -484,4 +480,12 @@ extension SyncExtensions on CloudSyncService {
     }
     return null;
   }
+}
+
+String _pictureKey(Picture picture) => '${picture.provider}/${picture.id}';
+
+(String, String)? _splitPictureKey(String key) {
+  final index = key.indexOf('/');
+  if (index < 0) return null;
+  return (key.substring(0, index), key.substring(index + 1));
 }

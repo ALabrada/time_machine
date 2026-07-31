@@ -21,7 +21,7 @@ class FirestoreCloud extends EventfulCloudBase {
   bool _initialSnapshotReceived = false;
 
   @override
-  String get id => 'firestore/';
+  String get id => 'firestore';
 
   @override
   bool get supportsFiles => _storage != null;

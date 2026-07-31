@@ -116,12 +116,6 @@ extension PictureRepository on Repository<Picture> {
     return result;
   }
 
-  Future<Picture?> findPictureByCloudId(String cloudId) async {
-    final finder = Finder(filter: Filter.equals('cloudId', cloudId), limit: 1);
-    final result = await findFirst(finder);
-    return result;
-  }
-
   Future<List<Picture>> findPicturesWithText(List<String> keywords, {
     int limit = 20,
     List<String> providers = const[],

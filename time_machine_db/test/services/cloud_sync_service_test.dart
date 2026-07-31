@@ -1,11 +1,80 @@
-import 'dart:typed_data';
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sembast/sembast.dart';
 import 'package:sembast/sembast_memory.dart';
 
 import 'package:time_machine_db/time_machine_db.dart';
 import 'mock_cloud_sync_provider.dart';
+
+Future<Picture> insertPicture(
+  DatabaseService dbService, {
+  required String id,
+  required String provider,
+  double latitude = 48.0,
+  double longitude = 2.0,
+}) async {
+  final picture = Picture(
+    id: id,
+    provider: provider,
+    url: 'data:image/jpg;base64,AA==',
+    latitude: latitude,
+    longitude: longitude,
+  );
+  return await dbService.createRepository<Picture>().insert(picture);
+}
+
+Future<Record> insertRecord(
+  DatabaseService dbService,
+  Picture picture, {
+  DateTime? updateAt,
+  double height = 100,
+  double width = 200,
+}) async {
+  final time = updateAt ?? DateTime.now();
+  final record = Record(
+    pictureId: picture.localId!,
+    createdAt: time,
+    updateAt: time,
+    height: height,
+    width: width,
+  );
+  return await dbService.createRepository<Record>().insert(record);
+}
+
+Map<String, dynamic> cloudPictureJson({
+  required String id,
+  required String provider,
+  String? url,
+}) => {
+  'id': id,
+  'provider': provider,
+  'url': url ?? 'data:image/jpg;base64,AA==',
+  'latitude': 48.0,
+  'longitude': 2.0,
+};
+
+Map<String, dynamic> cloudRecordJson({
+  required String pictureKey,
+  required DateTime updateAt,
+  DateTime? createdAt,
+  DateTime? deletedAt,
+  double height = 100,
+  double width = 200,
+}) => {
+  'pictureId': pictureKey,
+  'originalId': null,
+  'createdAt': (createdAt ?? updateAt).millisecondsSinceEpoch,
+  'updateAt': updateAt.millisecondsSinceEpoch,
+  'visitedAt': null,
+  'height': height,
+  'width': width,
+  if (deletedAt != null) 'deletedAt': deletedAt.millisecondsSinceEpoch,
+};
+
+MockCloudSyncProvider createProvider({String id = 'mock'}) {
+  return MockCloudSyncProvider(
+    collectionNames: {Record: 'records', Picture: 'pictures'},
+    id: id,
+  );
+}
 
 void main() {
   group('CloudSyncService', () {
@@ -23,9 +92,7 @@ void main() {
     test('isActive returns true after setProvider', () async {
       final db = await databaseFactoryMemory.openDatabase('test_active.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
@@ -39,9 +106,7 @@ void main() {
     test('syncWithCloud does nothing when local and cloud are empty', () async {
       final db = await databaseFactoryMemory.openDatabase('test_empty_sync.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
@@ -58,37 +123,53 @@ void main() {
     test('push new local records to cloud via syncWithCloud', () async {
       final db = await databaseFactoryMemory.openDatabase('test_push_local.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
-      final recordRepo = dbService.createRepository<Record>();
-      final pictureRepo = dbService.createRepository<Picture>();
+      final picture = await insertPicture(dbService, id: 'pic1', provider: 'pastvu');
+      final record = await insertRecord(dbService, picture);
 
-      final pic = Picture(
-        id: 'pic1',
-        url: 'data:image/jpg;base64,AA==',
-        latitude: 48.0,
-        longitude: 2.0,
-      );
-      await pictureRepo.insert(pic);
-
-      final now = DateTime.now();
-      final record = Record(
-        pictureId: pic.localId!,
-        createdAt: now,
-        updateAt: now,
-      );
-      await recordRepo.insert(record);
-
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 200));
       await syncService.syncWithCloud();
 
       final cloudRecords = await mockProvider.listRecords('records');
       expect(cloudRecords, hasLength(1));
-      expect(cloudRecords.first['pictureId'], isNotNull);
+      expect(cloudRecords.first['pictureId'], 'pastvu/pic1');
+      expect(mockProvider.hasRecord('pictures', 'pastvu/pic1'), true);
+
+      final localRecord = await dbService.createRepository<Record>().getById(record.localId!);
+      expect(localRecord!.cloudId, 'mock');
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('record without a picture is not pushed to cloud', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_push_no_picture.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = createProvider();
+      final syncService = CloudSyncService(db: dbService);
+      await syncService.setProvider(mockProvider);
+
+      final now = DateTime.now();
+      final record = Record(
+        pictureId: 0,
+        createdAt: now,
+        updateAt: now,
+      );
+      await dbService.createRepository<Record>().insert(record);
+
+      await Future.delayed(const Duration(milliseconds: 200));
+      await syncService.syncWithCloud();
+
+      final cloudRecords = await mockProvider.listRecords('records');
+      expect(cloudRecords, isEmpty);
+
+      final localRecords = await dbService.createRepository<Record>().list();
+      expect(localRecords, hasLength(1));
+      expect(localRecords.first.cloudId, isNull);
 
       await syncService.dispose();
       mockProvider.dispose();
@@ -98,31 +179,23 @@ void main() {
     test('pull cloud records to local via syncWithCloud', () async {
       final db = await databaseFactoryMemory.openDatabase('test_pull_cloud.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
-      await syncService.setProvider(mockProvider);
 
       final now = DateTime.now();
-      final cloudData = <String, dynamic>{
-        'pictureId': 0,
-        'originalId': null,
-        'createdAt': now.millisecondsSinceEpoch,
-        'updateAt': now.millisecondsSinceEpoch,
-        'visitedAt': null,
-        'height': 100.0,
-        'width': 200.0,
-      };
-      mockProvider.addRecord('records', 'cloud_record_1', cloudData);
+      mockProvider.addRecord('pictures', 'pastvu/c1', cloudPictureJson(id: 'c1', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/c1', cloudRecordJson(pictureKey: 'pastvu/c1', updateAt: now, width: 200));
 
-      final records = await syncService.pullRecords();
-      expect(records, hasLength(1));
+      await syncService.setProvider(mockProvider);
 
       final localRepo = dbService.createRepository<Record>();
       final localRecords = await localRepo.list();
       expect(localRecords, hasLength(1));
       expect(localRecords.first.width, 200.0);
+
+      final localPicture = await dbService.createRepository<Picture>()
+          .findPictureByIdAndProvider('c1', 'pastvu');
+      expect(localPicture, isNotNull);
 
       await syncService.dispose();
       mockProvider.dispose();
@@ -132,9 +205,7 @@ void main() {
     test('_loadRecord: incoming newer than local overwrites local', () async {
       final db = await databaseFactoryMemory.openDatabase('test_newer_incoming.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
@@ -142,30 +213,17 @@ void main() {
       final earlier = DateTime(2024, 1, 1);
       final later = DateTime(2024, 6, 1);
 
-      final existing = Record(
-        pictureId: 0,
-        createdAt: earlier,
-        updateAt: earlier,
-      );
-      await recordRepo.insert(existing);
+      final picture = await insertPicture(dbService, id: 'p1', provider: 'pastvu');
+      await insertRecord(dbService, picture, updateAt: earlier);
 
-      final incomingJson = <String, dynamic>{
-        'pictureId': 0,
-        'originalId': null,
-        'createdAt': earlier.millisecondsSinceEpoch,
-        'updateAt': later.millisecondsSinceEpoch,
-        'visitedAt': null,
-        'height': 200.0,
-        'width': 300.0,
-        'cloudId': 'cloud_r1',
-      };
-      mockProvider.addRecord('records', 'cloud_r1', incomingJson);
+      mockProvider.addRecord('pictures', 'pastvu/p1', cloudPictureJson(id: 'p1', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/p1', cloudRecordJson(pictureKey: 'pastvu/p1', updateAt: later, height: 200, width: 300));
 
-      final pulled = await syncService.pullRecord('cloud_r1');
+      final pulled = await syncService.pullRecord('pastvu/p1');
       expect(pulled, isNotNull);
       expect(pulled!.height, 200.0);
 
-      final localCopy = await recordRepo.findRecordByCloudId('cloud_r1');
+      final localCopy = await recordRepo.findRecordByPictureId(picture.localId!);
       expect(localCopy, isNotNull);
       expect(localCopy!.height, 200.0);
 
@@ -177,9 +235,7 @@ void main() {
     test('_loadRecord: incoming older than local keeps local', () async {
       final db = await databaseFactoryMemory.openDatabase('test_older_incoming.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
@@ -187,34 +243,17 @@ void main() {
       final earlier = DateTime(2024, 1, 1);
       final later = DateTime(2024, 6, 1);
 
-      final existing = Record(
-        pictureId: 0,
-        createdAt: earlier,
-        updateAt: later,
-        height: 500.0,
-        width: 600.0,
-      );
-      await recordRepo.insert(existing);
-      existing.cloudId = 'cloud_r2';
-      await recordRepo.update(existing);
+      final picture = await insertPicture(dbService, id: 'p2', provider: 'pastvu');
+      await insertRecord(dbService, picture, updateAt: later, height: 500, width: 600);
 
-      final incomingJson = <String, dynamic>{
-        'pictureId': 0,
-        'originalId': null,
-        'createdAt': earlier.millisecondsSinceEpoch,
-        'updateAt': earlier.millisecondsSinceEpoch,
-        'visitedAt': null,
-        'height': 100.0,
-        'width': 200.0,
-        'cloudId': 'cloud_r2',
-      };
-      mockProvider.addRecord('records', 'cloud_r2', incomingJson);
+      mockProvider.addRecord('pictures', 'pastvu/p2', cloudPictureJson(id: 'p2', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/p2', cloudRecordJson(pictureKey: 'pastvu/p2', updateAt: earlier, height: 100, width: 200));
 
-      final pulled = await syncService.pullRecord('cloud_r2');
+      final pulled = await syncService.pullRecord('pastvu/p2');
       expect(pulled, isNotNull);
       expect(pulled!.height, 100.0);
 
-      final localCopy = await recordRepo.findRecordByCloudId('cloud_r2');
+      final localCopy = await recordRepo.findRecordByPictureId(picture.localId!);
       expect(localCopy, isNotNull);
       expect(localCopy!.height, 500.0);
 
@@ -226,24 +265,20 @@ void main() {
     test('pushRecord sets cloudId on local record', () async {
       final db = await databaseFactoryMemory.openDatabase('test_push_record_cloudid.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
       final recordRepo = dbService.createRepository<Record>();
-      final now = DateTime.now();
-      final record = Record(
-        pictureId: 0,
-        createdAt: now,
-        updateAt: now,
-      );
-      await recordRepo.insert(record);
+      final picture = await insertPicture(dbService, id: 'pic3', provider: 'pastvu');
+      final record = await insertRecord(dbService, picture);
+      record.picture = picture;
 
       await syncService.pushRecord(record);
 
-      expect(record.cloudId, isNotNull);
+      expect(record.cloudId, 'mock');
+      expect(mockProvider.hasRecord('records', 'pastvu/pic3'), true);
+      expect(mockProvider.hasRecord('pictures', 'pastvu/pic3'), true);
 
       final localCopy = await recordRepo.getById(record.localId!);
       expect(localCopy, isNotNull);
@@ -257,25 +292,15 @@ void main() {
     test('pullRecords returns correct number of records', () async {
       final db = await databaseFactoryMemory.openDatabase('test_pull_records_count.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
       final now = DateTime.now();
       for (int i = 0; i < 3; i++) {
-        final cloudData = <String, dynamic>{
-          'pictureId': i,
-          'originalId': null,
-          'createdAt': now.millisecondsSinceEpoch,
-          'updateAt': now.add(Duration(hours: i)).millisecondsSinceEpoch,
-          'visitedAt': null,
-          'height': 100.0 + i,
-          'width': 200.0 + i,
-          'cloudId': 'cr_$i',
-        };
-        mockProvider.addRecord('records', 'cr_$i', cloudData);
+        final key = 'pastvu/cr_$i';
+        mockProvider.addRecord('pictures', key, cloudPictureJson(id: 'cr_$i', provider: 'pastvu'));
+        mockProvider.addRecord('records', key, cloudRecordJson(pictureKey: key, updateAt: now.add(Duration(hours: i)), height: 100.0 + i, width: 200.0 + i));
       }
 
       final records = await syncService.pullRecords();
@@ -289,25 +314,15 @@ void main() {
     test('pullRecords respects since filter', () async {
       final db = await databaseFactoryMemory.openDatabase('test_pull_since.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
       final now = DateTime.now();
       for (int i = 0; i < 3; i++) {
-        final cloudData = <String, dynamic>{
-          'pictureId': i,
-          'originalId': null,
-          'createdAt': now.millisecondsSinceEpoch,
-          'updateAt': now.add(Duration(hours: i)).millisecondsSinceEpoch,
-          'visitedAt': null,
-          'height': 100.0 + i,
-          'width': 200.0 + i,
-          'cloudId': 'cr_since_$i',
-        };
-        mockProvider.addRecord('records', 'cr_since_$i', cloudData);
+        final key = 'pastvu/cr_since_$i';
+        mockProvider.addRecord('pictures', key, cloudPictureJson(id: 'cr_since_$i', provider: 'pastvu'));
+        mockProvider.addRecord('records', key, cloudRecordJson(pictureKey: key, updateAt: now.add(Duration(hours: i)), height: 100.0 + i, width: 200.0 + i));
       }
 
       final since = now.add(const Duration(hours: 1));
@@ -322,68 +337,34 @@ void main() {
     test('deleteRecord deletes from cloud and cloud picture', () async {
       final db = await databaseFactoryMemory.openDatabase('test_delete_record.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
       final picture = Picture(
         id: 'del_pic',
+        provider: 'pastvu',
         url: 'https://example.com/del.jpg',
         latitude: 10.0,
         longitude: 20.0,
-        cloudId: 'cloud_del_pic',
+        cloudId: 'mock',
       );
-      mockProvider.addRecord('pictures', 'cloud_del_pic', picture.toJson());
+      mockProvider.addRecord('pictures', 'pastvu/del_pic', picture.toJson());
 
       final now = DateTime.now();
       final record = Record(
         pictureId: 1,
         createdAt: now,
         updateAt: now,
-        cloudId: 'cloud_del_rec',
+        cloudId: 'mock',
         picture: picture,
       );
-      mockProvider.addRecord('records', 'cloud_del_rec', record.toJson());
+      mockProvider.addRecord('records', 'pastvu/del_pic', record.toJson());
 
       await syncService.deleteRecordFromCould(record);
 
-      expect(mockProvider.hasRecord('records', 'cloud_del_rec'), false);
-      expect(mockProvider.hasRecord('pictures', 'cloud_del_pic'), false);
-
-      await syncService.dispose();
-      mockProvider.dispose();
-      await db.close();
-    });
-
-    test('syncWithCloud pushes simple local record without picture', () async {
-      final db = await databaseFactoryMemory.openDatabase('test_sync_push_simple.db');
-      final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
-      final syncService = CloudSyncService(db: dbService);
-      await syncService.setProvider(mockProvider);
-
-      final recordRepo = dbService.createRepository<Record>();
-      final now = DateTime.now();
-      final record = Record(
-        pictureId: 0,
-        createdAt: now,
-        updateAt: now,
-      );
-      await recordRepo.insert(record);
-
-      await Future.delayed(Duration(milliseconds: 100));
-      await syncService.syncWithCloud();
-
-      // syncWithCloud creates new Record objects from the DB, so check the DB
-      final localRecords = await recordRepo.list();
-      expect(localRecords, hasLength(1));
-      expect(localRecords.first.cloudId, isNotNull);
-
-      expect(mockProvider.hasRecord('records', localRecords.first.cloudId!), true);
+      expect(mockProvider.hasRecord('records', 'pastvu/del_pic'), false);
+      expect(mockProvider.hasRecord('pictures', 'pastvu/del_pic'), false);
 
       await syncService.dispose();
       mockProvider.dispose();
@@ -393,35 +374,35 @@ void main() {
     test('syncWithCloud syncs local updates to existing cloud records', () async {
       final db = await databaseFactoryMemory.openDatabase('test_sync_update.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
       final recordRepo = dbService.createRepository<Record>();
       final now = DateTime.now();
 
+      final picture = await insertPicture(dbService, id: 'upd1', provider: 'pastvu');
       final record = Record(
-        pictureId: 0,
+        pictureId: picture.localId!,
         createdAt: now,
         updateAt: now,
-        cloudId: 'existing_cloud_rec',
+        cloudId: 'mock',
         height: 100,
         width: 200,
       );
       await recordRepo.insert(record);
 
-      final cloudJson = record.toJson();
-      mockProvider.addRecord('records', 'existing_cloud_rec', cloudJson);
+      final cloudJson = cloudRecordJson(pictureKey: 'pastvu/upd1', updateAt: now, height: 100, width: 200);
+      mockProvider.addRecord('records', 'pastvu/upd1', cloudJson);
 
       record.height = 999;
       record.updateAt = now.add(const Duration(hours: 1));
       await recordRepo.update(record);
 
+      await Future.delayed(const Duration(milliseconds: 200));
       await syncService.syncWithCloud();
 
-      final cloudData = mockProvider.getRecordData('records', 'existing_cloud_rec');
+      final cloudData = mockProvider.getRecordData('records', 'pastvu/upd1');
       expect(cloudData, isNotNull);
       expect(cloudData!['height'], 999);
 
@@ -435,24 +416,19 @@ void main() {
       final dbService = DatabaseService(db: db);
       final mockProvider = MockCloudSyncProvider(
         collectionNames: {Picture: 'pictures', Record: 'records'},
+        id: 'mock',
         supportsEvents: true,
       );
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
-      final now = DateTime.now();
-      final record = Record(
-        pictureId: 0,
-        createdAt: now,
-        updateAt: now,
-      );
-      final recordRepo = dbService.createRepository<Record>();
-      await recordRepo.insert(record);
+      final picture = await insertPicture(dbService, id: 'ev_pic', provider: 'pastvu');
+      final record = await insertRecord(dbService, picture);
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 200));
 
-      expect(record.cloudId, isNotNull);
-      expect(mockProvider.hasRecord('records', record.cloudId!), true);
+      expect(record.cloudId, 'mock');
+      expect(mockProvider.hasRecord('records', 'pastvu/ev_pic'), true);
 
       await syncService.dispose();
       mockProvider.dispose();
@@ -462,9 +438,7 @@ void main() {
     test('syncWithCloud with conflicting records pushes local when newer', () async {
       final db = await databaseFactoryMemory.openDatabase('test_conflict.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
@@ -472,30 +446,24 @@ void main() {
       final now = DateTime.now();
       final older = now.subtract(const Duration(days: 1));
 
-      final localRecord = Record(
-        pictureId: 0,
+      final picture = await insertPicture(dbService, id: 'conf', provider: 'pastvu');
+      final record = Record(
+        pictureId: picture.localId!,
         createdAt: older,
         updateAt: now,
-        cloudId: 'conflict_rec',
+        cloudId: 'mock',
         height: 777,
         width: 888,
       );
-      await recordRepo.insert(localRecord);
+      await recordRepo.insert(record);
 
-      final cloudJson = <String, dynamic>{
-        'pictureId': 0,
-        'originalId': null,
-        'createdAt': older.millisecondsSinceEpoch,
-        'updateAt': older.millisecondsSinceEpoch,
-        'height': 100.0,
-        'width': 200.0,
-      };
-      mockProvider.addRecord('records', 'conflict_rec', cloudJson);
+      mockProvider.addRecord('pictures', 'pastvu/conf', cloudPictureJson(id: 'conf', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/conf', cloudRecordJson(pictureKey: 'pastvu/conf', updateAt: older, height: 100, width: 200));
 
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 200));
       await syncService.syncWithCloud();
 
-      final cloudData = mockProvider.getRecordData('records', 'conflict_rec');
+      final cloudData = mockProvider.getRecordData('records', 'pastvu/conf');
       expect(cloudData, isNotNull);
       expect(cloudData!['height'], 777);
 
@@ -507,9 +475,7 @@ void main() {
     test('syncWithCloud keeps cloud when cloud is newer', () async {
       final db = await databaseFactoryMemory.openDatabase('test_cloud_newer.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
@@ -517,35 +483,28 @@ void main() {
       final now = DateTime.now();
       final older = now.subtract(const Duration(days: 1));
 
-      final localRecord = Record(
-        pictureId: 0,
+      final picture = await insertPicture(dbService, id: 'newer', provider: 'pastvu');
+      final record = Record(
+        pictureId: picture.localId!,
         createdAt: older,
         updateAt: older,
-        cloudId: 'cloud_newer_rec',
+        cloudId: 'mock',
         height: 777,
         width: 888,
       );
-      await recordRepo.insert(localRecord);
+      await recordRepo.insert(record);
 
-      final cloudJson = <String, dynamic>{
-        'pictureId': 0,
-        'originalId': null,
-        'createdAt': older.millisecondsSinceEpoch,
-        'updateAt': now.millisecondsSinceEpoch,
-        'height': 100.0,
-        'width': 200.0,
-      };
-      mockProvider.addRecord('records', 'cloud_newer_rec', cloudJson);
+      mockProvider.addRecord('pictures', 'pastvu/newer', cloudPictureJson(id: 'newer', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/newer', cloudRecordJson(pictureKey: 'pastvu/newer', updateAt: now, height: 100, width: 200));
 
+      await Future.delayed(const Duration(milliseconds: 200));
       await syncService.syncWithCloud();
 
-      // Cloud is newer, so local should NOT overwrite cloud
-      final cloudData = mockProvider.getRecordData('records', 'cloud_newer_rec');
+      final cloudData = mockProvider.getRecordData('records', 'pastvu/newer');
       expect(cloudData, isNotNull);
       expect(cloudData!['height'], 100.0);
 
-      // Local should be updated with cloud values
-      final localCopy = await recordRepo.findRecordByCloudId('cloud_newer_rec');
+      final localCopy = await recordRepo.findRecordByPictureId(picture.localId!);
       expect(localCopy, isNotNull);
       expect(localCopy!.height, 100.0);
 
@@ -559,25 +518,18 @@ void main() {
       final dbService = DatabaseService(db: db);
       final mockProvider = MockCloudSyncProvider(
         collectionNames: {Record: 'records', Picture: 'pictures'},
+        id: 'mock',
         supportsEvents: true,
       );
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
       final now = DateTime.now();
-      final cloudData = <String, dynamic>{
-        'pictureId': 0,
-        'originalId': null,
-        'createdAt': now.millisecondsSinceEpoch,
-        'updateAt': now.millisecondsSinceEpoch,
-        'visitedAt': null,
-        'height': 150.0,
-        'width': 250.0,
-      };
-      mockProvider.addRecord('records', 'cloud_ins_1', cloudData);
-      mockProvider.emitChange(CloudInsertedEvent(id: 'cloud_ins_1', collection: 'records'));
+      mockProvider.addRecord('pictures', 'pastvu/c_ins', cloudPictureJson(id: 'c_ins', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/c_ins', cloudRecordJson(pictureKey: 'pastvu/c_ins', updateAt: now, width: 250));
+      mockProvider.emitChange(CloudInsertedEvent(id: 'pastvu/c_ins', collection: 'records'));
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 200));
 
       final localRepo = dbService.createRepository<Record>();
       final localRecords = await localRepo.list();
@@ -591,53 +543,28 @@ void main() {
 
     test('CloudUpdatedEvent updates local record with newer cloud data', () async {
       final db = await databaseFactoryMemory.openDatabase('test_cloud_updated.db');
-      final recordStore = intMapStoreFactory.store('record');
-      final now = DateTime.now();
-      final ts = now.millisecondsSinceEpoch;
-
-      await recordStore.add(db, {
-        'pictureId': 0,
-        'createdAt': ts,
-        'updateAt': ts,
-        'height': 10.0,
-        'width': 20.0,
-        'cloudId': 'cloud_upd_1',
-      });
-
       final dbService = DatabaseService(db: db);
       final mockProvider = MockCloudSyncProvider(
         collectionNames: {Record: 'records', Picture: 'pictures'},
+        id: 'mock',
         supportsEvents: true,
       );
-      mockProvider.addRecord('records', 'cloud_upd_1', {
-        'pictureId': 0,
-        'originalId': null,
-        'createdAt': ts,
-        'updateAt': ts,
-        'visitedAt': null,
-        'height': 10.0,
-        'width': 20.0,
-      });
+      final now = DateTime.now();
+
+      final picture = await insertPicture(dbService, id: 'upd_evt', provider: 'pastvu');
+      await insertRecord(dbService, picture, updateAt: now, height: 10, width: 20);
 
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
-      final laterTs = now.add(const Duration(hours: 2)).millisecondsSinceEpoch;
-      mockProvider.addRecord('records', 'cloud_upd_1', {
-        'pictureId': 0,
-        'originalId': null,
-        'createdAt': ts,
-        'updateAt': laterTs,
-        'visitedAt': null,
-        'height': 99.0,
-        'width': 199.0,
-      });
-      mockProvider.emitChange(CloudUpdatedEvent(id: 'cloud_upd_1', collection: 'records'));
+      mockProvider.addRecord('pictures', 'pastvu/upd_evt', cloudPictureJson(id: 'upd_evt', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/upd_evt', cloudRecordJson(pictureKey: 'pastvu/upd_evt', updateAt: now.add(const Duration(hours: 2)), height: 99, width: 199));
+      mockProvider.emitChange(CloudUpdatedEvent(id: 'pastvu/upd_evt', collection: 'records'));
 
       await Future.delayed(const Duration(milliseconds: 200));
 
       final recordRepo = dbService.createRepository<Record>();
-      final updated = await recordRepo.findRecordByCloudId('cloud_upd_1');
+      final updated = await recordRepo.findRecordByPictureId(picture.localId!);
       expect(updated, isNotNull);
       expect(updated!.height, 99.0);
       expect(updated.width, 199.0);
@@ -649,52 +576,31 @@ void main() {
 
     test('CloudDeletedEvent removes local record and picture', () async {
       final db = await databaseFactoryMemory.openDatabase('test_cloud_deleted.db');
-      final pictureStore = intMapStoreFactory.store('picture');
-      final recordStore = intMapStoreFactory.store('record');
-      final now = DateTime.now();
-      final ts = now.millisecondsSinceEpoch;
-
-      final picKey = await pictureStore.add(db, {
-        'id': 'del_evt_pic',
-        'url': 'data:image/jpg;base64,AA==',
-        'latitude': 1.0,
-        'longitude': 2.0,
-      });
-      await recordStore.add(db, {
-        'pictureId': picKey,
-        'createdAt': ts,
-        'updateAt': ts,
-        'height': 10.0,
-        'width': 20.0,
-        'cloudId': 'cloud_del_1',
-      });
-
       final dbService = DatabaseService(db: db);
       final mockProvider = MockCloudSyncProvider(
         collectionNames: {Record: 'records', Picture: 'pictures'},
+        id: 'mock',
         supportsEvents: true,
       );
-      mockProvider.addRecord('records', 'cloud_del_1', {
-        'pictureId': 0,
-        'originalId': null,
-        'createdAt': ts,
-        'updateAt': ts,
-        'visitedAt': null,
-        'height': 10.0,
-        'width': 20.0,
-      });
-
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
-      mockProvider.emitChange(CloudDeletedEvent(id: 'cloud_del_1', collection: 'records'));
+      final picture = await insertPicture(dbService, id: 'del_evt', provider: 'pastvu');
+      final record = await insertRecord(dbService, picture, height: 10, width: 20);
+      record.cloudId = 'mock';
+      await dbService.createRepository<Record>().update(record);
+
+      mockProvider.addRecord('pictures', 'pastvu/del_evt', cloudPictureJson(id: 'del_evt', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/del_evt', cloudRecordJson(pictureKey: 'pastvu/del_evt', updateAt: DateTime.now()));
+
+      mockProvider.emitChange(CloudDeletedEvent(id: 'pastvu/del_evt', collection: 'records'));
 
       await Future.delayed(const Duration(milliseconds: 200));
 
       final recordRepo = dbService.createRepository<Record>();
       final pictureRepo = dbService.createRepository<Picture>();
-      expect(await recordRepo.findRecordByCloudId('cloud_del_1'), isNull);
-      final deletedPic = await pictureRepo.getById(picKey);
+      expect(await recordRepo.findRecordByPictureId(picture.localId!), isNull);
+      final deletedPic = await pictureRepo.getById(picture.localId!);
       expect(deletedPic, isNull);
 
       await syncService.dispose();
@@ -707,25 +613,18 @@ void main() {
       final dbService = DatabaseService(db: db);
       final mockProvider = MockCloudSyncProvider(
         collectionNames: {Record: 'records', Picture: 'pictures'},
+        id: 'mock',
         supportsEvents: true,
       );
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
       final now = DateTime.now();
-      final cloudData = <String, dynamic>{
-        'pictureId': 0,
-        'originalId': null,
-        'createdAt': now.millisecondsSinceEpoch,
-        'updateAt': now.millisecondsSinceEpoch,
-        'visitedAt': null,
-        'height': 300.0,
-        'width': 400.0,
-      };
-      mockProvider.addRecord('records', 'cloud_rec_1', cloudData);
+      mockProvider.addRecord('pictures', 'pastvu/rec_1', cloudPictureJson(id: 'rec_1', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/rec_1', cloudRecordJson(pictureKey: 'pastvu/rec_1', updateAt: now, width: 400));
       mockProvider.emitChange(const CloudReconnectedEvent());
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 200));
 
       final localRepo = dbService.createRepository<Record>();
       final localRecords = await localRepo.list();
@@ -742,25 +641,18 @@ void main() {
       final dbService = DatabaseService(db: db);
       final mockProvider = MockCloudSyncProvider(
         collectionNames: {Record: 'records', Picture: 'pictures'},
+        id: 'mock',
         supportsEvents: true,
       );
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
       final now = DateTime.now();
-      final cloudData = <String, dynamic>{
-        'pictureId': 0,
-        'originalId': null,
-        'createdAt': now.millisecondsSinceEpoch,
-        'updateAt': now.millisecondsSinceEpoch,
-        'visitedAt': null,
-        'height': 50.0,
-        'width': 60.0,
-      };
-      mockProvider.addRecord('records', 'cloud_unk_1', cloudData);
+      mockProvider.addRecord('pictures', 'pastvu/unk_1', cloudPictureJson(id: 'unk_1', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/unk_1', cloudRecordJson(pictureKey: 'pastvu/unk_1', updateAt: now, width: 60));
       mockProvider.emitChange();
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 200));
 
       final localRepo = dbService.createRepository<Record>();
       final localRecords = await localRepo.list();
@@ -775,32 +667,26 @@ void main() {
     test('EntityUpdated event triggers pushRecord to update cloud', () async {
       final db = await databaseFactoryMemory.openDatabase('test_entity_updated.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
       final recordRepo = dbService.createRepository<Record>();
       final now = DateTime.now();
-      final record = Record(
-        pictureId: 0,
-        createdAt: now,
-        updateAt: now,
-        height: 100,
-        width: 200,
-      );
-      await recordRepo.insert(record);
+      final picture = await insertPicture(dbService, id: 'ent_upd', provider: 'pastvu');
+      final record = await insertRecord(dbService, picture, height: 100, width: 200);
+      record.picture = picture;
       await syncService.pushRecord(record);
       final cloudId = record.cloudId!;
+      expect(cloudId, 'mock');
 
       record.height = 999;
       record.updateAt = now.add(const Duration(hours: 1));
       await recordRepo.update(record);
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 200));
 
-      final cloudData = mockProvider.getRecordData('records', cloudId);
+      final cloudData = mockProvider.getRecordData('records', 'pastvu/ent_upd');
       expect(cloudData, isNotNull);
       expect(cloudData!['height'], 999);
 
@@ -812,81 +698,80 @@ void main() {
     test('EntityRemoved event removes record from cloud', () async {
       final db = await databaseFactoryMemory.openDatabase('test_entity_removed.db');
       final dbService = DatabaseService(db: db);
-      final mockProvider = MockCloudSyncProvider(
-        collectionNames: {Record: 'records', Picture: 'pictures'},
-      );
+      final mockProvider = createProvider();
       final syncService = CloudSyncService(db: dbService);
       await syncService.setProvider(mockProvider);
 
       final now = DateTime.now();
-      final record = Record(
-        pictureId: 0,
-        createdAt: now,
-        updateAt: now,
-        cloudId: 'cloud_del_evt',
-      );
-      final recordRepo = dbService.createRepository<Record>();
-      await recordRepo.insert(record);
-      mockProvider.addRecord('records', 'cloud_del_evt', record.toJson());
-      expect(mockProvider.hasRecord('records', 'cloud_del_evt'), true);
+      final picture = await insertPicture(dbService, id: 'ent_rem', provider: 'pastvu');
+      final record = await insertRecord(dbService, picture, updateAt: now);
+      record.cloudId = 'mock';
+      record.picture = picture;
+      await dbService.createRepository<Record>().update(record);
 
-      await Future.delayed(const Duration(milliseconds: 50));
-
-      await recordRepo.delete(record.localId!);
+      mockProvider.addRecord('pictures', 'pastvu/ent_rem', cloudPictureJson(id: 'ent_rem', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/ent_rem', cloudRecordJson(pictureKey: 'pastvu/ent_rem', updateAt: now));
+      expect(mockProvider.hasRecord('records', 'pastvu/ent_rem'), true);
 
       await Future.delayed(const Duration(milliseconds: 200));
 
-      expect(mockProvider.hasRecord('records', 'cloud_del_evt'), false);
+      await dbService.createRepository<Record>().delete(record.localId!);
+
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      expect(mockProvider.hasRecord('records', 'pastvu/ent_rem'), false);
 
       await syncService.dispose();
       mockProvider.dispose();
       await db.close();
     });
 
-    test('changing provider invalidates old cloudId and re-pushes record to new provider', () async {
+    test('changing provider re-pushes to the new provider without duplicating', () async {
       final db = await databaseFactoryMemory.openDatabase('test_provider_change.db');
       final dbService = DatabaseService(db: db);
 
       final providerA = MockCloudSyncProvider(
         collectionNames: {Record: 'records', Picture: 'pictures'},
-        id: 'prov_a/',
+        id: 'prov_a',
       );
       final syncService = CloudSyncService(db: dbService);
-      await syncService.setProvider(providerA);
 
-      final recordRepo = dbService.createRepository<Record>();
       final now = DateTime.now();
-      final record = Record(
-        pictureId: 0,
-        createdAt: now,
-        updateAt: now,
-      );
-      await recordRepo.insert(record);
-      await syncService.syncWithCloud();
+      final picture = await insertPicture(dbService, id: 'p1', provider: 'pastvu');
+      await insertRecord(dbService, picture, updateAt: now);
 
+      await syncService.setProvider(providerA);
       await Future.delayed(const Duration(milliseconds: 200));
 
-      final localA = await recordRepo.list();
-      expect(localA, hasLength(1));
-      expect(localA.first.cloudId, startsWith('prov_a/'));
-      final oldStripped = localA.first.cloudId!.substring('prov_a/'.length);
-      expect(providerA.hasRecord('records', oldStripped), true);
+      var local = await dbService.createRepository<Record>().list();
+      expect(local, hasLength(1));
+      expect(local.first.cloudId, 'prov_a');
+      expect(providerA.hasRecord('records', 'pastvu/p1'), true);
+      expect(providerA.hasRecord('pictures', 'pastvu/p1'), true);
 
       final providerB = MockCloudSyncProvider(
         collectionNames: {Record: 'records', Picture: 'pictures'},
-        id: 'prov_b/',
+        id: 'prov_b',
       );
       await syncService.setProvider(providerB);
-
       await Future.delayed(const Duration(milliseconds: 200));
 
-      final localB = await recordRepo.list();
-      expect(localB, hasLength(1));
-      expect(localB.first.cloudId, startsWith('prov_b/'));
-      expect(providerA.hasRecord('records', oldStripped), true);
+      local = await dbService.createRepository<Record>().list();
+      expect(local, hasLength(1));
+      expect(local.first.cloudId, 'prov_b');
+      expect(providerB.hasRecord('records', 'pastvu/p1'), true);
+      expect(providerA.hasRecord('records', 'pastvu/p1'), true);
 
-      final newStripped = localB.first.cloudId!.substring('prov_b/'.length);
-      expect(providerB.hasRecord('records', newStripped), true);
+      await syncService.setProvider(providerA);
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      local = await dbService.createRepository<Record>().list();
+      expect(local, hasLength(1));
+      expect(local.first.cloudId, 'prov_a');
+      expect(providerA.hasRecord('records', 'pastvu/p1'), true);
+      expect(providerA.getCollectionSize('records'), 1);
+      expect(providerA.getCollectionSize('pictures'), 1);
+      expect(providerB.getCollectionSize('records'), 1);
 
       await syncService.dispose();
       providerA.dispose();

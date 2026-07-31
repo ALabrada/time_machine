@@ -18,7 +18,7 @@ class SupabaseCloud extends EventfulCloudBase {
   bool _realtimeSubscribed = false;
 
   @override
-  String get id => 'supabase/';
+  String get id => 'supabase';
 
   @override
   bool get supportsFiles => true;

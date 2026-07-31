@@ -106,8 +106,8 @@ extension RecordRepository on Repository<Record> {
     return result;
   }
 
-  Future<Record?> findRecordByCloudId(String cloudId) async {
-    final finder = Finder(filter: Filter.equals('cloudId', cloudId), limit: 1);
+  Future<Record?> findRecordByPictureId(int pictureId) async {
+    final finder = Finder(filter: Filter.equals('pictureId', pictureId), limit: 1);
     final result = await findFirst(finder);
     return result;
   }

@@ -67,7 +67,6 @@ class MockCloudSyncProvider implements CloudSyncProvider {
     if (col == null) return [];
     final records = col.entries.map((e) {
       final data = Map<String, dynamic>.from(e.value);
-      data['cloudId'] = e.key;
       return data;
     }).where((data) {
       if (since == null) return true;
@@ -128,6 +127,10 @@ class MockCloudSyncProvider implements CloudSyncProvider {
   Map<String, dynamic>? getRecordData(String collection, String id) {
     final data = _collections[collection]?[id];
     return data != null ? Map<String, dynamic>.from(data) : null;
+  }
+
+  int getCollectionSize(String collection) {
+    return _collections[collection]?.length ?? 0;
   }
 
   void dispose() {
