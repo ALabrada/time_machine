@@ -69,13 +69,13 @@ void main() {
         collectionNames: {Record: 'records', Picture: 'pictures'},
         id: 'mock',
       );
-      final syncService = CloudSyncService(db: dbService);
+      final syncService = CloudSyncService(databaseService: dbService);
       await syncService.setProvider(mockProvider);
 
       final picture = await insertPicture(dbService, id: 'od1', provider: 'pastvu');
       final record = await insertRecord(dbService, picture);
       record.picture = picture;
-      await syncService.pushRecord(record);
+      await syncService.records!.pushRecord(record);
 
       expect(mockProvider.hasRecord('records', 'pastvu/od1'), true);
       expect(mockProvider.hasRecord('pictures', 'pastvu/od1'), true);
@@ -120,13 +120,13 @@ void main() {
         collectionNames: {Record: 'records', Picture: 'pictures'},
         id: 'mock',
       );
-      final syncService = CloudSyncService(db: dbService);
+      final syncService = CloudSyncService(databaseService: dbService);
       await syncService.setProvider(mockProvider);
 
       final picture = await insertPicture(dbService, id: 'od1', provider: 'pastvu');
       final record = await insertRecord(dbService, picture);
       record.picture = picture;
-      await syncService.pushRecord(record);
+      await syncService.records!.pushRecord(record);
 
       expect(mockProvider.hasRecord('records', 'pastvu/od1'), true);
       expect(mockProvider.hasRecord('pictures', 'pastvu/od1'), true);
@@ -191,7 +191,7 @@ void main() {
         deletedAt: deletedAt,
       ));
 
-      final syncService = CloudSyncService(db: dbService);
+      final syncService = CloudSyncService(databaseService: dbService);
       await syncService.setProvider(mockProvider);
 
       expect(await dbService.createRepository<Record>().list(), isEmpty);
@@ -218,7 +218,7 @@ void main() {
         deletedAt: now.subtract(const Duration(days: 1)),
       ));
 
-      final syncService = CloudSyncService(db: dbService);
+      final syncService = CloudSyncService(databaseService: dbService);
       await syncService.setProvider(mockProvider);
 
       final recordRepo = dbService.createRepository<Record>();

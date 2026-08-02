@@ -172,7 +172,7 @@ class TimeMachineApp extends StatelessWidget {
         ),
         Provider<CloudSyncService>(
           create: (context) => CloudSyncService(
-            db: context.read(),
+            databaseService: context.read(),
           ),
         ),
         Provider<CacheService>(

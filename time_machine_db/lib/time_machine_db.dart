@@ -11,6 +11,8 @@ export 'services/repository.dart';
 export 'services/cloud_sync_provider.dart';
 export 'services/cloud_sync_service.dart';
 export 'services/database_service.dart';
+export 'services/picture_synchronizer.dart';
+export 'services/record_synchronizer.dart';
 
 const filePathPlaceholder = '/[FILES]';
 
