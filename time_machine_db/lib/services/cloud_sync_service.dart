@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:time_machine_db/domain/picture_mirror.dart';
-import 'package:time_machine_db/domain/record_mirror.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 
 class CloudSyncService {
@@ -79,7 +77,9 @@ class CloudSyncService {
         final incomingRecord = incomingRecords
             .where((e) => e.id == key)
             .firstOrNull;
-        if (localMirror == null || incomingRecord == null || localMirror.updatedAt.isAfter(incomingRecord.lastDate)) {
+        if (localMirror == null || incomingRecord == null ||
+            record.updateAt.isAfter(incomingRecord.lastDate) ||
+            record.updateAt.isAfter(localMirror.updatedAt)) {
           final mirror = await pushRecord(record);
           if (mirror != null && (_lastChange == null || mirror.lastDate.isAfter(_lastChange!))) {
             _lastChange = mirror.lastDate;
@@ -93,7 +93,7 @@ class CloudSyncService {
         if (date == null || !date.isBefore(mirror.updatedAt)) {
           continue;
         }
-        await _deletePictureFromDB(mirror.pictureId);
+        await _deletePictureFromCloud(mirror.pictureId);
         if (_lastChange == null || date.isAfter(_lastChange!)) {
           _lastChange = date;
         }
@@ -133,7 +133,7 @@ class CloudSyncService {
 
   Future<List<CloudMetadata>> _fetchRecords({DateTime? since}) async {
     final provider = _provider;
-    final collection = _provider?.collectionNames[RecordMirror];
+    final collection = _provider?.collectionNames[Record];
     if (provider == null || collection == null) {
       return [];
     }
@@ -180,7 +180,7 @@ class CloudSyncService {
       final recordCollection = _provider?.collectionNames[Record];
       final mirrorRepo = _createRepository<RecordMirror>();
       try {
-        if (event is EntityInserted<Record> && await mirrorRepo.findByRecordAndCloud(event.entity.localId!, provider.id) != null && lastChange != null && event.timestamp.isAfter(lastChange)) {
+        if (event is EntityInserted<Record> && await mirrorRepo.findByRecordAndCloud(event.entity.localId!, provider.id) == null && lastChange != null && event.timestamp.isAfter(lastChange)) {
           final ts = event.entity.updateAt;
           await pushRecord(event.entity, event.timestamp);
           _lastChange = ts;
@@ -190,7 +190,7 @@ class CloudSyncService {
           _lastChange = ts;
         } else if (event is EntityRemoved<Record>) {
           await deleteRecord(event.entity, event.timestamp);
-          await _deletePictureFromDB(event.entity.pictureId);
+          await _deletePictureFromCloud(event.entity.pictureId);
           await _deleteRecordFromCloud(event.entity.localId!);
           if (lastChange != null && event.timestamp.isAfter(lastChange)) {
             _lastChange = event.timestamp;
