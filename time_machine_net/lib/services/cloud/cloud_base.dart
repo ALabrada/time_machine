@@ -4,6 +4,29 @@ import 'dart:typed_data';
 import 'package:time_machine_db/time_machine_db.dart';
 
 abstract class CloudBase implements CloudSyncProvider {
+  static DateTime? _parseDate(Object? value) {
+    if (value is int) {
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+    if (value is String) {
+      return DateTime.tryParse(value);
+    }
+    return null;
+  }
+
+  CloudMetadata metadataFromData(String id, Map<String, dynamic> data) {
+    final now = DateTime.now();
+    final createdAt = _parseDate(data['createdAt']) ?? now;
+    final updatedAt = _parseDate(data['updatedAt']) ?? createdAt;
+    final deletedAt = _parseDate(data['deletedAt']);
+    return CloudMetadata(
+      id: id,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      deletedAt: deletedAt,
+    );
+  }
+
   @override
   bool get supportsFiles => false;
 

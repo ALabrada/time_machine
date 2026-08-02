@@ -9,9 +9,6 @@ import 'package:time_machine_db/time_machine_db.dart';
 import 'cloud_base.dart';
 
 class FirestoreCloud extends EventfulCloudBase {
-  static const idColumn = 'id';
-  static const sourceIdColumn = '_id';
-
   final FirebaseFirestore _firestore;
   final FirebaseStorage? _storage;
   final String _bucketName;
@@ -39,18 +36,6 @@ class FirestoreCloud extends EventfulCloudBase {
        _storage = storage,
        _bucketName = bucketName {
     _initRealtime();
-  }
-
-  void _preserveSourceId(Map<String, dynamic> data) {
-    if (data.containsKey(idColumn)) {
-      data[sourceIdColumn] = data.remove(idColumn);
-    }
-  }
-
-  void _restoreSourceId(Map<String, dynamic> data) {
-    if (data.containsKey(sourceIdColumn)) {
-      data[idColumn] = data.remove(sourceIdColumn);
-    }
   }
 
   void _initRealtime() {
@@ -84,32 +69,30 @@ class FirestoreCloud extends EventfulCloudBase {
     final data = change.doc.data() as Map<String, dynamic>?;
     if (data == null || data.isEmpty) return;
 
-    final record = Map<String, dynamic>.from(data);
-    _restoreSourceId(record);
-    if (!record.containsKey(idColumn)) {
-      record[idColumn] = change.doc.id;
-    }
-    final eventId = record[idColumn] as String?;
-    if (eventId == null) return;
+    final payload = data['data'];
+    final inner = payload is Map<String, dynamic>
+        ? Map<String, dynamic>.from(payload)
+        : null;
+    final metadata = metadataFromData(change.doc.id, data);
 
     switch (change.type) {
       case DocumentChangeType.added:
         publishEvent(CloudInsertedEvent(
-          id: eventId,
+          metadata: metadata,
           collection: collection,
-          data: record,
+          data: inner,
         ));
       case DocumentChangeType.modified:
         publishEvent(CloudUpdatedEvent(
-          id: eventId,
+          metadata: metadata,
           collection: collection,
-          data: record,
+          data: inner,
         ));
       case DocumentChangeType.removed:
         publishEvent(CloudDeletedEvent(
-          id: eventId,
+          metadata: metadata,
           collection: collection,
-          data: record,
+          data: inner,
         ));
     }
   }
@@ -124,25 +107,38 @@ class FirestoreCloud extends EventfulCloudBase {
   }
 
   @override
-  Future<String> saveRecord(
+  Future<CloudMetadata> saveRecord(
     String collection,
-    String? id,
+    CloudMetadata? metadata,
     Map<String, dynamic> data,
   ) async {
-    _preserveSourceId(data);
+    final now = DateTime.now();
+    final doc = <String, dynamic>{
+      'createdAt': metadata?.createdAt.toIso8601String() ?? now.toIso8601String(),
+      'updatedAt': now.toIso8601String(),
+      'deletedAt': metadata?.deletedAt?.toIso8601String(),
+      'data': data,
+    };
 
-    if (id != null) {
-      data[idColumn] = id;
-      await _firestore.collection(collection).doc(id).set(
-        data,
+    if (metadata != null) {
+      await _firestore.collection(collection).doc(metadata.id).set(
+        doc,
         SetOptions(merge: true),
       );
-      return id;
+      return CloudMetadata(
+        id: metadata.id,
+        createdAt: metadata.createdAt,
+        updatedAt: now,
+        deletedAt: metadata.deletedAt,
+      );
     }
 
-    data.remove(idColumn);
-    final docRef = await _firestore.collection(collection).add(data);
-    return docRef.id;
+    final docRef = await _firestore.collection(collection).add(doc);
+    return CloudMetadata(
+      id: docRef.id,
+      createdAt: now,
+      updatedAt: now,
+    );
   }
 
   @override
@@ -150,31 +146,21 @@ class FirestoreCloud extends EventfulCloudBase {
     final snapshot = await _firestore.collection(collection).doc(id).get();
     if (!snapshot.exists) return null;
 
-    final data = Map<String, dynamic>.from(
-      snapshot.data() as Map<String, dynamic>,
-    );
-    _restoreSourceId(data);
-    if (!data.containsKey(idColumn)) {
-      data[idColumn] = snapshot.id;
-    }
-    return data;
+    final data = snapshot.data();
+    if (data == null) return null;
+    final payload = data['data'];
+    return payload is Map<String, dynamic>
+        ? Map<String, dynamic>.from(payload)
+        : null;
   }
 
   @override
-  Future<List<Map<String, dynamic>>> listRecords(String collection) async {
-    var query = _firestore.collection(collection) as Query;
-    final snapshots = await query.get();
-    final results = snapshots.docs.map((doc) {
-      final data = Map<String, dynamic>.from(
-        doc.data() as Map<String, dynamic>,
-      );
-      _restoreSourceId(data);
-      if (!data.containsKey(idColumn)) {
-        data[idColumn] = doc.id;
-      }
-      return data;
-    }).toList();
-    return results;
+  Future<List<CloudMetadata>> listRecords(String collection) async {
+    final snapshots = await (_firestore.collection(collection) as Query).get();
+    return [
+      for (final doc in snapshots.docs)
+        metadataFromData(doc.id, doc.data() as Map<String, dynamic>),
+    ];
   }
 
   @override

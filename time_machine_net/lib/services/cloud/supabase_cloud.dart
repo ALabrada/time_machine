@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
@@ -9,7 +10,6 @@ import 'cloud_base.dart';
 
 class SupabaseCloud extends EventfulCloudBase {
   static const idColumn = 'id';
-  static const sourceIdColumn = '_id';
 
   final SupabaseClient _client;
   final String _bucketName;
@@ -45,18 +45,6 @@ class SupabaseCloud extends EventfulCloudBase {
     _initRealtime();
   }
 
-  void _preserveSourceId(Map<String, dynamic> data) {
-    if (data.containsKey(idColumn)) {
-      data[sourceIdColumn] = data.remove(idColumn);
-    }
-  }
-
-  void _restoreSourceId(Map<String, dynamic> data) {
-    if (data.containsKey(sourceIdColumn)) {
-      data[idColumn] = data.remove(sourceIdColumn);
-    }
-  }
-
   void _initRealtime() {
     if (_realtimeSubscribed) return;
     _realtimeSubscribed = true;
@@ -85,47 +73,46 @@ class SupabaseCloud extends EventfulCloudBase {
 
     switch (payload.eventType) {
       case PostgresChangeEvent.insert:
-        if (newRecord.isNotEmpty) {
-          _restoreSourceId(newRecord);
-          final eventId = newRecord[idColumn] as String?;
-          if (eventId != null) {
-            publishEvent(CloudInsertedEvent(
-              id: eventId,
-              collection: table,
-              data: newRecord,
-            ));
-          }
+        final eventId = newRecord[idColumn] as String?;
+        if (eventId != null) {
+          publishEvent(CloudInsertedEvent(
+            metadata: metadataFromData(eventId, newRecord),
+            collection: table,
+            data: _decodeData(newRecord),
+          ));
         }
         break;
       case PostgresChangeEvent.update:
-        if (newRecord.isNotEmpty) {
-          _restoreSourceId(newRecord);
-          final eventId = newRecord[idColumn] as String?;
-          if (eventId != null) {
-            publishEvent(CloudUpdatedEvent(
-              id: eventId,
-              collection: table,
-              data: newRecord,
-            ));
-          }
+        final eventId = newRecord[idColumn] as String?;
+        if (eventId != null) {
+          publishEvent(CloudUpdatedEvent(
+            metadata: metadataFromData(eventId, newRecord),
+            collection: table,
+            data: _decodeData(newRecord),
+          ));
         }
         break;
       case PostgresChangeEvent.delete:
-        if (oldRecord.isNotEmpty) {
-          _restoreSourceId(oldRecord);
-          final eventId = oldRecord[idColumn] as String?;
-          if (eventId != null) {
-            publishEvent(CloudDeletedEvent(
-              id: eventId,
-              collection: table,
-              data: oldRecord,
-            ));
-          }
+        final eventId = oldRecord[idColumn] as String?;
+        if (eventId != null) {
+          publishEvent(CloudDeletedEvent(
+            metadata: metadataFromData(eventId, oldRecord),
+            collection: table,
+            data: _decodeData(oldRecord),
+          ));
         }
         break;
       case PostgresChangeEvent.all:
         break;
     }
+  }
+
+  Map<String, dynamic>? _decodeData(Map<String, dynamic> row) {
+    final data = row['data'];
+    if (data is String && data.isNotEmpty) {
+      return jsonDecode(data) as Map<String, dynamic>;
+    }
+    return null;
   }
 
   Future<AuthResponse> authenticate(String email, String password) {
@@ -156,25 +143,35 @@ class SupabaseCloud extends EventfulCloudBase {
   }
 
   @override
-  Future<String> saveRecord(
+  Future<CloudMetadata> saveRecord(
     String collection,
-    String? id,
+    CloudMetadata? metadata,
     Map<String, dynamic> data,
   ) async {
-    _preserveSourceId(data);
+    final now = DateTime.now();
+    final row = <String, dynamic>{
+      'createdAt': metadata?.createdAt.toIso8601String() ?? now.toIso8601String(),
+      'updatedAt': now.toIso8601String(),
+      'deletedAt': metadata?.deletedAt?.toIso8601String(),
+      'data': jsonEncode(data),
+    };
 
-    if (id != null) {
-      data[idColumn] = id;
-      await _client.from(collection).upsert(data);
-      return id;
+    if (metadata != null) {
+      row[idColumn] = metadata.id;
+      await _client.from(collection).upsert(row);
+      return CloudMetadata(
+        id: metadata.id,
+        createdAt: metadata.createdAt,
+        updatedAt: now,
+        deletedAt: metadata.deletedAt,
+      );
     }
 
-    data.remove(idColumn);
-    final response = await _client.from(collection).insert(data).select();
+    final response = await _client.from(collection).insert(row).select();
     if (response.isEmpty) {
       throw Exception('Failed to insert record');
     }
-    return response.first[idColumn] as String;
+    return metadataFromData(response.first[idColumn] as String, response.first);
   }
 
   @override
@@ -186,21 +183,16 @@ class SupabaseCloud extends EventfulCloudBase {
         .maybeSingle();
     if (result == null) return null;
 
-    _restoreSourceId(result);
-    return result;
+    return _decodeData(result);
   }
 
   @override
-  Future<List<Map<String, dynamic>>> listRecords(
-    String collection, {
-    DateTime? since,
-  }) async {
-    var query = _client.from(collection).select();
-    final results = await query;
-    for (final result in results) {
-      _restoreSourceId(result);
-    }
-    return results;
+  Future<List<CloudMetadata>> listRecords(String collection) async {
+    final results = await _client.from(collection).select();
+    return [
+      for (final result in results)
+        metadataFromData(result[idColumn] as String, result),
+    ];
   }
 
   @override

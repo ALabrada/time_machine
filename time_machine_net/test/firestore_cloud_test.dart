@@ -46,7 +46,11 @@ void main() {
       final events = <CloudSyncEvent>[];
       cloud.changes.listen(events.add);
       final event = CloudInsertedEvent(
-        id: '123',
+        metadata: CloudMetadata(
+          id: '123',
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 1),
+        ),
         collection: 'pictures',
       );
       cloud.publishEvent(event);
@@ -66,85 +70,77 @@ void main() {
     });
 
     group('saveRecord', () {
-      test('inserts new record when id is null and returns prefixed id',
+      test('inserts new record and returns server-assigned metadata',
           () async {
         await setUpCloud();
 
-        final id = await cloud.saveRecord('pictures', null, {
+        final metadata = await cloud.saveRecord('pictures', null, {
           'id': 'source-456',
           'name': 'Test Picture',
         });
 
-        expect(id, isNotEmpty);
+        expect(metadata.id, isNotEmpty);
+        expect(metadata.createdAt, isNotNull);
+        expect(metadata.updatedAt, isNotNull);
 
-        final snapshot =
-            await fakeFirestore.collection('pictures').doc(id).get();
+        final snapshot = await fakeFirestore
+            .collection('pictures')
+            .doc(metadata.id)
+            .get();
         expect(snapshot.exists, isTrue);
         final data = snapshot.data()!;
-        expect(data['_id'], 'source-456');
-        expect(data['name'], 'Test Picture');
+        expect(data['data'], {
+          'id': 'source-456',
+          'name': 'Test Picture',
+        });
         expect(data.containsKey('id'), isFalse);
+        expect(data.containsKey('createdAt'), isTrue);
+        expect(data.containsKey('updatedAt'), isTrue);
       });
 
-      test('upserts when id has prefix and returns prefixed id', () async {
+      test('upserts with provided metadata and preserves data', () async {
         await setUpCloud();
 
-        // Pre-seed a document
-        await fakeFirestore.collection('pictures').doc('my-existing-id').set({
-          'name': 'Old Name',
-        });
-
-        final id = await cloud.saveRecord(
+        final metadata = await cloud.saveRecord(
           'pictures',
-          'my-existing-id',
+          CloudMetadata(
+            id: 'my-existing-id',
+            createdAt: DateTime(2024, 1, 1),
+            updatedAt: DateTime(2024, 1, 1),
+            deletedAt: DateTime(2024, 2, 1),
+          ),
           {'id': 'source-789', 'name': 'Updated Picture'},
         );
 
-        expect(id, 'my-existing-id');
+        expect(metadata.id, 'my-existing-id');
+        expect(metadata.createdAt, DateTime(2024, 1, 1));
+        expect(metadata.deletedAt, DateTime(2024, 2, 1));
 
-        // Verify document was updated
         final snapshot = await fakeFirestore
             .collection('pictures')
             .doc('my-existing-id')
             .get();
         expect(snapshot.exists, isTrue);
         final data = snapshot.data()!;
-        expect(data['_id'], 'source-789');
-        expect(data['name'], 'Updated Picture');
-        expect(data['id'], 'my-existing-id');
-      });
-
-      test('upserts when id is not null',
-          () async {
-        await setUpCloud();
-
-        final id = await cloud.saveRecord(
-          'pictures',
-          'any-id',
-          {'id': 'source-abc', 'name': 'Local Picture'},
-        );
-
-        expect(id, 'any-id');
-
-        final snapshot =
-            await fakeFirestore.collection('pictures').doc(id).get();
-        expect(snapshot.exists, isTrue);
-        final data = snapshot.data()!;
-        expect(data['_id'], 'source-abc');
-        expect(data['name'], 'Local Picture');
-        expect(data['id'], 'any-id');
-        expect(data.containsKey('created_at'), isFalse);
+        expect(data['data'], {
+          'id': 'source-789',
+          'name': 'Updated Picture',
+        });
+        expect(data['createdAt'], '2024-01-01T00:00:00.000');
+        expect(data['deletedAt'], '2024-02-01T00:00:00.000');
       });
     });
 
     group('getRecord', () {
-      test('returns record with restored and prefixed id', () async {
+      test('returns record with decoded data map', () async {
         await setUpCloud();
 
-        // Pre-seed a document with source id
+        // Pre-seed a document with a data payload
         await fakeFirestore.collection('pictures').doc('test-id').set({
-          '_id': 'source-111',
-          'name': 'Found Picture',
+          'data': {
+            'id': 'source-111',
+            'name': 'Found Picture',
+          },
         });
 
         final result =
@@ -153,7 +149,6 @@ void main() {
         expect(result, isNotNull);
         expect(result!['id'], 'source-111');
         expect(result['name'], 'Found Picture');
-        expect(result.containsKey('_id'), isFalse);
       });
 
       test('returns null when record not found', () async {
@@ -165,40 +160,48 @@ void main() {
         expect(result, isNull);
       });
 
-      test('returns null for unprefixed id', () async {
+      test('returns null when data map is missing', () async {
         await setUpCloud();
 
-        final result = await cloud.getRecord('pictures', 'no-prefix');
+        await fakeFirestore.collection('pictures').doc('no-data').set({
+          'name': 'No Data',
+        });
+
+        final result = await cloud.getRecord('pictures', 'no-data');
 
         expect(result, isNull);
       });
     });
 
     group('listRecords', () {
-      test('returns all records with restored and prefixed ids', () async {
+      test('returns metadata built from stored fields', () async {
         await setUpCloud();
 
         // Pre-seed documents
         await fakeFirestore.collection('pictures').doc('a').set({
-          '_id': 'src-1',
-          'name': 'Pic 1',
-          'updated_at': '2024-01-01T00:00:00',
+          'createdAt': '2024-01-01T00:00:00.000',
+          'updatedAt': '2024-01-02T00:00:00.000',
+          'data': {'id': 'src-1', 'name': 'Pic 1'},
         });
         await fakeFirestore.collection('pictures').doc('b').set({
-          '_id': 'src-2',
-          'name': 'Pic 2',
-          'updated_at': '2024-02-01T00:00:00',
+          'createdAt': '2024-02-01T00:00:00.000',
+          'updatedAt': '2024-02-02T00:00:00.000',
+          'deletedAt': '2024-03-01T00:00:00.000',
+          'data': {'id': 'src-2', 'name': 'Pic 2'},
         });
 
         final results = await cloud.listRecords('pictures');
 
         expect(results.length, 2);
-        expect(results[0]['id'], 'src-1');
-        expect(results[0]['name'], 'Pic 1');
-        expect(results[0].containsKey('_id'), isFalse);
-        expect(results[1]['id'], 'src-2');
-        expect(results[1]['name'], 'Pic 2');
-        expect(results[1].containsKey('_id'), isFalse);
+        expect(results[0].id, 'a');
+        expect(results[0].createdAt,
+            DateTime.parse('2024-01-01T00:00:00.000'));
+        expect(results[0].updatedAt,
+            DateTime.parse('2024-01-02T00:00:00.000'));
+        expect(results[0].deletedAt, isNull);
+        expect(results[1].id, 'b');
+        expect(results[1].deletedAt,
+            DateTime.parse('2024-03-01T00:00:00.000'));
       });
     });
 
@@ -239,18 +242,17 @@ void main() {
         expect(const CloudReconnectedEvent(), isA<CloudSyncEvent>());
       });
 
-      test('INSERT event publishes CloudInsertedEvent with transformed data',
-          () async {
+      test('INSERT event publishes CloudInsertedEvent with data', () async {
         await setUpCloud();
 
         final events = <CloudSyncEvent>[];
         cloud.changes.listen(events.add);
 
         // Add a document after initial snapshot
-        await fakeFirestore.collection('pictures').add({
-          '_id': 'src-1',
-          'name': 'Inserted',
-          'updated_at': '2024-01-01T00:00:00',
+        final docRef = await fakeFirestore.collection('pictures').add({
+          'createdAt': '2024-01-01T00:00:00.000',
+          'updatedAt': '2024-01-02T00:00:00.000',
+          'data': {'id': 'src-1', 'name': 'Inserted'},
         });
 
         // Wait for snapshot listener to fire
@@ -262,24 +264,23 @@ void main() {
         expect(events.first, isA<CloudInsertedEvent>());
 
         final event = events.first as CloudInsertedEvent;
-        expect(event.id, 'src-1');
+        expect(event.metadata.id, docRef.id);
+        expect(event.metadata.createdAt,
+            DateTime.parse('2024-01-01T00:00:00.000'));
         expect(event.collection, 'pictures');
         expect(event.data!['id'], 'src-1');
         expect(event.data!['name'], 'Inserted');
-        expect(event.data!.containsKey('_id'), isFalse);
       });
 
-      test('INSERT event with no sourceId uses raw doc id as prefixed id',
-          () async {
+      test('INSERT event without data map publishes null data', () async {
         await setUpCloud();
 
         final events = <CloudSyncEvent>[];
         cloud.changes.listen(events.add);
 
-        // Add a document without a source id
+        // Add a document without a data payload
         final docRef = await fakeFirestore.collection('pictures').add({
-          'name': 'No Source Id',
-          'updated_at': '2024-01-01T00:00:00',
+          'name': 'No Data',
         });
 
         // Wait for snapshot listener to fire
@@ -291,21 +292,17 @@ void main() {
         expect(events.first, isA<CloudInsertedEvent>());
 
         final event = events.first as CloudInsertedEvent;
-        expect(event.id, docRef.id);
+        expect(event.metadata.id, docRef.id);
         expect(event.collection, 'pictures');
-        expect(event.data!['id'], docRef.id);
-        expect(event.data!['name'], 'No Source Id');
+        expect(event.data, isNull);
       });
 
-      test('UPDATE event publishes CloudUpdatedEvent with transformed data',
-          () async {
+      test('UPDATE event publishes CloudUpdatedEvent with data', () async {
         await setUpCloud();
 
         // Seed a document first
         final docRef = await fakeFirestore.collection('pictures').add({
-          '_id': 'src-3',
-          'name': 'Original',
-          'updated_at': '2024-01-01T00:00:00',
+          'data': {'id': 'src-3', 'name': 'Original'},
         });
 
         // Wait for the add to be processed
@@ -316,8 +313,7 @@ void main() {
 
         // Update the document
         await docRef.update({
-          'name': 'Updated',
-          'updated_at': '2024-06-01T00:00:00',
+          'data': {'id': 'src-3', 'name': 'Updated'},
         });
 
         // Wait for snapshot listener to fire
@@ -329,7 +325,7 @@ void main() {
         expect(events.first, isA<CloudUpdatedEvent>());
 
         final event = events.first as CloudUpdatedEvent;
-        expect(event.id, 'src-3');
+        expect(event.metadata.id, docRef.id);
         expect(event.collection, 'pictures');
         expect(event.data!['name'], 'Updated');
       });
@@ -339,9 +335,7 @@ void main() {
 
         // Seed a document first
         final docRef = await fakeFirestore.collection('pictures').add({
-          '_id': 'src-4',
-          'name': 'To Delete',
-          'updated_at': '2024-01-01T00:00:00',
+          'data': {'id': 'src-4', 'name': 'To Delete'},
         });
 
         // Wait for the add to be processed
@@ -362,7 +356,7 @@ void main() {
         expect(events.first, isA<CloudDeletedEvent>());
 
         final event = events.first as CloudDeletedEvent;
-        expect(event.id, 'src-4');
+        expect(event.metadata.id, docRef.id);
         expect(event.collection, 'pictures');
         expect(event.data!['name'], 'To Delete');
       });
@@ -372,14 +366,10 @@ void main() {
 
         // Seed documents
         final docRef1 = await fakeFirestore.collection('pictures').add({
-          '_id': 'src-a',
-          'name': 'First',
-          'updated_at': '2024-01-01T00:00:00',
+          'data': {'id': 'src-a', 'name': 'First'},
         });
         final docRef2 = await fakeFirestore.collection('records').add({
-          '_id': 'src-b',
-          'name': 'Second',
-          'updated_at': '2024-02-01T00:00:00',
+          'data': {'id': 'src-b', 'name': 'Second'},
         });
 
         // Wait for initial adds to be processed
@@ -389,9 +379,13 @@ void main() {
         cloud.changes.listen(events.add);
 
         // Make changes to both collections
-        await docRef1.update({'name': 'First Updated'});
+        await docRef1.update({
+          'data': {'id': 'src-a', 'name': 'First Updated'},
+        });
         await Future<void>.delayed(Duration.zero);
-        await docRef2.update({'name': 'Second Updated'});
+        await docRef2.update({
+          'data': {'id': 'src-b', 'name': 'Second Updated'},
+        });
         await Future<void>.delayed(Duration.zero);
 
         // Wait for snapshot listeners to fire
@@ -401,9 +395,9 @@ void main() {
 
         expect(events.length, 2);
         expect(events[0], isA<CloudUpdatedEvent>());
-        expect((events[0] as CloudUpdatedEvent).id, 'src-a');
+        expect((events[0] as CloudUpdatedEvent).metadata.id, docRef1.id);
         expect(events[1], isA<CloudUpdatedEvent>());
-        expect((events[1] as CloudUpdatedEvent).id, 'src-b');
+        expect((events[1] as CloudUpdatedEvent).metadata.id, docRef2.id);
       });
     });
   });

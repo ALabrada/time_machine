@@ -173,7 +173,11 @@ void main() {
       final events = <CloudSyncEvent>[];
       cloud.changes.listen(events.add);
       final event = CloudInsertedEvent(
-        id: '123',
+        metadata: CloudMetadata(
+          id: '123',
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 1),
+        ),
         collection: 'pictures',
       );
       cloud.publishEvent(event);
@@ -193,71 +197,92 @@ void main() {
     });
 
     group('saveRecord', () {
-      test('inserts new record when id is null and returns prefixed id',
+      test('inserts new record and returns server-assigned metadata',
           () async {
         await setUpCloud(assertFn: (request) async {
           final body = json.decode(utf8.decode(request.bodyBytes))
               as Map<String, dynamic>;
-          expect(body['_id'], 'source-456');
           expect(body.containsKey('id'), isFalse);
+          expect(body['createdAt'], isNotEmpty);
+          expect(body['updatedAt'], isNotEmpty);
+          expect(body['deletedAt'], isNull);
+          expect(json.decode(body['data'] as String), {
+            'id': 'source-456',
+            'name': 'Test Picture',
+          });
           expect(request.method, 'POST');
           expect(request.url.toString(), contains('/rest/v1/pictures'));
         });
 
-        final id = await cloud.saveRecord('pictures', null, {
+        final metadata = await cloud.saveRecord('pictures', null, {
           'id': 'source-456',
           'name': 'Test Picture',
         });
 
-        expect(id, 'new-uuid');
+        expect(metadata.id, 'new-uuid');
+        expect(metadata.createdAt, isNotNull);
+        expect(metadata.updatedAt, isNotNull);
       });
 
-      test('upserts when id has prefix and returns prefixed id', () async {
+      test('upserts with provided metadata and preserves data', () async {
+        final createdAt = DateTime(2024, 1, 1);
+        final deletedAt = DateTime(2024, 2, 1);
         await setUpCloud(assertFn: (request) async {
           final body = json.decode(utf8.decode(request.bodyBytes))
               as Map<String, dynamic>;
           expect(body['id'], 'my-existing-id');
-          expect(body['_id'], 'source-789');
-          expect(body['name'], 'Updated Picture');
-          expect(body.containsKey('created_at'), isFalse);
+          expect(body['createdAt'], createdAt.toIso8601String());
+          expect(body['deletedAt'], deletedAt.toIso8601String());
+          expect(json.decode(body['data'] as String), {
+            'id': 'source-789',
+            'name': 'Updated Picture',
+          });
           expect(request.headers['Prefer'],
               contains('resolution=merge-duplicates'));
         });
 
-        final id = await cloud.saveRecord(
+        final metadata = await cloud.saveRecord(
           'pictures',
-          'my-existing-id',
+          CloudMetadata(
+            id: 'my-existing-id',
+            createdAt: createdAt,
+            updatedAt: createdAt,
+            deletedAt: deletedAt,
+          ),
           {'id': 'source-789', 'name': 'Updated Picture'},
         );
 
-        expect(id, 'my-existing-id');
+        expect(metadata.id, 'my-existing-id');
+        expect(metadata.createdAt, createdAt);
+        expect(metadata.deletedAt, deletedAt);
       });
 
-      test('upserts when id is not null',
-          () async {
-        await setUpCloud(assertFn: (request) async {
-          final body = json.decode(utf8.decode(request.bodyBytes))
-              as Map<String, dynamic>;
-          expect(body['id'], 'any-id');
-          expect(body['_id'], 'source-abc');
-          expect(body['name'], 'Local Picture');
-          expect(body.containsKey('created_at'), isFalse);
-          expect(request.headers['Prefer'],
-              contains('resolution=merge-duplicates'));
-        });
+      test('upsert returns metadata with fresh updatedAt', () async {
+        await setUpCloud();
+        final before = DateTime.now();
 
-        final id = await cloud.saveRecord(
+        final metadata = await cloud.saveRecord(
           'pictures',
-          'any-id',
+          CloudMetadata(
+            id: 'any-id',
+            createdAt: DateTime(2024, 1, 1),
+            updatedAt: DateTime(2024, 1, 1),
+          ),
           {'id': 'source-abc', 'name': 'Local Picture'},
         );
 
-        expect(id, 'any-id');
+        final after = DateTime.now();
+        expect(metadata.id, 'any-id');
+        expect(metadata.createdAt, DateTime(2024, 1, 1));
+        expect(metadata.updatedAt.millisecondsSinceEpoch,
+            greaterThanOrEqualTo(before.millisecondsSinceEpoch));
+        expect(metadata.updatedAt.millisecondsSinceEpoch,
+            lessThanOrEqualTo(after.millisecondsSinceEpoch));
       });
     });
 
     group('getRecord', () {
-      test('returns record with restored and prefixed id', () async {
+      test('returns record with decoded data column', () async {
         await setUpCloud(
           assertFn: (request) async {
             expect(request.method, 'GET');
@@ -280,8 +305,10 @@ void main() {
               json.encode([
                 {
                   'id': 'test-id',
-                  '_id': 'source-111',
-                  'name': 'Found Picture',
+                  'data': json.encode({
+                    'id': 'source-111',
+                    'name': 'Found Picture',
+                  }),
                 }
               ]),
               200,
@@ -296,7 +323,6 @@ void main() {
         expect(result, isNotNull);
         expect(result!['id'], 'source-111');
         expect(result['name'], 'Found Picture');
-        expect(result.containsKey('_id'), isFalse);
       });
 
       test('returns null when record not found', () async {
@@ -308,17 +334,37 @@ void main() {
         expect(result, isNull);
       });
 
-      test('returns null for unprefixed id', () async {
-        await setUpCloud();
+      test('returns null when data column is missing', () async {
+        await setUpCloud(
+          mockFor: (request) {
+            final uri = Uri.parse(request.url.toString());
+            if (uri.path.contains('/auth/v1/')) {
+              return Response(
+                _authResponse.body,
+                _authResponse.statusCode,
+                headers: _authResponse.headers,
+                request: request,
+              );
+            }
+            return Response(
+              json.encode([
+                {'id': 'test-id', 'name': 'No Data Column'},
+              ]),
+              200,
+              headers: {'content-type': 'application/json'},
+              request: request,
+            );
+          },
+        );
 
-        final result = await cloud.getRecord('pictures', 'no-prefix');
+        final result = await cloud.getRecord('pictures', 'test-id');
 
         expect(result, isNull);
       });
     });
 
     group('listRecords', () {
-      test('returns all records with restored and prefixed ids', () async {
+      test('returns metadata built from persisted columns', () async {
         await setUpCloud(
           assertFn: (request) async {
             expect(request.method, 'GET');
@@ -336,8 +382,19 @@ void main() {
             }
             return Response(
               json.encode([
-                {'id': 'a', '_id': 'src-1', 'name': 'Pic 1'},
-                {'id': 'b', '_id': 'src-2', 'name': 'Pic 2'},
+                {
+                  'id': 'a',
+                  'createdAt': '2024-01-01T00:00:00.000',
+                  'updatedAt': '2024-01-02T00:00:00.000',
+                  'data': json.encode({'id': 'src-1', 'name': 'Pic 1'}),
+                },
+                {
+                  'id': 'b',
+                  'createdAt': '2024-02-01T00:00:00.000',
+                  'updatedAt': '2024-02-02T00:00:00.000',
+                  'deletedAt': '2024-03-01T00:00:00.000',
+                  'data': json.encode({'id': 'src-2', 'name': 'Pic 2'}),
+                },
               ]),
               200,
               headers: {'content-type': 'application/json'},
@@ -349,11 +406,15 @@ void main() {
         final results = await cloud.listRecords('pictures');
 
         expect(results.length, 2);
-        expect(results[0]['id'], 'src-1');
-        expect(results[0]['name'], 'Pic 1');
-        expect(results[0].containsKey('_id'), isFalse);
-        expect(results[1]['id'], 'src-2');
-        expect(results[1]['name'], 'Pic 2');
+        expect(results[0].id, 'a');
+        expect(results[0].createdAt,
+            DateTime.parse('2024-01-01T00:00:00.000'));
+        expect(results[0].updatedAt,
+            DateTime.parse('2024-01-02T00:00:00.000'));
+        expect(results[0].deletedAt, isNull);
+        expect(results[1].id, 'b');
+        expect(results[1].deletedAt,
+            DateTime.parse('2024-03-01T00:00:00.000'));
       });
     });
 
@@ -590,7 +651,7 @@ void main() {
         expect(const CloudReconnectedEvent(), isA<CloudSyncEvent>());
       });
 
-      test('INSERT event publishes CloudInsertedEvent with transformed data',
+      test('INSERT event publishes CloudInsertedEvent with decoded data',
           () async {
         await setUpCloud();
 
@@ -602,8 +663,12 @@ void main() {
             eventType: PostgresChangeEvent.insert,
             newRecord: {
               'id': 'db-1',
-              '_id': 'src-1',
-              'name': 'Inserted',
+              'createdAt': '2024-01-01T00:00:00.000',
+              'updatedAt': '2024-01-02T00:00:00.000',
+              'data': json.encode({
+                'id': 'src-1',
+                'name': 'Inserted',
+              }),
             },
           ),
           'pictures',
@@ -614,14 +679,15 @@ void main() {
         expect(events.first, isA<CloudInsertedEvent>());
 
         final event = events.first as CloudInsertedEvent;
-        expect(event.id, 'src-1');
+        expect(event.metadata.id, 'db-1');
+        expect(event.metadata.createdAt,
+            DateTime.parse('2024-01-01T00:00:00.000'));
         expect(event.collection, 'pictures');
         expect(event.data!['id'], 'src-1');
         expect(event.data!['name'], 'Inserted');
-        expect(event.data!.containsKey('_id'), isFalse);
       });
 
-      test('INSERT event with no sourceId uses raw db id as prefixed id',
+      test('INSERT event without data column publishes null data',
           () async {
         await setUpCloud();
 
@@ -633,7 +699,7 @@ void main() {
             eventType: PostgresChangeEvent.insert,
             newRecord: {
               'id': 'db-2',
-              'name': 'No Source Id',
+              'name': 'No Data Column',
             },
           ),
           'pictures',
@@ -643,8 +709,8 @@ void main() {
         expect(events.length, 1);
 
         final event = events.first as CloudInsertedEvent;
-        expect(event.id, 'db-2');
-        expect(event.data!['id'], 'db-2');
+        expect(event.metadata.id, 'db-2');
+        expect(event.data, isNull);
       });
 
       test('INSERT event with empty newRecord publishes nothing', () async {
@@ -662,7 +728,7 @@ void main() {
         expect(events, isEmpty);
       });
 
-      test('UPDATE event publishes CloudUpdatedEvent with transformed data',
+      test('UPDATE event publishes CloudUpdatedEvent with decoded data',
           () async {
         await setUpCloud();
 
@@ -674,8 +740,10 @@ void main() {
             eventType: PostgresChangeEvent.update,
             newRecord: {
               'id': 'db-3',
-              '_id': 'src-3',
-              'name': 'Updated',
+              'data': json.encode({
+                'id': 'src-3',
+                'name': 'Updated',
+              }),
             },
           ),
           'pictures',
@@ -686,12 +754,12 @@ void main() {
         expect(events.first, isA<CloudUpdatedEvent>());
 
         final event = events.first as CloudUpdatedEvent;
-        expect(event.id, 'src-3');
+        expect(event.metadata.id, 'db-3');
         expect(event.collection, 'pictures');
         expect(event.data!['name'], 'Updated');
       });
 
-      test('DELETE event publishes CloudDeletedEvent with old record data',
+      test('DELETE event publishes CloudDeletedEvent with decoded data',
           () async {
         await setUpCloud();
 
@@ -703,8 +771,11 @@ void main() {
             eventType: PostgresChangeEvent.delete,
             oldRecord: {
               'id': 'db-4',
-              '_id': 'src-4',
-              'name': 'Deleted',
+              'deletedAt': '2024-01-05T00:00:00.000',
+              'data': json.encode({
+                'id': 'src-4',
+                'name': 'Deleted',
+              }),
             },
           ),
           'pictures',
@@ -715,7 +786,9 @@ void main() {
         expect(events.first, isA<CloudDeletedEvent>());
 
         final event = events.first as CloudDeletedEvent;
-        expect(event.id, 'src-4');
+        expect(event.metadata.id, 'db-4');
+        expect(event.metadata.deletedAt,
+            DateTime.parse('2024-01-05T00:00:00.000'));
         expect(event.collection, 'pictures');
         expect(event.data!['name'], 'Deleted');
       });
@@ -744,7 +817,10 @@ void main() {
         cloud.handlePostgresChange(
           _payload(
             eventType: PostgresChangeEvent.insert,
-            newRecord: {'id': 'a', '_id': 'src-a', 'name': 'First'},
+            newRecord: {
+              'id': 'src-a',
+              'data': json.encode({'name': 'First'}),
+            },
           ),
           'pictures',
         );
@@ -752,7 +828,10 @@ void main() {
         cloud.handlePostgresChange(
           _payload(
             eventType: PostgresChangeEvent.update,
-            newRecord: {'id': 'b', '_id': 'src-b', 'name': 'Second'},
+            newRecord: {
+              'id': 'src-b',
+              'data': json.encode({'name': 'Second'}),
+            },
           ),
           'records',
         );
@@ -760,9 +839,9 @@ void main() {
         await Future<void>.delayed(Duration.zero);
         expect(events.length, 2);
         expect(events[0], isA<CloudInsertedEvent>());
-        expect((events[0] as CloudInsertedEvent).id, 'src-a');
+        expect((events[0] as CloudInsertedEvent).metadata.id, 'src-a');
         expect(events[1], isA<CloudUpdatedEvent>());
-        expect((events[1] as CloudUpdatedEvent).id, 'src-b');
+        expect((events[1] as CloudUpdatedEvent).metadata.id, 'src-b');
       });
     });
   });
