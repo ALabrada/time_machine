@@ -16,8 +16,7 @@ RecordMirror _$RecordMirrorFromJson(Map<String, dynamic> json) => RecordMirror(
       cloudId: json['cloudId'] as String?,
       deletedAt: _$JsonConverterFromJson<Object, DateTime>(
           json['deletedAt'], const DateTimeConverter().fromJson),
-    )..metadata =
-        CloudMetadata.fromJson(json['metadata'] as Map<String, dynamic>);
+    );
 
 Map<String, dynamic> _$RecordMirrorToJson(RecordMirror instance) =>
     <String, dynamic>{
@@ -28,7 +27,6 @@ Map<String, dynamic> _$RecordMirrorToJson(RecordMirror instance) =>
       'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
       'deletedAt': _$JsonConverterToJson<Object, DateTime>(
           instance.deletedAt, const DateTimeConverter().toJson),
-      'metadata': instance.metadata,
     };
 
 Value? _$JsonConverterFromJson<Json, Value>(

@@ -17,8 +17,7 @@ PictureMirror _$PictureMirrorFromJson(Map<String, dynamic> json) =>
       cloudId: json['cloudId'] as String?,
       deletedAt: _$JsonConverterFromJson<Object, DateTime>(
           json['deletedAt'], const DateTimeConverter().fromJson),
-    )..metadata =
-        CloudMetadata.fromJson(json['metadata'] as Map<String, dynamic>);
+    );
 
 Map<String, dynamic> _$PictureMirrorToJson(PictureMirror instance) =>
     <String, dynamic>{
@@ -29,7 +28,6 @@ Map<String, dynamic> _$PictureMirrorToJson(PictureMirror instance) =>
       'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
       'deletedAt': _$JsonConverterToJson<Object, DateTime>(
           instance.deletedAt, const DateTimeConverter().toJson),
-      'metadata': instance.metadata,
     };
 
 Value? _$JsonConverterFromJson<Json, Value>(

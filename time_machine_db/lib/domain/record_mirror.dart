@@ -32,8 +32,10 @@ class RecordMirror {
   @JsonKey(includeFromJson: false, includeToJson: false)
   Record? record;
 
+  @JsonKey(includeFromJson: false, includeToJson: false)
   DateTime get lastDate => deletedAt ?? updatedAt;
 
+  @JsonKey(includeFromJson: false, includeToJson: false)
   CloudMetadata get metadata => CloudMetadata(
     id: id,
     createdAt: createdAt,

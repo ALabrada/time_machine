@@ -90,9 +90,10 @@ class CloudSyncService {
       final deletedPictures = await _createRepository<PictureMirror>().findDeletedRecordsSince(since: dt);
       for (final mirror in deletedPictures) {
         final date = mirror.deletedAt;
-        if (date == null || !date.isBefore(mirror.updatedAt)) {
+        if (date == null || dt != null && !date.isAfter(dt)) {
           continue;
         }
+        await _deletePictureFromDB(mirror.pictureId, date);
         await _deletePictureFromCloud(mirror.pictureId);
         if (_lastChange == null || date.isAfter(_lastChange!)) {
           _lastChange = date;
@@ -102,7 +103,7 @@ class CloudSyncService {
       final deletedRecords = await _createRepository<RecordMirror>().findDeletedRecordsSince(since: dt);
       for (final mirror in deletedRecords) {
         final date = mirror.deletedAt;
-        if (date == null || !date.isBefore(mirror.updatedAt)) {
+        if (date == null || dt != null && !date.isAfter(dt)) {
           continue;
         }
         await _deleteRecordFromCloud(mirror.recordId);
@@ -112,8 +113,8 @@ class CloudSyncService {
       }
 
       _lastChange ??= DateTime.fromMillisecondsSinceEpoch(0);
-    } catch (error) {
-      debugPrint("Failed to sync: $error");
+    } catch (error, stack) {
+      debugPrint("Failed to sync: $error\n$stack");
       _lastChange = null;
       _eventQueue.clear();
     } finally {
@@ -190,6 +191,7 @@ class CloudSyncService {
           _lastChange = ts;
         } else if (event is EntityRemoved<Record>) {
           await deleteRecord(event.entity, event.timestamp);
+          await _deletePictureFromDB(event.entity.pictureId, event.timestamp);
           await _deletePictureFromCloud(event.entity.pictureId);
           await _deleteRecordFromCloud(event.entity.localId!);
           if (lastChange != null && event.timestamp.isAfter(lastChange)) {
@@ -277,19 +279,19 @@ extension SyncExtensions on CloudSyncService {
 
     final localMirror = await _createRepository<PictureMirror>().findByPictureAndCloud(pictureId, provider.id);
     final dt = localMirror?.deletedAt;
-    if (localMirror == null || dt == null || !dt.isAfter(localMirror.updatedAt)) {
+    if (localMirror == null || dt == null || dt.isBefore(localMirror.updatedAt)) {
       return;
     }
 
     final key = localMirror.id;
     final cloudJson = await provider.getRecord(collection, key);
-    if (cloudJson != null) {
-      final cloudPicture = Picture.fromJson(cloudJson);
-      if (provider.supportsFiles && await _loadData(cloudPicture) == null) {
-        try {
+    if (cloudJson != null && provider.supportsFiles) {
+      try {
+        final cloudPicture = Picture.fromJson(cloudJson);
+        if (await _loadData(cloudPicture) == null) {
           await provider.deleteFile(cloudPicture.url);
-        } catch(_) {}
-      }
+        }
+      } catch (_) {}
     }
 
     localMirror.updatedAt = dt;
@@ -306,7 +308,7 @@ extension SyncExtensions on CloudSyncService {
 
     final localMirror = await _createRepository<RecordMirror>().findByRecordAndCloud(recordId, provider.id);
     final dt = localMirror?.deletedAt;
-    if (localMirror == null || dt == null || !dt.isAfter(localMirror.updatedAt)) {
+    if (localMirror == null || dt == null || dt.isBefore(localMirror.updatedAt)) {
       return;
     }
 
@@ -352,6 +354,7 @@ extension SyncExtensions on CloudSyncService {
     mirror.updatedAt = date ?? DateTime.now();
     mirror.deletedAt = mirror.updatedAt;
     await _createRepository<RecordMirror>().update(mirror);
+    await _createRepository<Record>().delete(localId);
     return mirror;
   }
 

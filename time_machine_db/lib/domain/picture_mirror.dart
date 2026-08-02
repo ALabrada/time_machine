@@ -32,8 +32,10 @@ class PictureMirror {
   @JsonKey(includeFromJson: false, includeToJson: false)
   Picture? picture;
 
+  @JsonKey(includeFromJson: false, includeToJson: false)
   DateTime get lastDate => deletedAt ?? updatedAt;
 
+  @JsonKey(includeFromJson: false, includeToJson: false)
   CloudMetadata get metadata => CloudMetadata(
     id: id,
     createdAt: createdAt,
