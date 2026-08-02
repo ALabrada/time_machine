@@ -13,14 +13,11 @@ Record _$RecordFromJson(Map<String, dynamic> json) => Record(
       updateAt: const DateTimeConverter().fromJson(json['updateAt'] as Object),
       visitedAt: _$JsonConverterFromJson<Object, DateTime>(
           json['visitedAt'], const DateTimeConverter().fromJson),
-      deletedAt: _$JsonConverterFromJson<Object, DateTime>(
-          json['deletedAt'], const DateTimeConverter().fromJson),
       originalId: (json['originalId'] as num?)?.toInt(),
       height: (json['height'] as num?)?.toDouble(),
       width: (json['width'] as num?)?.toDouble(),
       originalViewPort: json['originalViewPort'] as String?,
       pictureViewPort: json['pictureViewPort'] as String?,
-      cloudId: json['cloudId'] as String?,
     );
 
 Map<String, dynamic> _$RecordToJson(Record instance) => <String, dynamic>{
@@ -30,13 +27,10 @@ Map<String, dynamic> _$RecordToJson(Record instance) => <String, dynamic>{
       'updateAt': const DateTimeConverter().toJson(instance.updateAt),
       'visitedAt': _$JsonConverterToJson<Object, DateTime>(
           instance.visitedAt, const DateTimeConverter().toJson),
-      'deletedAt': _$JsonConverterToJson<Object, DateTime>(
-          instance.deletedAt, const DateTimeConverter().toJson),
       'height': instance.height,
       'width': instance.width,
       'originalViewPort': instance.originalViewPort,
       'pictureViewPort': instance.pictureViewPort,
-      'cloudId': instance.cloudId,
     };
 
 Value? _$JsonConverterFromJson<Json, Value>(

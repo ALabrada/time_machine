@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:time_machine_db/domain/cloud_metadata.dart';
+
 abstract class CloudSyncProvider {
   String get id;
   Stream<CloudSyncEvent> get changes;
@@ -7,9 +9,9 @@ abstract class CloudSyncProvider {
   bool get supportsFiles;
   Map<Type, String> get collectionNames;
 
-  Future<String> saveRecord(String collection, String? id, Map<String, dynamic> data);
+  Future<CloudMetadata> saveRecord(String collection, CloudMetadata? metadata, Map<String, dynamic> data);
   Future<Map<String, dynamic>?> getRecord(String collection, String id);
-  Future<List<Map<String, dynamic>>> listRecords(String collection);
+  Future<List<CloudMetadata>> listRecords(String collection);
   Future<void> deleteRecord(String collection, String id);
 
   Future<String> uploadFile({
@@ -32,22 +34,22 @@ class UnknownEvent implements CloudSyncEvent {
 }
 
 class CloudInsertedEvent implements CloudSyncEvent {
-  final String id;
+  final CloudMetadata metadata;
   final String collection;
   final Map<String, dynamic>? data;
-  const CloudInsertedEvent({required this.id, required this.collection, this.data});
+  const CloudInsertedEvent({required this.metadata, required this.collection, this.data});
 }
 
 class CloudUpdatedEvent implements CloudSyncEvent {
-  final String id;
+  final CloudMetadata metadata;
   final String collection;
   final Map<String, dynamic>? data;
-  const CloudUpdatedEvent({required this.id, required this.collection, this.data});
+  const CloudUpdatedEvent({required this.metadata, required this.collection, this.data});
 }
 
 class CloudDeletedEvent implements CloudSyncEvent {
-  final String id;
+  final CloudMetadata metadata;
   final String collection;
   final Map<String, dynamic>? data;
-  const CloudDeletedEvent({required this.id, required this.collection, this.data});
+  const CloudDeletedEvent({required this.metadata, required this.collection, this.data});
 }

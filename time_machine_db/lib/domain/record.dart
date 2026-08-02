@@ -13,7 +13,6 @@ class Record {
     required this.createdAt,
     required this.updateAt,
     this.visitedAt,
-    this.deletedAt,
     this.originalId,
     this.localId,
     this.original,
@@ -22,7 +21,6 @@ class Record {
     this.width,
     this.originalViewPort,
     this.pictureViewPort,
-    this.cloudId,
   });
 
   @JsonKey(includeToJson: false, includeFromJson: false)
@@ -35,8 +33,6 @@ class Record {
   DateTime updateAt;
   @DateTimeConverter()
   DateTime? visitedAt;
-  @DateTimeConverter()
-  DateTime? deletedAt;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   Picture? original;
@@ -47,9 +43,6 @@ class Record {
   double? width;
   String? originalViewPort;
   String? pictureViewPort;
-  String? cloudId;
-
-  DateTime get lastDate => deletedAt ?? updateAt;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   double? get originalAspectRatio {

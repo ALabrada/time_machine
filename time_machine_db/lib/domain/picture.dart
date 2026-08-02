@@ -21,8 +21,6 @@ class Picture {
     this.margin,
     this.site,
     this.visitedAt,
-    this.deletedAt,
-    this.cloudId,
     this.fileHash,
   });
 
@@ -42,9 +40,6 @@ class Picture {
   String? site;
   @DateTimeConverter()
   DateTime? visitedAt;
-  @DateTimeConverter()
-  DateTime? deletedAt;
-  String? cloudId;
   String? fileHash;
 
   @JsonKey(includeToJson: false, includeFromJson: false)
@@ -100,8 +95,6 @@ class Picture {
     margin: margin ?? this.margin,
     site: site ?? this.site,
     visitedAt: visitedAt ?? this.visitedAt,
-    deletedAt: deletedAt ?? this.deletedAt,
-    cloudId: cloudId ?? this.cloudId,
     fileHash: fileHash ?? this.fileHash,
   );
 }

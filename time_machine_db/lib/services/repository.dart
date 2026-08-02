@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:sembast/sembast_io.dart';
 import 'package:sembast_web/sembast_web.dart';
+import 'package:time_machine_db/domain/picture_mirror.dart';
+import 'package:time_machine_db/domain/record_mirror.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 
 class Repository<T> {
@@ -10,7 +12,6 @@ class Repository<T> {
   final Map<String, dynamic> Function(T item) toJson;
   final int? Function(T item) getKey;
   final void Function(T item, int id) setKey;
-  final void Function(T item, DateTime dt)? setDeleted;
   final StreamSink<RepositoryEvent>? events;
 
   const Repository({
@@ -20,7 +21,6 @@ class Repository<T> {
     required this.toJson,
     required this.getKey,
     required this.setKey,
-    this.setDeleted,
     this.events,
   });
 
@@ -36,7 +36,6 @@ class Repository<T> {
         toJson: (x) => x.toJson(),
         getKey: (x) => x.localId,
         setKey: (x, v) => x.localId = v,
-        setDeleted: (x, v) => x.deletedAt = v,
         events: events,
       ) as Repository<T>;
     }
@@ -48,7 +47,28 @@ class Repository<T> {
         toJson: (x) => x.toJson(),
         getKey: (x) => x.localId,
         setKey: (x, v) => x.localId = v,
-        setDeleted: (x, v) => x.deletedAt = v,
+        events: events,
+      ) as Repository<T>;
+    }
+    if (T == PictureMirror) {
+      return Repository<PictureMirror>(
+        box: intMapStoreFactory.store('picture_mirror'),
+        db: db,
+        fromJson: PictureMirror.fromJson,
+        toJson: (x) => x.toJson(),
+        getKey: (x) => x.localId,
+        setKey: (x, v) => x.localId = v,
+        events: events,
+      ) as Repository<T>;
+    }
+    if (T == RecordMirror) {
+      return Repository<RecordMirror>(
+        box: intMapStoreFactory.store('record_mirror'),
+        db: db,
+        fromJson: RecordMirror.fromJson,
+        toJson: (x) => x.toJson(),
+        getKey: (x) => x.localId,
+        setKey: (x, v) => x.localId = v,
         events: events,
       ) as Repository<T>;
     }
@@ -63,8 +83,7 @@ class Repository<T> {
     }
     final item = fromJson(Map<String, dynamic>.from(raw));
     setKey(item, id);
-    setDeleted?.call(item, DateTime.now());
-    events?.add(EntityRemoved(item));
+    events?.add(EntityRemoved(item, DateTime.now()));
     return true;
   }
 
@@ -101,7 +120,7 @@ class Repository<T> {
   Future<T> insert(T entity) async {
     final id = await box.add(db, toJson(entity));
     setKey(entity, id);
-    events?.add(EntityInserted(entity));
+    events?.add(EntityInserted(entity, DateTime.now()));
     return entity;
   }
 
@@ -114,7 +133,7 @@ class Repository<T> {
     }
     final json = toJson(entity);
     await box.record(id).put(db, json);
-    events?.add(EntityUpdated(entity));
+    events?.add(EntityUpdated(entity, DateTime.now()));
   }
 
   Future<T> upsert(T entity) async {
@@ -132,15 +151,18 @@ abstract class RepositoryEvent {}
 
 class EntityRemoved<T> implements RepositoryEvent {
   final T entity;
-  const EntityRemoved(this.entity);
+  final DateTime timestamp;
+  const EntityRemoved(this.entity, this.timestamp);
 }
 
 class EntityInserted<T> implements RepositoryEvent {
   final T entity;
-  const EntityInserted(this.entity);
+  final DateTime timestamp;
+  const EntityInserted(this.entity, this.timestamp);
 }
 
 class EntityUpdated<T> implements RepositoryEvent {
   final T entity;
-  const EntityUpdated(this.entity);
+  final DateTime timestamp;
+  const EntityUpdated(this.entity, this.timestamp);
 }

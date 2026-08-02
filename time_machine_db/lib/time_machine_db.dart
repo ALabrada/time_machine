@@ -1,5 +1,6 @@
 import 'dart:math';
 
+export 'domain/cloud_metadata.dart';
 export 'domain/date_time_converter.dart';
 export 'domain/location.dart';
 export 'domain/picture.dart';
