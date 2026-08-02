@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:meta/meta.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -10,6 +11,7 @@ import 'cloud_base.dart';
 
 class FirestoreCloud extends EventfulCloudBase {
   final FirebaseFirestore _firestore;
+  final FirebaseAuth? _auth;
   final FirebaseStorage? _storage;
   final String _bucketName;
   final List<StreamSubscription<QuerySnapshot>> _subscriptions = [];
@@ -17,7 +19,15 @@ class FirestoreCloud extends EventfulCloudBase {
   bool _initialSnapshotReceived = false;
 
   @override
-  String get id => 'firestore';
+  Future<String> initialize() async {
+    final auth = _auth ?? FirebaseAuth.instance;
+    final user = auth.currentUser;
+    if (user == null) {
+      throw Exception('No Firebase session available. Sign in first.');
+    }
+    _initRealtime();
+    return 'firebase/${user.uid}';
+  }
 
   @override
   bool get supportsFiles => _storage != null;
@@ -31,12 +41,12 @@ class FirestoreCloud extends EventfulCloudBase {
   FirestoreCloud({
     FirebaseFirestore? firestore,
     FirebaseStorage? storage,
+    FirebaseAuth? auth,
     String bucketName = 'time-machine',
   }) : _firestore = firestore ?? FirebaseFirestore.instance,
        _storage = storage,
-       _bucketName = bucketName {
-    _initRealtime();
-  }
+       _auth = auth,
+       _bucketName = bucketName;
 
   void _initRealtime() {
     if (_realtimeSubscribed) return;

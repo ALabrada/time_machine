@@ -627,6 +627,27 @@ void main() {
         await setUpCloud();
         expect(cloud.isAuthenticated, isFalse);
       });
+
+      test('initialize throws when there is no authenticated session',
+          () async {
+        await setUpCloud();
+        expect(cloud.initialize(), throwsException);
+      });
+
+      test('initialize returns composite id after authenticate', () async {
+        await setUpCloud();
+        await cloud.authenticate('test@example.com', 'password123');
+
+        expect(await cloud.initialize(), 'supabase/auth-test-user');
+      });
+
+      test('initialize returns composite id after signInAnonymously',
+          () async {
+        await setUpCloud();
+        await cloud.signInAnonymously();
+
+        expect(await cloud.initialize(), 'supabase/auth-test-user');
+      });
     });
 
     group('realtime events', () {

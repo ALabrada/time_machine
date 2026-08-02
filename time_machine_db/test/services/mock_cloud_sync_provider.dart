@@ -10,8 +10,16 @@ class MockCloudSyncProvider implements CloudSyncProvider {
   final Map<String, Uint8List> _files = {};
   final _changesController = StreamController<CloudSyncEvent>.broadcast();
 
-  @override
   String id = '';
+  bool failInitialize = false;
+
+  @override
+  Future<String> initialize() async {
+    if (failInitialize) {
+      throw Exception('Failed to initialize');
+    }
+    return id;
+  }
 
   @override
   bool supportsEvents = false;

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:time_machine_db/domain/cloud_metadata.dart';
 
 abstract class CloudSyncProvider {
-  String get id;
+  Future<String> initialize();
   Stream<CloudSyncEvent> get changes;
   bool get supportsEvents;
   bool get supportsFiles;

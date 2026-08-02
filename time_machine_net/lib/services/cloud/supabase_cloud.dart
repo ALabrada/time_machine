@@ -17,9 +17,6 @@ class SupabaseCloud extends EventfulCloudBase {
   bool _realtimeSubscribed = false;
 
   @override
-  String get id => 'supabase';
-
-  @override
   bool get supportsFiles => true;
 
   @override
@@ -33,16 +30,30 @@ class SupabaseCloud extends EventfulCloudBase {
     required String supabaseKey,
     String bucketName = 'time-machine',
   }) : _client = SupabaseClient(supabaseUrl, supabaseKey),
-       _bucketName = bucketName {
-    _initRealtime();
-  }
+       _bucketName = bucketName;
 
   SupabaseCloud.withClient({
     required SupabaseClient client,
     String bucketName = 'time-machine',
   }) : _client = client,
-       _bucketName = bucketName {
+       _bucketName = bucketName;
+
+  @override
+  Future<String> initialize() async {
+    var session = _client.auth.currentSession;
+    if (session != null && session.isExpired) {
+      try {
+        session = (await _client.auth.refreshSession()).session;
+      } catch (_) {
+        session = null;
+      }
+    }
+    final user = session?.user;
+    if (user == null) {
+      throw Exception('No Supabase session available. Sign in first.');
+    }
     _initRealtime();
+    return 'supabase/${user.id}';
   }
 
   void _initRealtime() {

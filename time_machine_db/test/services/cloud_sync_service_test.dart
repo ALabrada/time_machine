@@ -115,6 +115,30 @@ void main() {
       await db.close();
     });
 
+    test('setProvider halts sync when provider.initialize fails', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_initialize_fails.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = createProvider();
+      mockProvider.failInitialize = true;
+      final syncService = CloudSyncService(databaseService: dbService);
+
+      await syncService.setProvider(mockProvider);
+
+      expect(syncService.isActive, false);
+      expect(syncService.pictures, isNull);
+      expect(syncService.records, isNull);
+
+      final picture = await insertPicture(dbService, id: 'pic1', provider: 'pastvu');
+      await insertRecord(dbService, picture);
+
+      await Future.delayed(const Duration(milliseconds: 200));
+      expect(await mockProvider.listRecords('records'), isEmpty);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
     test('syncWithCloud does nothing when local and cloud are empty', () async {
       final db = await databaseFactoryMemory.openDatabase('test_empty_sync.db');
       final dbService = DatabaseService(db: db);

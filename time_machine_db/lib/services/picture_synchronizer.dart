@@ -7,10 +7,12 @@ class PictureSynchronizer {
   PictureSynchronizer({
     required this.databaseService,
     required this.provider,
+    required this.cloudId,
   });
 
   final DatabaseService databaseService;
   final CloudSyncProvider provider;
+  final String cloudId;
 
   Repository<T> _createRepository<T>() => Repository<T>.create(db: databaseService.db);
 
@@ -20,7 +22,7 @@ class PictureSynchronizer {
       return;
     }
 
-    final localMirror = await _createRepository<PictureMirror>().findByPictureAndCloud(pictureId, provider.id);
+    final localMirror = await _createRepository<PictureMirror>().findByPictureAndCloud(pictureId, cloudId);
     final dt = localMirror?.deletedAt;
     if (localMirror == null || dt == null || dt.isBefore(localMirror.updatedAt)) {
       return;
@@ -52,7 +54,7 @@ class PictureSynchronizer {
     } catch (_) {}
     await _createRepository<Picture>().delete(localId);
 
-    final mirror = await _createRepository<PictureMirror>().findByPictureAndCloud(localId, provider.id);
+    final mirror = await _createRepository<PictureMirror>().findByPictureAndCloud(localId, cloudId);
     if (mirror == null) {
       return null;
     }
@@ -87,7 +89,7 @@ class PictureSynchronizer {
       return null;
     }
 
-    var localMirror = await _createRepository<PictureMirror>().findByIdAndCloud(id, provider.id);
+    var localMirror = await _createRepository<PictureMirror>().findByIdAndCloud(id, cloudId);
     if (date != null && localMirror != null && !date.isAfter(localMirror.lastDate)) {
       return localMirror;
     }
@@ -123,7 +125,7 @@ class PictureSynchronizer {
         pictureId: localCopy.localId!,
         createdAt: dt,
         updatedAt: dt,
-        cloudId: provider.id,
+        cloudId: cloudId,
         picture: localCopy,
       );
     } else {
@@ -140,14 +142,14 @@ class PictureSynchronizer {
     }
 
     final dt = date ?? DateTime.now();
-    var localMirror = await _createRepository<PictureMirror>().findByPictureAndCloud(picture.localId!, provider.id);
+    var localMirror = await _createRepository<PictureMirror>().findByPictureAndCloud(picture.localId!, cloudId);
     if (localMirror == null) {
       localMirror = PictureMirror(
         id: pictureKey(picture),
         pictureId: picture.localId!,
         createdAt: dt,
         updatedAt: dt,
-        cloudId: provider.id,
+        cloudId: cloudId,
         picture: picture,
       );
     } else if (localMirror.deletedAt == null && localMirror.updatedAt.isBefore(dt)) {

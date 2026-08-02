@@ -7,6 +7,7 @@ class CloudSyncService {
   final _eventQueue = <Object>[];
 
   CloudSyncProvider? _provider;
+  String? _cloudId;
   StreamSubscription? _cloudSubscription;
   StreamSubscription? _eventSubscription;
   DateTime? _lastChange;
@@ -36,16 +37,30 @@ class CloudSyncService {
   Future<void> setProvider(CloudSyncProvider? provider) async {
     _cloudSubscription?.cancel();
     _cloudSubscription = null;
-    _provider = provider;
     _lastChange = null;
 
     if (provider == null) {
+      _cloudId = null;
       _pictures = null;
       _records = null;
+      _provider = null;
     } else {
-      final pictures = PictureSynchronizer(databaseService: databaseService, provider: provider);
+      final String cloudId;
+      try {
+        cloudId = await provider.initialize();
+      } catch (error, stack) {
+        debugPrint("Failed to initialize cloud provider: $error\n$stack");
+        _cloudId = null;
+        _pictures = null;
+        _records = null;
+        _provider = null;
+        return;
+      }
+      _cloudId = cloudId;
+      final pictures = PictureSynchronizer(databaseService: databaseService, provider: provider, cloudId: cloudId);
       _pictures = pictures;
-      _records = RecordSynchronizer(databaseService: databaseService, provider: provider, pictures: pictures);
+      _records = RecordSynchronizer(databaseService: databaseService, provider: provider, pictures: pictures, cloudId: cloudId);
+      _provider = provider;
     }
 
     await syncWithCloud();
@@ -60,7 +75,7 @@ class CloudSyncService {
     _cloudSubscription?.cancel();
     _cloudSubscription = null;
 
-    final cloudId = _provider?.id;
+    final cloudId = _cloudId;
     if (cloudId == null) {
       return;
     }
@@ -195,11 +210,12 @@ class CloudSyncService {
 
       final pictures = _pictures!;
       final records = _records!;
+      final cloudId = _cloudId!;
 
       final recordCollection = _provider?.collectionNames[Record];
       final mirrorRepo = _createRepository<RecordMirror>();
       try {
-        if (event is EntityInserted<Record> && await mirrorRepo.findByRecordAndCloud(event.entity.localId!, provider.id) == null && lastChange != null && event.timestamp.isAfter(lastChange)) {
+        if (event is EntityInserted<Record> && await mirrorRepo.findByRecordAndCloud(event.entity.localId!, cloudId) == null && lastChange != null && event.timestamp.isAfter(lastChange)) {
           final ts = event.entity.updateAt;
           await records.pushRecord(event.entity, event.timestamp);
           _lastChange = ts;
@@ -231,7 +247,7 @@ class CloudSyncService {
             _lastChange = date;
           }
         } else if (event is CloudDeletedEvent && event.collection == recordCollection && lastChange != null && recordCollection != null) {
-          final mirror = await mirrorRepo.findByIdAndCloud(event.metadata.id, provider.id);
+          final mirror = await mirrorRepo.findByIdAndCloud(event.metadata.id, cloudId);
           if (mirror == null) {
             continue;
           }

@@ -1,4 +1,5 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/services/cloud/firestore_cloud.dart';
@@ -11,7 +12,12 @@ void main() {
 
   Future<void> setUpCloud() async {
     fakeFirestore = FakeFirebaseFirestore();
-    cloud = FirestoreCloud(firestore: fakeFirestore);
+    final auth = MockFirebaseAuth(
+      signedIn: true,
+      mockUser: MockUser(uid: 'test-user'),
+    );
+    cloud = FirestoreCloud(firestore: fakeFirestore, auth: auth);
+    await cloud.initialize();
     // Wait for initial snapshot to be processed
     await Future<void>.delayed(Duration.zero);
   }
@@ -39,6 +45,25 @@ void main() {
       await setUpCloud();
       expect(cloud.changes, isA<Stream<CloudSyncEvent>>());
       expect(cloud.changes.isBroadcast, isTrue);
+    });
+
+    group('initialize', () {
+      test('throws when there is no authenticated user', () async {
+        final auth = MockFirebaseAuth();
+        cloud = FirestoreCloud(firestore: fakeFirestore, auth: auth);
+
+        expect(cloud.initialize(), throwsException);
+      });
+
+      test('returns composite id of the authenticated user', () async {
+        final auth = MockFirebaseAuth(
+          signedIn: true,
+          mockUser: MockUser(uid: 'test-user'),
+        );
+        cloud = FirestoreCloud(firestore: fakeFirestore, auth: auth);
+
+        expect(await cloud.initialize(), 'firebase/test-user');
+      });
     });
 
     test('publishEvent emits event on changes stream', () async {
