@@ -31,6 +31,15 @@ final class ConfigurationService {
     }
   }
 
+  String? get cloud => preferences()?.getString('settings.cloud');
+  set cloud(String? value) {
+    if (value == null) {
+      preferences()?.remove('settings.cloud');
+    } else {
+      preferences()?.setString('settings.cloud', value);
+    }
+  }
+
   String? get geocoder => preferences()?.getString('settings.geocoder');
   set geocoder(String? value) {
     if (value == null) {

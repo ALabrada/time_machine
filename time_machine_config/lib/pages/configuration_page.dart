@@ -46,6 +46,7 @@ class ConfigurationPageState extends State<ConfigurationPage> {
               _buildMapSection(),
               _buildProvidersSection(),
               _buildSearchOptions(),
+              _buildSyncSection(),
               _buildInfo(),
               _buildFooter(),
             ],
@@ -182,6 +183,26 @@ class ConfigurationPageState extends State<ConfigurationPage> {
             label: ConfigLocalizations.of(context).settingSearchEnd,
             controller: controller.maxYear,
           ),
+        ),
+      ],
+    );
+  }
+
+  AbstractSettingsSection _buildSyncSection() {
+    return SettingsSection(
+      title: Text('Synchronization'),
+      tiles: [
+        SettingsTile.navigation(
+          title: Text('Provider'),
+          value: Text(controller.cloud.value),
+          onPressed: (_) => _showSelectionDialog(
+            label: 'Provider',
+            controller: controller.cloud,
+          ),
+        ),
+        SettingsTile.navigation(
+          title: Text('Activate'),
+          onPressed: (context) => context.go('/cloud'),
         ),
       ],
     );

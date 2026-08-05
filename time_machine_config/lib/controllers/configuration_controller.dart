@@ -14,6 +14,10 @@ final class ConfigurationController extends ChangeNotifier {
           value: configurationService.cameraRatio ?? ConfigurationService.defaultCameraRatio,
           elements: ['16x9', '4x3', '1x1'],
         ),
+        cloud = _createClouds(
+          configurationService: configurationService,
+          networkService: networkService,
+        ),
         geocoder = _createGeocoders(
           configurationService: configurationService,
           networkService: networkService,
@@ -54,6 +58,10 @@ final class ConfigurationController extends ChangeNotifier {
       configurationService.tileServer = tileServer.value;
       notifyListeners();
     });
+    cloud.addListener(() {
+      configurationService.cloud = cloud.value;
+      notifyListeners();
+    });
     geocoder.addListener(() {
       configurationService.geocoder = geocoder.value;
       notifyListeners();
@@ -70,6 +78,7 @@ final class ConfigurationController extends ChangeNotifier {
   final ConfigurationService configurationService;
 
   final SelectionController<String> cameraRatio;
+  final SelectionController<String> cloud;
   final SelectionController<String> geocoder;
   final SelectionController<int> maxYear;
   final SelectionController<int> minYear;
@@ -103,6 +112,18 @@ final class ConfigurationController extends ChangeNotifier {
     minYear.elements.value = List.generate(
       maxYear.value - ConfigurationService.defaultMinYear + 1,
           (idx) => ConfigurationService.defaultMinYear + idx,
+    );
+  }
+
+  static SelectionController<String> _createClouds({
+    required ConfigurationService configurationService,
+    NetworkService? networkService,
+  }) {
+    final services = networkService?.clouds.keys.toList();
+    services?.sort();
+    return SelectionController<String>(
+      value: configurationService.cloud ?? '',
+      elements: services ?? [],
     );
   }
 

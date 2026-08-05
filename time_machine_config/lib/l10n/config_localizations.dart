@@ -268,6 +268,114 @@ abstract class ConfigLocalizations {
   /// In en, this message translates to:
   /// **'End (year)'**
   String get settingSearchEnd;
+
+  /// No description provided for @cloudPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud'**
+  String get cloudPageTitle;
+
+  /// No description provided for @cloudPageProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider'**
+  String get cloudPageProvider;
+
+  /// No description provided for @cloudPageProviderNotSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No cloud provider is selected in Settings.'**
+  String get cloudPageProviderNotSelected;
+
+  /// No description provided for @cloudPageProviderUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected cloud provider is not available.'**
+  String get cloudPageProviderUnavailable;
+
+  /// No description provided for @cloudPageStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get cloudPageStatus;
+
+  /// No description provided for @cloudPageStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get cloudPageStatusActive;
+
+  /// No description provided for @cloudPageStatusInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get cloudPageStatusInactive;
+
+  /// No description provided for @cloudPageAuthSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication'**
+  String get cloudPageAuthSection;
+
+  /// No description provided for @cloudPageAuthSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in.'**
+  String get cloudPageAuthSuccess;
+
+  /// No description provided for @cloudPageAuthFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed.'**
+  String get cloudPageAuthFailed;
+
+  /// No description provided for @cloudPageEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get cloudPageEmail;
+
+  /// No description provided for @cloudPagePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get cloudPagePassword;
+
+  /// No description provided for @cloudPageSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get cloudPageSignIn;
+
+  /// No description provided for @cloudPageSignInAnonymously.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in anonymously'**
+  String get cloudPageSignInAnonymously;
+
+  /// No description provided for @cloudPageSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get cloudPageSignOut;
+
+  /// No description provided for @cloudPageActivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate'**
+  String get cloudPageActivate;
+
+  /// No description provided for @cloudPageActivationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud activated.'**
+  String get cloudPageActivationSuccess;
+
+  /// No description provided for @cloudPageActivationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Activation failed. Sign in to the provider first.'**
+  String get cloudPageActivationFailed;
 }
 
 class _ConfigLocalizationsDelegate

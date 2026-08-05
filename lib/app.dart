@@ -118,6 +118,13 @@ class TimeMachineApp extends StatelessWidget {
                           child: HelpPage(),
                         ),
                       ),
+                      GoRoute(
+                        path: 'cloud',
+                        builder: (context, state) => FixedOrientationView(
+                          orientations: DeviceOrientation.values,
+                          child: CloudPage(),
+                        ),
+                      ),
                     ]
                 ),
               ],
@@ -129,6 +136,12 @@ class TimeMachineApp extends StatelessWidget {
         ),
         Provider<NetworkService>(
           create: (_) => NetworkService(
+            clouds: {
+              'supabase': SupabaseCloud(
+                supabaseUrl: secrets.SUPABASE_URL,
+                supabaseKey: secrets.SUPABASE_ANON_KEY,
+              ),
+            },
             userAgent: userAgent,
             geocoders: {
               if (userAgent != null)

@@ -30,6 +30,8 @@ abstract class CloudBase implements CloudSyncProvider {
   @override
   bool get supportsFiles => false;
 
+  Future<void> connect() async {}
+
   @override
   Future<String> uploadFile({
     required String name,

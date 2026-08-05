@@ -112,4 +112,61 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
 
   @override
   String get settingSearchEnd => 'Fin (año)';
+
+  @override
+  String get cloudPageTitle => 'Nube';
+
+  @override
+  String get cloudPageProvider => 'Proveedor';
+
+  @override
+  String get cloudPageProviderNotSelected =>
+      'No hay ningún proveedor de nube seleccionado en Ajustes.';
+
+  @override
+  String get cloudPageProviderUnavailable =>
+      'El proveedor de nube seleccionado no está disponible.';
+
+  @override
+  String get cloudPageStatus => 'Estado';
+
+  @override
+  String get cloudPageStatusActive => 'Activo';
+
+  @override
+  String get cloudPageStatusInactive => 'Inactivo';
+
+  @override
+  String get cloudPageAuthSection => 'Autenticación';
+
+  @override
+  String get cloudPageAuthSuccess => 'Sesión iniciada.';
+
+  @override
+  String get cloudPageAuthFailed => 'Error de autenticación.';
+
+  @override
+  String get cloudPageEmail => 'Correo electrónico';
+
+  @override
+  String get cloudPagePassword => 'Contraseña';
+
+  @override
+  String get cloudPageSignIn => 'Iniciar sesión';
+
+  @override
+  String get cloudPageSignInAnonymously => 'Entrar anónimamente';
+
+  @override
+  String get cloudPageSignOut => 'Cerrar sesión';
+
+  @override
+  String get cloudPageActivate => 'Activar';
+
+  @override
+  String get cloudPageActivationSuccess => 'Nube activada.';
+
+  @override
+  String get cloudPageActivationFailed =>
+      'La activación falló. Inicia sesión en el proveedor primero.';
 }
