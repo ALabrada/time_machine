@@ -42,6 +42,7 @@ class ConfigurationPageState extends State<ConfigurationPage> {
           return SettingsList(
             applicationType: ApplicationType.material,
             sections: [
+              _buildAppearanceSection(),
               _buildCameraSection(),
               _buildMapSection(),
               _buildProvidersSection(),
@@ -65,6 +66,34 @@ class ConfigurationPageState extends State<ConfigurationPage> {
         child: packageInfo == null ? null : Text('${packageInfo.appName} v${packageInfo.version}'),
       ),
     );
+  }
+
+  AbstractSettingsSection _buildAppearanceSection() {
+    return SettingsSection(
+      title: Text(ConfigLocalizations.of(context).sectionAppearance),
+      tiles: [
+        SettingsTile.navigation(
+          title: Text(ConfigLocalizations.of(context).settingThemeMode),
+          value: Text(_themeModeLabel(controller.themeMode.value)),
+          onPressed: (_) => _showSelectionDialog(
+            label: ConfigLocalizations.of(context).settingThemeMode,
+            controller: controller.themeMode,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _themeModeLabel(String mode) {
+    final loc = ConfigLocalizations.of(context);
+    switch (mode) {
+      case 'dark':
+        return loc.settingThemeModeDark;
+      case 'light':
+        return loc.settingThemeModeLight;
+      default:
+        return loc.settingThemeModeSystem;
+    }
   }
 
   AbstractSettingsSection _buildCameraSection() {

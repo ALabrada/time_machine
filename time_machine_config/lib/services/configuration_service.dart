@@ -1,17 +1,28 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-final class ConfigurationService {
+final class ConfigurationService extends ChangeNotifier {
   static const defaultCameraPictureOpacity = 0.5;
   static const defaultCameraRatio = '16x9';
   static const defaultGeocoder = "OSM";
   static const defaultMaxYear = 2000;
   static const defaultMinYear = 1900;
 
-  const ConfigurationService({
+  ConfigurationService({
     required this.preferences,
   });
 
   final SharedPreferencesWithCache? Function() preferences;
+
+  String? get themeMode => preferences()?.getString('settings.themeMode');
+  set themeMode(String? value) {
+    if (value == null) {
+      preferences()?.remove('settings.themeMode');
+    } else {
+      preferences()?.setString('settings.themeMode', value);
+    }
+    notifyListeners();
+  }
 
   double? get cameraPictureOpacity => preferences()?.getDouble('settings.cameraPictureOpacity');
   set cameraPictureOpacity(double? value) {

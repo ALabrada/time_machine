@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:time_machine_config/controllers/selection_controller.dart';
 import 'package:time_machine_config/domain/map_tile_server.dart';
 import 'package:time_machine_config/domain/selectable_item.dart';
@@ -33,6 +33,10 @@ final class ConfigurationController extends ChangeNotifier {
           elements: MapTileServer.values
               .map((e) => e.id)
               .toList(),
+        ),
+        themeMode = SelectionController<String>(
+          value: _themeModeValue(configurationService.themeMode),
+          elements: const ['system', 'light', 'dark'],
         )
   {
     updateYears();
@@ -58,6 +62,10 @@ final class ConfigurationController extends ChangeNotifier {
       configurationService.geocoder = geocoder.value;
       notifyListeners();
     });
+    themeMode.addListener(() {
+      configurationService.themeMode = themeMode.value;
+      notifyListeners();
+    });
     for (final provider in providers) {
       provider.addListener(() {
         updateProvider(provider.item, provider.value);
@@ -75,6 +83,7 @@ final class ConfigurationController extends ChangeNotifier {
   final SelectionController<int> minYear;
   final List<SelectableItem<String>> providers;
   final SelectionController<String> tileServer;
+  final SelectionController<String> themeMode;
 
   double get cameraPictureOpacity => configurationService.cameraPictureOpacity
       ?? ConfigurationService.defaultCameraPictureOpacity;
@@ -116,6 +125,17 @@ final class ConfigurationController extends ChangeNotifier {
       value: configurationService.geocoder ?? ConfigurationService.defaultGeocoder,
       elements: services ?? [],
     );
+  }
+
+  static String _themeModeValue(String? value) {
+    switch (value) {
+      case 'dark':
+        return 'dark';
+      case 'light':
+        return 'light';
+      default:
+        return 'system';
+    }
   }
 
   static List<SelectableItem<String>> _createProviders({

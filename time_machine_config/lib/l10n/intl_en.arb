@@ -56,11 +56,16 @@
   "sectionInformation": "Information",
   "sectionMap": "Map",
   "sectionSearchOptions": "Search Options",
+  "sectionAppearance": "Appearance",
   "settingGeocoder": "Address Database",
   "settingHelp": "FAQs",
   "settingMapProvider": "Map Provider",
   "settingPictureRatio": "Picture Ratio",
   "settingReferenceOpacity": "Reference Opacity",
   "settingSearchBeginning": "Beginning (year)",
-  "settingSearchEnd": "End (year)"
+  "settingSearchEnd": "End (year)",
+  "settingThemeMode": "Theme",
+  "settingThemeModeDark": "Dark",
+  "settingThemeModeLight": "Light",
+  "settingThemeModeSystem": "System"
 }

@@ -92,6 +92,9 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
   String get sectionSearchOptions => 'Search Options';
 
   @override
+  String get sectionAppearance => 'Appearance';
+
+  @override
   String get settingGeocoder => 'Address Database';
 
   @override
@@ -111,4 +114,16 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
 
   @override
   String get settingSearchEnd => 'End (year)';
+
+  @override
+  String get settingThemeMode => 'Theme';
+
+  @override
+  String get settingThemeModeDark => 'Dark';
+
+  @override
+  String get settingThemeModeLight => 'Light';
+
+  @override
+  String get settingThemeModeSystem => 'System';
 }

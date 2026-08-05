@@ -94,6 +94,9 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
   String get sectionSearchOptions => 'Параметры Поиска';
 
   @override
+  String get sectionAppearance => 'Внешний Вид';
+
+  @override
   String get settingGeocoder => 'База Данных Адресов';
 
   @override
@@ -113,4 +116,16 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
 
   @override
   String get settingSearchEnd => 'Конец (года)';
+
+  @override
+  String get settingThemeMode => 'Тема';
+
+  @override
+  String get settingThemeModeDark => 'Тёмная';
+
+  @override
+  String get settingThemeModeLight => 'Светлая';
+
+  @override
+  String get settingThemeModeSystem => 'Системная';
 }

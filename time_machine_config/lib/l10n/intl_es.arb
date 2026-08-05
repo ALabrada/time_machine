@@ -19,11 +19,16 @@
   "sectionInformation": "Información",
   "sectionMap": "Mapa",
   "sectionSearchOptions": "Opciones de Búsqueda",
+  "sectionAppearance": "Apariencia",
   "settingGeocoder": "Base de Datos de Direcciones",
   "settingHelp": "Preguntas Frecuentes",
   "settingMapProvider": "Servicio de Mapas",
   "settingPictureRatio": "Relación de Aspecto",
   "settingReferenceOpacity": "Opacidad de la Referencia",
   "settingSearchBeginning": "Inicio (año)",
-  "settingSearchEnd": "Fin (año)"
+  "settingSearchEnd": "Fin (año)",
+  "settingThemeMode": "Tema",
+  "settingThemeModeDark": "Oscuro",
+  "settingThemeModeLight": "Claro",
+  "settingThemeModeSystem": "Sistema"
 }

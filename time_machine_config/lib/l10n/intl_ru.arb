@@ -19,11 +19,16 @@
   "sectionInformation": "Информация",
   "sectionMap": "Карта",
   "sectionSearchOptions": "Параметры Поиска",
+  "sectionAppearance": "Внешний Вид",
   "settingGeocoder": "База Данных Адресов",
   "settingHelp": "Частые Вопросы",
   "settingMapProvider": "Картографический Сервис",
   "settingPictureRatio": "Соотношение Сторон Изображения",
   "settingReferenceOpacity": "Прозрачность Эталона",
   "settingSearchBeginning": "Начало (год)",
-  "settingSearchEnd": "Конец (года)"
+  "settingSearchEnd": "Конец (года)",
+  "settingThemeMode": "Тема",
+  "settingThemeModeDark": "Тёмная",
+  "settingThemeModeLight": "Светлая",
+  "settingThemeModeSystem": "Системная"
 }

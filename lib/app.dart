@@ -207,7 +207,7 @@ class TimeMachineApp extends StatelessWidget {
           ),
           lazy: false,
         ),
-        Provider<ConfigurationService>(
+        ChangeNotifierProvider<ConfigurationService>(
           create: (context) => ConfigurationService(
             preferences: context.read,
           ),
@@ -243,7 +243,9 @@ class TimeMachineApp extends StatelessWidget {
           supportedLocales: AppLocalizations.supportedLocales,
           theme: _buildTheme(colorScheme),
           darkTheme: _buildTheme(darkColorScheme),
-          themeMode: ThemeMode.system,
+          themeMode: themeModeOf(
+            context.watch<ConfigurationService>().themeMode ?? 'system',
+          ),
           routerConfig: context.read<GoRouter>(),
         );
       },
