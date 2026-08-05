@@ -1,3 +1,6 @@
 [submodule "flutter_inappwebview"]
 	path = flutter_inappwebview
 	url = https://github.com/ALabrada/flutter_inappwebview.git
+[submodule "fk_user_agent"]
+	path = fk_user_agent
+	url = https://github.com/ALabrada/fk_user_agent.git

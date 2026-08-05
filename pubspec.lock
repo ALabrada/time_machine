@@ -532,11 +532,9 @@ packages:
   fk_user_agent:
     dependency: "direct main"
     description:
-      path: "."
-      ref: HEAD
-      resolved-ref: "38fce4db3b1a799e101b601fba56acfbed2c802a"
-      url: "https://github.com/zzz199316/fk_user_agent.git"
-    source: git
+      path: fk_user_agent
+      relative: true
+    source: path
     version: "2.1.0"
   flutter:
     dependency: "direct main"
