@@ -9,33 +9,33 @@ const buttonTextStyle = TextStyle(
   fontWeight: buttonFontWeight,
 );
 
-final primaryButtonLightStyle = FilledButton.styleFrom(
-  backgroundColor: primaryButtonLightBackgroundColor,
-  foregroundColor: primaryButtonLightForegroundColor,
+ButtonStyle primaryButtonLightStyle(BuildContext context) => FilledButton.styleFrom(
+  backgroundColor: primaryButtonLightBackgroundColor(context),
+  foregroundColor: primaryButtonLightForegroundColor(context),
   minimumSize: const Size(54.0, 54.0),
   padding: const EdgeInsets.all(16),
   textStyle: buttonTextStyle,
 );
 
-final primaryButtonDarkStyle = FilledButton.styleFrom(
-  backgroundColor: primaryButtonDarkBackgroundColor,
-  foregroundColor: primaryButtonDarkForegroundColor,
+ButtonStyle primaryButtonDarkStyle(BuildContext context) => FilledButton.styleFrom(
+  backgroundColor: primaryButtonDarkBackgroundColor(context),
+  foregroundColor: primaryButtonDarkForegroundColor(context),
   minimumSize: const Size(54.0, 54.0),
   padding: const EdgeInsets.all(16),
   textStyle: buttonTextStyle,
 );
 
-final primaryButtonAlertStyle = FilledButton.styleFrom(
+ButtonStyle primaryButtonAlertStyle(BuildContext context) => FilledButton.styleFrom(
   backgroundColor: Colors.red,
-  foregroundColor: primaryButtonDarkForegroundColor,
+  foregroundColor: primaryButtonDarkForegroundColor(context),
   minimumSize: const Size(54.0, 54.0),
   padding: const EdgeInsets.all(16),
   textStyle: buttonTextStyle,
 );
 
-final tabNormalStyle = IconButton.styleFrom(
+ButtonStyle tabNormalStyle(BuildContext context) => IconButton.styleFrom(
   backgroundColor: Colors.transparent,
-  foregroundColor: tabNormalColor,
+  foregroundColor: tabNormalColor(context),
   padding: const EdgeInsets.all(5),
   shape: const RoundedRectangleBorder(
     borderRadius: BorderRadius.all(Radius.zero),
@@ -43,9 +43,9 @@ final tabNormalStyle = IconButton.styleFrom(
   ),
 );
 
-final tabSelectedStyle = IconButton.styleFrom(
+ButtonStyle tabSelectedStyle(BuildContext context) => IconButton.styleFrom(
   backgroundColor: Colors.transparent,
-  foregroundColor: tabSelectedColor,
+  foregroundColor: tabSelectedColor(context),
   padding: const EdgeInsets.all(5),
   shape: const RoundedRectangleBorder(
     borderRadius: BorderRadius.all(Radius.zero),
@@ -53,32 +53,32 @@ final tabSelectedStyle = IconButton.styleFrom(
   ),
 );
 
-final tertiaryButtonStyle = FilledButton.styleFrom(
-  backgroundColor: tertiaryButtonBackgroundColor,
-  foregroundColor: tertiaryButtonForegroundColor,
+ButtonStyle tertiaryButtonStyle(BuildContext context) => FilledButton.styleFrom(
+  backgroundColor: tertiaryButtonBackgroundColor(context),
+  foregroundColor: tertiaryButtonForegroundColor(context),
   padding: const EdgeInsets.symmetric(horizontal: 10),
-  textStyle: tertiaryLabelStyle,
+  textStyle: tertiaryLabelStyle(context),
 );
 
-final selectedTertiaryButtonStyle = FilledButton.styleFrom(
-  backgroundColor: selectedTertiaryButtonBackgroundColor,
-  foregroundColor: selectedTertiaryButtonForegroundColor,
+ButtonStyle selectedTertiaryButtonStyle(BuildContext context) => FilledButton.styleFrom(
+  backgroundColor: selectedTertiaryButtonBackgroundColor(context),
+  foregroundColor: selectedTertiaryButtonForegroundColor(context),
   padding: const EdgeInsets.symmetric(horizontal: 10),
-  textStyle: tertiaryLabelStyle.apply(color: selectedTertiaryButtonForegroundColor),
+  textStyle: tertiaryLabelStyle(context).apply(color: selectedTertiaryButtonForegroundColor(context)),
 );
 
-final invalidTertiaryButtonStyle = FilledButton.styleFrom(
-  backgroundColor: invalidTertiaryButtonBackgroundColor,
-  foregroundColor: invalidTertiaryButtonForegroundColor,
-  disabledBackgroundColor: invalidTertiaryButtonBackgroundColor,
-  disabledForegroundColor: invalidTertiaryButtonForegroundColor,
+ButtonStyle invalidTertiaryButtonStyle(BuildContext context) => FilledButton.styleFrom(
+  backgroundColor: invalidTertiaryButtonBackgroundColor(context),
+  foregroundColor: invalidTertiaryButtonForegroundColor(context),
+  disabledBackgroundColor: invalidTertiaryButtonBackgroundColor(context),
+  disabledForegroundColor: invalidTertiaryButtonForegroundColor(context),
   padding: const EdgeInsets.symmetric(horizontal: 10),
-  textStyle: tertiaryLabelStyle.apply(color: selectedTertiaryButtonForegroundColor),
+  textStyle: tertiaryLabelStyle(context).apply(color: selectedTertiaryButtonForegroundColor(context)),
 );
 
-final textButtonStyle = TextButton.styleFrom(
+ButtonStyle textButtonStyle(BuildContext context) => TextButton.styleFrom(
   backgroundColor: Colors.transparent,
-  foregroundColor: textButtonForegroundColor,
+  foregroundColor: textButtonForegroundColor(context),
   padding: const EdgeInsets.all(16),
   textStyle: const TextStyle(
     fontFamily: buttonFontFamily,

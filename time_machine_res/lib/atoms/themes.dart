@@ -14,8 +14,20 @@ const colorScheme = ColorScheme(
   onError: label03,
 );
 
-const dividerTheme = DividerThemeData(
-  color: dividerColor,
+const darkColorScheme = ColorScheme(
+  brightness: Brightness.dark,
+  primary: primary01,
+  onPrimary: label03Dark,
+  secondary: accent01Dark,
+  onSecondary: label01Dark,
+  surface: background01Dark,
+  onSurface: label01Dark,
+  error: warnDark,
+  onError: label01Dark,
+);
+
+DividerThemeData dividerTheme(BuildContext context) => DividerThemeData(
+  color: dividerColor(context),
   space: 1,
   thickness: 1,
   indent: 0,

@@ -4,6 +4,7 @@ export 'atoms/buttons.dart';
 export 'atoms/inputs.dart';
 export 'atoms/labels.dart';
 export 'atoms/themes.dart';
+export 'foundation/color_foundation.dart';
 export 'controllers/task_manager.dart';
 export 'l10n/res_localizations.dart';
 export 'molecules/cached_image.dart';

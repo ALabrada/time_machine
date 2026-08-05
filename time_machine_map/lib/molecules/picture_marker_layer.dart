@@ -33,7 +33,7 @@ class PictureMarkerLayer extends StatefulWidget {
 class PictureMarkerLayerState extends State<PictureMarkerLayer> {
   late PopupController _popupController;
   StreamSubscription? _selectionSubscription;
-  List<Marker> _markers = [];
+  List<PictureMarker> _markers = [];
 
   @override
   void dispose() {
@@ -45,7 +45,6 @@ class PictureMarkerLayerState extends State<PictureMarkerLayer> {
   void initState() {
     super.initState();
     _popupController = widget.popupController ?? PopupController();
-    _updateMarkers();
     _selectionSubscription = widget.selection?.listen((e) {
       _updateSelection(e);
     });
@@ -54,7 +53,6 @@ class PictureMarkerLayerState extends State<PictureMarkerLayer> {
   @override
   void didUpdateWidget(covariant PictureMarkerLayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _updateMarkers();
     _selectionSubscription?.cancel();
     _selectionSubscription = widget.selection?.listen((e) {
       _updateSelection(e);
@@ -63,6 +61,7 @@ class PictureMarkerLayerState extends State<PictureMarkerLayer> {
 
   @override
   Widget build(BuildContext context) {
+    _updateMarkers(context);
     return MarkerClusterLayerWidget(
       options: MarkerClusterLayerOptions(
         maxClusterRadius: 45,
@@ -94,30 +93,30 @@ class PictureMarkerLayerState extends State<PictureMarkerLayer> {
           },
         ),
         builder: (context, markers) {
-          return _buildCluster(markers);
+          return _buildCluster(context, markers);
         },
       ),
     );
   }
 
-  Widget _buildCluster(List<Marker> markers) {
+  Widget _buildCluster(BuildContext context, List<Marker> markers) {
     return Container(
       width: 40,
       height: 40,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: accent02.withAlpha(128),
-        border: Border.all(color: label01, width: 1),
+        color: secondaryAccentColor(context).withAlpha(128),
+        border: Border.all(color: primaryLabelColor(context), width: 1),
       ),
       child: Text(
         markers.length > 99 ? "99+" : markers.length.toString(),
-        style: TextStyle(color: label01),
+        style: TextStyle(color: primaryLabelColor(context)),
       ),
     );
   }
 
-  Marker _buildMarker(Picture picture) {
+  PictureMarker _buildMarker(BuildContext context, Picture picture) {
     final bearing = picture.bearing;
     return PictureMarker(
       key: ValueKey('${picture.provider}/${picture.id}'),
@@ -131,10 +130,10 @@ class PictureMarkerLayerState extends State<PictureMarkerLayer> {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
-          color: accent01,
+          color: primaryAccentColor(context),
         ),
         child: Icon(Icons.pin_drop_outlined,
-          color: background02,
+          color: secondaryBackgroundColor(context),
         ),
       ) : Transform.rotate(
         angle: bearing * pi / 180,
@@ -145,20 +144,20 @@ class PictureMarkerLayerState extends State<PictureMarkerLayer> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
-            color: background02,
+            color: secondaryBackgroundColor(context),
           ),
           child: Image.asset('assets/images/navigation.png',
-            color: accent01,
+            color: primaryAccentColor(context),
           ),
         ),
       ),
     );
   }
 
-  void _updateMarkers() {
+  void _updateMarkers(BuildContext context) {
     _markers = [
       for (final picture in widget.pictures ?? <Picture>[])
-        _buildMarker(picture),
+        _buildMarker(context, picture),
     ];
   }
 

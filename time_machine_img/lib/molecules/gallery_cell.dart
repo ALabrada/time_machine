@@ -53,7 +53,7 @@ class GalleryCell extends StatelessWidget {
           BoxShadow(
             offset: Offset(0,2),
             blurRadius: 10.0,
-            color: gray06.withValues(alpha: 0.5),
+            color: shadowColor(context).withValues(alpha: 0.5),
           ),
         ],
       ),

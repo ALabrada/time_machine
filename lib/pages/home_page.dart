@@ -57,7 +57,7 @@ class _HomePageState extends State<HomePage> {
         statusBarBrightness: Brightness.light,
         statusBarIconBrightness: Brightness.dark,
         statusBarColor: Theme.of(context).colorScheme.surface,
-        systemNavigationBarColor: background02,
+        systemNavigationBarColor: secondaryBackgroundColor(context),
         systemNavigationBarIconBrightness: Brightness.dark,
         systemNavigationBarContrastEnforced: false,
       ),
@@ -69,7 +69,7 @@ class _HomePageState extends State<HomePage> {
             });
           },
           indicatorColor: Theme.of(context).primaryColor,
-          backgroundColor: background02,
+          backgroundColor: secondaryBackgroundColor(context),
           selectedIndex: currentPageIndex,
           destinations: <Widget>[
             NavigationDestination(

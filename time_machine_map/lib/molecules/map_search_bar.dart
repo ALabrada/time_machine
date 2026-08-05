@@ -62,7 +62,7 @@ class MapSearchBarState extends State<MapSearchBar> {
         return ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Material(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             elevation: 4.0,
             child: _buildResults(),
           ),
