@@ -132,14 +132,17 @@ class ComparisonPageState extends State<ComparisonPage> with SingleTickerProvide
                   right: 0,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxHeight: constraints.maxHeight / 3),
-                    child: SingleChildScrollView(
-                      child: ComparisonDescription(
-                        firstPicture: record?.original,
-                        secondPicture: record?.picture,
-                        match: match,
-                        direction: direction,
-                        onTapFirstPicture: () => showPicture(record?.original),
-                        onTapSecondPicture: () => showPicture(record?.picture),
+                    child: AnimatedSize(
+                      duration: Duration(milliseconds: 250),
+                      child: SingleChildScrollView(
+                        child: ComparisonDescription(
+                          firstPicture: record?.original,
+                          secondPicture: record?.picture,
+                          match: match,
+                          direction: direction,
+                          onTapFirstPicture: () => showPicture(record?.original),
+                          onTapSecondPicture: () => showPicture(record?.picture),
+                        ),
                       ),
                     ),
                   ),

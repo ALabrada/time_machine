@@ -73,6 +73,10 @@ class PictureMarkerLayerState extends State<PictureMarkerLayer> {
         zoomToBoundsOnClick: false,
         popupOptions: PopupOptions(
           popupController: _popupController,
+          popupAnimation: const PopupAnimation.fade(
+            duration: Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+          ),
           markerTapBehavior: MarkerTapBehavior.custom((spec, state, _) {
             final marker = spec.marker;
             if (marker is PictureMarker) {
