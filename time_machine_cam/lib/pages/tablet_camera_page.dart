@@ -10,6 +10,7 @@ import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_cam/controllers/photo_controller.dart';
+import 'package:time_machine_cam/controllers/tablet_camera_controller.dart';
 import 'package:time_machine_cam/molecules/camera_trigger_button.dart';
 import 'package:time_machine_cam/molecules/compass_view.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -40,15 +41,10 @@ class TabletCameraPageState extends State<TabletCameraPage> {
     ))
     ..setReleaseMode(ReleaseMode.stop);
   late PhotoController controller;
+  late TabletCameraController cameraController;
   late Future<Picture?> _loadPictureFuture;
 
-  CameraController? _camera;
-  List<CameraDescription> _cameras = [];
-  CameraDescription? _currentCamera;
-  double _zoomLevel = 1.0;
-  double _minZoom = 1.0;
-  double _maxZoom = 1.0;
-  FlashMode _flashMode = FlashMode.auto;
+  double _startZoom = 1.0;
 
   @override
   void initState() {
@@ -58,10 +54,11 @@ class TabletCameraPageState extends State<TabletCameraPage> {
       databaseService: context.read(),
       networkService: context.read(),
     );
+    cameraController = TabletCameraController();
     _loadPictureFuture = controller.loadPicture(widget.pictureId);
     super.initState();
     unawaited(controller.init());
-    unawaited(_initCamera());
+    unawaited(cameraController.init());
   }
 
   @override
@@ -76,120 +73,22 @@ class TabletCameraPageState extends State<TabletCameraPage> {
   void dispose() {
     audioPlayer.dispose();
     controller.dispose();
-    _camera?.dispose();
+    cameraController.dispose();
     super.dispose();
   }
 
-  Future<void> _initCamera() async {
-    try {
-      final cameras = await availableCameras();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _cameras = cameras;
-        _currentCamera = cameras.firstWhere(
-          (c) => c.lensDirection == CameraLensDirection.back,
-          orElse: () => cameras.first,
-        );
-      });
-      await _selectCamera(_currentCamera);
-    } catch (e) {
-      debugPrint('TabletCameraPage error: $e');
-    }
-  }
-
-  Future<void> _selectCamera(CameraDescription? description) async {
-    if (description == null) {
-      return;
-    }
-    final previous = _camera;
-    _camera = null;
-    await previous?.dispose();
-    if (!mounted) {
-      return;
-    }
-    final camera = CameraController(
-      description,
-      ResolutionPreset.high,
-      enableAudio: false,
-    );
-    try {
-      await camera.initialize();
-    } catch (e) {
-      debugPrint('TabletCameraPage init error: $e');
-      await camera.dispose();
-      return;
-    }
-    if (!mounted) {
-      await camera.dispose();
-      return;
-    }
-    _minZoom = await camera.getMinZoomLevel();
-    _maxZoom = await camera.getMaxZoomLevel();
-    setState(() {
-      _camera = camera;
-    });
-  }
-
-  Future<void> _switchCamera() async {
-    if (_cameras.length < 2) {
-      return;
-    }
-    final next = _cameras.firstWhere(
-      (c) => c.lensDirection != _currentCamera?.lensDirection,
-      orElse: () => _cameras.first,
-    );
-    setState(() {
-      _currentCamera = next;
-    });
-    await _selectCamera(next);
-  }
-
-  Future<void> _changeZoom() async {
-    final camera = _camera;
-    if (camera == null || !camera.value.isInitialized) {
-      return;
-    }
-    if (_zoomLevel + 0.25 <= _maxZoom) {
-      _zoomLevel += 0.5;
-    } else {
-      _zoomLevel = _minZoom;
-    }
-    setState(() {});
-    await camera.setZoomLevel(_zoomLevel);
-  }
-
-  Future<void> _toggleFlash() async {
-    final camera = _camera;
-    if (camera == null || !camera.value.isInitialized) {
-      return;
-    }
-    final current = _flashMode;
-    final next = switch (current) {
-      FlashMode.off => FlashMode.auto,
-      FlashMode.auto => FlashMode.always,
-      _ => FlashMode.off,
-    };
-    setState(() {
-      _flashMode = next;
-    });
-    await camera.setFlashMode(next);
-  }
-
   Future<void> _takePicture() async {
-    final camera = _camera;
-    if (camera == null || !camera.value.isInitialized) {
+    if (!cameraController.isInitialized) {
       return;
     }
     controller.isProcessing.value = true;
     unawaited(_playShutterSound());
     try {
-      final file = await camera.takePicture();
-      await _savePicture(file: file, camera: camera);
+      final file = await cameraController.takePicture();
+      await _savePicture(file: file, camera: cameraController.controller);
     } catch (e) {
       debugPrint('TabletCameraPage capture error: $e');
-      await _savePicture(file: null, camera: camera);
+      await _savePicture(file: null, camera: cameraController.controller);
     } finally {
       controller.isProcessing.value = false;
     }
@@ -222,14 +121,19 @@ class TabletCameraPageState extends State<TabletCameraPage> {
         ),
       );
     }
-    final camera = _camera;
-    if (camera == null || !camera.value.isInitialized) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return _buildPreview(camera: camera, picture: picture);
+    return ListenableBuilder(
+      listenable: cameraController,
+      builder: (context, _) {
+        if (!cameraController.isInitialized) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return _buildPreview(picture: picture);
+      },
+    );
   }
 
-  Widget _buildPreview({required CameraController camera, Picture? picture}) {
+  Widget _buildPreview({Picture? picture}) {
+    final camera = cameraController.controller!;
     return LayoutBuilder(
       builder: (context, constraints) {
         final area = constraints.biggest;
@@ -255,27 +159,33 @@ class TabletCameraPageState extends State<TabletCameraPage> {
         return Stack(
           fit: StackFit.expand,
           children: [
-            Center(
-              child: isAndroid
-                  ? AspectRatio(
-                      aspectRatio: contentAspect,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          RotatedBox(
-                            quarterTurns: correctionTurns,
-                            child: camera.buildPreview(),
-                          ),
-                          if (pictureOverlay != null) pictureOverlay,
-                        ],
-                      ),
-                    )
-                  : CameraPreview(camera, child: pictureOverlay),
+            GestureDetector(
+              onScaleStart: (_) => _startZoom = cameraController.zoomLevel,
+              onScaleUpdate: (details) {
+                unawaited(cameraController.setZoom(_startZoom * details.scale));
+              },
+              child: Center(
+                child: isAndroid
+                    ? AspectRatio(
+                        aspectRatio: contentAspect,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            RotatedBox(
+                              quarterTurns: correctionTurns,
+                              child: camera.buildPreview(),
+                            ),
+                            if (pictureOverlay != null) pictureOverlay,
+                          ],
+                        ),
+                      )
+                    : CameraPreview(camera, child: pictureOverlay),
+              ),
             ),
             Container(
               alignment: Alignment.bottomCenter,
               padding: EdgeInsets.only(bottom: 126),
-              child: _buildZoomButton(camera),
+              child: _buildZoomIndicator(),
             ),
             Container(
               alignment: Alignment.bottomCenter,
@@ -305,11 +215,15 @@ class TabletCameraPageState extends State<TabletCameraPage> {
     );
   }
 
-  Widget _buildZoomButton(CameraController camera) {
-    final percent = 100.0 * _zoomLevel;
-    return _roundButton(
-      onTap: _changeZoom,
-      icon: Center(
+  Widget _buildZoomIndicator() {
+    final percent = 100.0 * cameraController.zoomLevel;
+    return IgnorePointer(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Text(
           "${percent.toStringAsFixed(0)}%",
           style: const TextStyle(color: Colors.white, fontSize: 12),
@@ -320,9 +234,9 @@ class TabletCameraPageState extends State<TabletCameraPage> {
 
   Widget _buildFlashButton(CameraController camera) {
     return _roundButton(
-      onTap: _toggleFlash,
+      onTap: cameraController.toggleFlash,
       icon: Icon(
-        _flashModeIcon(_flashMode),
+        _flashModeIcon(cameraController.flashMode),
         color: Colors.white,
       ),
     );
@@ -343,7 +257,7 @@ class TabletCameraPageState extends State<TabletCameraPage> {
 
   Widget _buildSwitchButton() {
     return _roundButton(
-      onTap: _switchCamera,
+      onTap: cameraController.switchCamera,
       icon: const Icon(Icons.cameraswitch_outlined, color: Colors.white),
     );
   }
