@@ -3,6 +3,7 @@ import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_cam/services/database_service.dart';
 import 'package:time_machine_config/time_machine_config.dart';
@@ -45,6 +46,10 @@ class PhotoController {
     }
   }
 
+  String get cameraRatioString {
+    return configurationService?.cameraRatio ?? ConfigurationService.defaultCameraRatio;
+  }
+
   String get targetPath {
     final dirPath = databaseService?.filePath;
     const uuid = Uuid();
@@ -68,6 +73,39 @@ class PhotoController {
     orientation.close();
   }
 
+  Stream<NativeDeviceOrientation> _nativeOrientationStream() {
+    return NativeDeviceOrientationCommunicator().onOrientationChanged();
+  }
+
+  double _headingOffset(NativeDeviceOrientation orientation) {
+    switch (orientation) {
+      case NativeDeviceOrientation.portraitUp:
+      case NativeDeviceOrientation.unknown:
+        return 0;
+      case NativeDeviceOrientation.portraitDown:
+        return 180;
+      case NativeDeviceOrientation.landscapeRight:
+        return 90;
+      case NativeDeviceOrientation.landscapeLeft:
+        return -90;
+    }
+  }
+
+  CameraOrientations _toCameraOrientations(NativeDeviceOrientation orientation) {
+    switch (orientation) {
+      case NativeDeviceOrientation.portraitUp:
+        return CameraOrientations.portrait_up;
+      case NativeDeviceOrientation.portraitDown:
+        return CameraOrientations.portrait_down;
+      case NativeDeviceOrientation.landscapeLeft:
+        return CameraOrientations.landscape_left;
+      case NativeDeviceOrientation.landscapeRight:
+        return CameraOrientations.landscape_right;
+      case NativeDeviceOrientation.unknown:
+        return CameraOrientations.portrait_up;
+    }
+  }
+
   Future<Picture?> loadPicture(int? id) async {
     if (id == null) {
       return null;
@@ -80,6 +118,8 @@ class PhotoController {
     required XFile file,
     double? height,
     double? width,
+    NativeDeviceOrientation? orientation,
+    double? aspectRatio,
   }) async {
     isProcessing.value = true;
     try {
@@ -93,6 +133,8 @@ class PhotoController {
         heading: heading.valueOrNull,
         height: height,
         width: width,
+        orientation: orientation,
+        aspectRatio: aspectRatio,
         cacheService: cacheService,
       );
     } finally {
@@ -124,18 +166,10 @@ class PhotoController {
             }
             return e.heading;
           }),
-          CamerawesomePlugin.getNativeOrientation() ?? Stream.value(CameraOrientations.portrait_up),
+          _nativeOrientationStream(),
               (trueHeading, orientation) {
-            switch (orientation) {
-              case CameraOrientations.portrait_up:
-                return (trueHeading, orientation);
-              case CameraOrientations.portrait_down:
-                return (trueHeading + 180, orientation);
-              case CameraOrientations.landscape_right:
-                return (trueHeading + 90, orientation);
-              case CameraOrientations.landscape_left:
-                return (trueHeading - 90, orientation);
-            }
+            final corrected = trueHeading + _headingOffset(orientation);
+            return (corrected % 360, _toCameraOrientations(orientation));
           })
           .listen((value) {
             heading.add(value.$1);

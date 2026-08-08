@@ -35,6 +35,9 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _selectTab(widget.initialTab);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _applyPageOrientations();
+    });
     _importSubscription = context.read<SharingService>().imported
       .listen((v) => _onImported(success: v));
   }
@@ -44,7 +47,14 @@ class _HomePageState extends State<HomePage> {
     super.didUpdateWidget(oldWidget);
     if (widget.initialTab != oldWidget.initialTab) {
       _selectTab(widget.initialTab);
+      _applyPageOrientations();
     }
+  }
+
+  @override
+  void dispose() {
+    _restorePageOrientations();
+    super.dispose();
   }
 
   @override
@@ -62,48 +72,149 @@ class _HomePageState extends State<HomePage> {
         systemNavigationBarContrastEnforced: false,
       ),
       child: Scaffold(
-        bottomNavigationBar: NavigationBar(
-          onDestinationSelected: (int index) {
-            setState(() {
-              currentPageIndex = index;
-            });
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            if (!isTabletLayout(context)) {
+              return _buildNavigationBarLayout();
+            }
+            return _buildNavigationRailLayout();
           },
-          indicatorColor: Theme.of(context).primaryColor,
-          backgroundColor: secondaryBackgroundColor(context),
-          selectedIndex: currentPageIndex,
-          destinations: <Widget>[
-            NavigationDestination(
-              selectedIcon: Icon(Icons.photo_album),
-              icon: Icon(Icons.photo_album_outlined),
-              label: AppLocalizations.of(context).homeTabsGallery,
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildDestinations() {
+    return <Widget>[
+      NavigationDestination(
+        selectedIcon: Icon(Icons.photo_album),
+        icon: Icon(Icons.photo_album_outlined),
+        label: AppLocalizations.of(context).homeTabsGallery,
+      ),
+      NavigationDestination(
+        selectedIcon: Icon(Icons.radar),
+        icon: Icon(Icons.radar_outlined),
+        label: AppLocalizations.of(context).homeTabsCamera,
+      ),
+      NavigationDestination(
+        selectedIcon: Icon(Icons.map),
+        icon: Icon(Icons.map_outlined),
+        label: AppLocalizations.of(context).homeTabsMap,
+      ),
+      NavigationDestination(
+        selectedIcon: Icon(Icons.settings),
+        icon: Icon(Icons.settings_outlined),
+        label: AppLocalizations.of(context).homeTabsConfig,
+      ),
+    ];
+  }
+
+  List<NavigationRailDestination> _buildRailDestinations() {
+    return <NavigationRailDestination>[
+      NavigationRailDestination(
+        selectedIcon: Icon(Icons.photo_album),
+        icon: Icon(Icons.photo_album_outlined),
+        label: Text(AppLocalizations.of(context).homeTabsGallery),
+      ),
+      NavigationRailDestination(
+        selectedIcon: Icon(Icons.radar),
+        icon: Icon(Icons.radar_outlined),
+        label: Text(AppLocalizations.of(context).homeTabsCamera),
+      ),
+      NavigationRailDestination(
+        selectedIcon: Icon(Icons.map),
+        icon: Icon(Icons.map_outlined),
+        label: Text(AppLocalizations.of(context).homeTabsMap),
+      ),
+      NavigationRailDestination(
+        selectedIcon: Icon(Icons.settings),
+        icon: Icon(Icons.settings_outlined),
+        label: Text(AppLocalizations.of(context).homeTabsConfig),
+      ),
+    ];
+  }
+
+  void _selectPage(int index) {
+    setState(() {
+      currentPageIndex = index;
+    });
+    _applyPageOrientations();
+  }
+
+  void _applyPageOrientations() {
+    if (!isTabletLayout(context)) {
+      return;
+    }
+    if (currentPageIndex == 1) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    } else {
+      SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    }
+  }
+
+  void _restorePageOrientations() {
+    if (!isTabletLayout(context)) {
+      return;
+    }
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+  }
+
+  Widget _buildNavigationBarLayout() {
+    return Scaffold(
+      bottomNavigationBar: NavigationBar(
+        onDestinationSelected: _selectPage,
+        indicatorColor: Theme.of(context).primaryColor,
+        backgroundColor: secondaryBackgroundColor(context),
+        selectedIndex: currentPageIndex,
+        destinations: _buildDestinations(),
+      ),
+      body: _buildPage(),
+    );
+  }
+
+  Widget _buildNavigationRailLayout() {
+    final extendRail =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    return Scaffold(
+      body: SafeArea(
+        child: Row(
+          children: [
+            _buildRail(extended: extendRail),
+            const VerticalDivider(
+              thickness: 1,
+              width: 1,
             ),
-            NavigationDestination(
-              selectedIcon: Icon(Icons.radar),
-              icon: Icon(Icons.radar_outlined),
-              label: AppLocalizations.of(context).homeTabsCamera,
-            ),
-            NavigationDestination(
-              selectedIcon: Icon(Icons.map),
-              icon: Icon(Icons.map_outlined),
-              label: AppLocalizations.of(context).homeTabsMap,
-            ),
-            NavigationDestination(
-              selectedIcon: Icon(Icons.settings),
-              icon: Icon(Icons.settings_outlined),
-              label: AppLocalizations.of(context).homeTabsConfig,
+            Expanded(
+              child: currentPageIndex == 1
+                  ? ClipRect(child: _buildPage())
+                  : _buildPage(),
             ),
           ],
         ),
-        body: <Widget>[
-          GalleryPage(),
-          ScanningPage(),
-          MapPage(
-            pictureId: widget.pictureId,
-          ),
-          ConfigurationPage()
-        ][currentPageIndex],
       ),
     );
+  }
+
+  Widget _buildRail({required bool extended}) {
+    return NavigationRail(
+      onDestinationSelected: _selectPage,
+      selectedIndex: currentPageIndex,
+      backgroundColor: secondaryBackgroundColor(context),
+      indicatorColor: Theme.of(context).primaryColor,
+      extended: extended,
+      destinations: _buildRailDestinations(),
+    );
+  }
+
+  Widget _buildPage() {
+    return <Widget>[
+      GalleryPage(),
+      ScanningPage(),
+      MapPage(
+        pictureId: widget.pictureId,
+      ),
+      ConfigurationPage()
+    ][currentPageIndex];
   }
 
   void _selectTab(String? name) {
