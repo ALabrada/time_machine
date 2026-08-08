@@ -229,15 +229,11 @@ class TabletCameraPageState extends State<TabletCameraPage> {
     return _buildPreview(camera: camera, picture: picture);
   }
 
-  static const bool _debugOrientation = true;
-
   Widget _buildPreview({required CameraController camera, Picture? picture}) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final area = constraints.biggest;
         final aspect = camera.value.aspectRatio;
-        final windowOrientation =
-            area.width > area.height ? 'landscape' : 'portrait';
         final v = camera.value;
         final deviceTurns = _quarterTurns(v.deviceOrientation);
         final correctionTurns = (deviceTurns - _sensorCorrectionTurns) % 4;
@@ -256,46 +252,9 @@ class TabletCameraPageState extends State<TabletCameraPage> {
                 ),
               )
             : null;
-        if (_debugOrientation) {
-          debugPrint(
-            'TabletCameraDebug area=${area.width.round()}x${area.height.round()} '
-            'window=$windowOrientation device=${v.deviceOrientation} '
-            'devTurns=$deviceTurns correction=$correctionTurns '
-            'pluginNet=$pluginNetTurns net=$netTurns '
-            'preview=${v.previewSize} aspect=${aspect.toStringAsFixed(3)} '
-            'contentAspect=${contentAspect.toStringAsFixed(3)} '
-            'box=$_previewBox',
-          );
-        }
         return Stack(
           fit: StackFit.expand,
           children: [
-            if (_debugOrientation)
-              Align(
-                alignment: Alignment.topRight,
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _sensorCorrectionTurns = (_sensorCorrectionTurns + 1) % 4;
-                    });
-                  },
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    padding: const EdgeInsets.all(6),
-                    child: Text(
-                      '${windowOrientation.toUpperCase()} tap→corr\n'
-                      'dev=${v.deviceOrientation}\n'
-                      'corr=$_sensorCorrectionTurns turns=$correctionTurns\n'
-                      'net=$netTurns\n'
-                      'prev=$v.previewSize\n'
-                      'asp=${aspect.toStringAsFixed(3)}\n'
-                      'casp=${contentAspect.toStringAsFixed(3)}\n'
-                      'box=${_previewBox?.width.round()}x${_previewBox?.height.round()}',
-                      style: const TextStyle(color: Colors.green, fontSize: 12),
-                    ),
-                  ),
-                ),
-              ),
             Center(
               child: isAndroid
                   ? AspectRatio(
@@ -319,19 +278,21 @@ class TabletCameraPageState extends State<TabletCameraPage> {
               child: _buildZoomButton(camera),
             ),
             Container(
-              alignment: Alignment.bottomLeft,
-              padding: const EdgeInsets.only(bottom: 42, left: 64),
-              child: _buildFlashButton(camera),
-            ),
-            Container(
               alignment: Alignment.bottomCenter,
               padding: const EdgeInsets.only(bottom: 32),
-              child: _buildTrigger(),
-            ),
-            Container(
-              alignment: Alignment.bottomRight,
-              padding: const EdgeInsets.only(bottom: 42, right: 64),
-              child: _buildSwitchButton(),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(width: 81),
+                  _buildFlashButton(camera),
+                  const SizedBox(width: 48),
+                  _buildTrigger(),
+                  const SizedBox(width: 48),
+                  _buildSwitchButton(),
+                  const SizedBox(width: 81),
+                ],
+              ),
             ),
             Container(
               alignment: Alignment.topLeft,
@@ -490,10 +451,10 @@ class TabletCameraPageState extends State<TabletCameraPage> {
   /// `(sensorOrientationDegrees - displayRotationDegrees * facingSign) / 90`.
   ///
   /// Measured on the Pixel Tablet emulator: sensor = 90, display = ROTATION_0,
-  /// back camera -> 1. This compensates the plugin's rotation so the preview
-  /// renders upright relative to the landscape window. Tunable at runtime via
-  /// the debug overlay until the preview is upright.
-  int _sensorCorrectionTurns = 0;
+  /// back camera -> 1, which compensates the plugin's rotation so the preview
+  /// renders upright relative to the landscape window. Confirmed by tappable
+  /// calibration: `corr=0` keeps the preview upright on every device rotation.
+  static const int _sensorCorrectionTurns = 0;
 
   int _quarterTurns(DeviceOrientation? orientation) {
     switch (orientation) {
