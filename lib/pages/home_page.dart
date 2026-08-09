@@ -142,21 +142,21 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _applyPageOrientations() {
-    if (!isTabletLayout(context)) {
-      return;
-    }
-    if (currentPageIndex == 1) {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    } else {
-      SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-    }
+    // if (!isTabletLayout(context)) {
+    //   return;
+    // }
+    // if (currentPageIndex == 1) {
+    //   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    // } else {
+    //   SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    // }
   }
 
   void _restorePageOrientations() {
-    if (!isTabletLayout(context)) {
-      return;
-    }
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    // if (!isTabletLayout(context)) {
+    //   return;
+    // }
+    // SystemChrome.setPreferredOrientations(DeviceOrientation.values);
   }
 
   Widget _buildNavigationBarLayout() {
