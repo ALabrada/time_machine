@@ -21,5 +21,17 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.fakegem.historylens/device",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isTablet" -> {
+                    val smallestScreenWidth = resources.configuration.smallestScreenWidthDp
+                    result.success(smallestScreenWidth >= 600)
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 }
