@@ -52,13 +52,15 @@ class _HomePageState extends State<HomePage> {
     if (currentPageIndex < 0) {
       return Center(child: CircularProgressIndicator(),);
     }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarBrightness: Brightness.light,
-        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         statusBarColor: Theme.of(context).colorScheme.surface,
         systemNavigationBarColor: secondaryBackgroundColor(context),
-        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarContrastEnforced: false,
       ),
       child: Scaffold(
