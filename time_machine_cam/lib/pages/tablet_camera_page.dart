@@ -150,10 +150,8 @@ class TabletCameraPageState extends State<TabletCameraPage>
         final aspect = camera.value.aspectRatio;
         final v = camera.value;
         final deviceTurns = _quarterTurns(v.deviceOrientation);
-        final correctionTurns = (deviceTurns - _sensorCorrectionTurns) % 4;
-        final pluginNetTurns = (1 - deviceTurns) % 4;
-        final netTurns = (correctionTurns + pluginNetTurns) % 4;
         final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+        final correctionTurns = isAndroid ? deviceTurns : 0;
         final bool portraitContent;
         if (isAndroid) {
           // The preview content one sees after the plugin's own rotation is the
@@ -174,7 +172,12 @@ class TabletCameraPageState extends State<TabletCameraPage>
               (sensorQuarterTurns - facingSign * displayQuarterTurns) % 4;
           portraitContent = contentTurns.isOdd;
         } else {
-          portraitContent = netTurns.isOdd;
+          // iOS and web deliver an upright, correctly-framed preview, so the
+          // content aspect follows the device orientation, exactly like the
+          // plugin's own CameraPreview widget.
+          portraitContent =
+              v.deviceOrientation == DeviceOrientation.portraitUp ||
+              v.deviceOrientation == DeviceOrientation.portraitDown;
         }
         final contentAspect = portraitContent ? 1 / aspect : aspect;
         if (area.isFinite && !area.isEmpty) {
@@ -197,21 +200,19 @@ class TabletCameraPageState extends State<TabletCameraPage>
                 unawaited(cameraController.setZoom(_startZoom * details.scale));
               },
               child: Center(
-                child: isAndroid
-                    ? AspectRatio(
-                        aspectRatio: contentAspect,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            RotatedBox(
-                              quarterTurns: correctionTurns,
-                              child: camera.buildPreview(),
-                            ),
-                            if (pictureOverlay != null) pictureOverlay,
-                          ],
-                        ),
-                      )
-                    : CameraPreview(camera, child: pictureOverlay),
+                child: AspectRatio(
+                  aspectRatio: contentAspect,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      RotatedBox(
+                        quarterTurns: correctionTurns,
+                        child: camera.buildPreview(),
+                      ),
+                      if (pictureOverlay != null) pictureOverlay,
+                    ],
+                  ),
+                ),
               ),
             ),
             Container(
@@ -391,16 +392,6 @@ class TabletCameraPageState extends State<TabletCameraPage>
   }
 
   Size? _previewBox;
-
-  /// Number of clockwise quarter turns the camera plugin (ImageReader path)
-  /// adds on top of the raw 16:9 frame for this device, i.e.
-  /// `(sensorOrientationDegrees - displayRotationDegrees * facingSign) / 90`.
-  ///
-  /// Measured on the Pixel Tablet emulator: sensor = 90, display = ROTATION_0,
-  /// back camera -> 1, which compensates the plugin's rotation so the preview
-  /// renders upright relative to the landscape window. Confirmed by tappable
-  /// calibration: `corr=0` keeps the preview upright on every device rotation.
-  static const int _sensorCorrectionTurns = 0;
 
   int _quarterTurns(DeviceOrientation? orientation) {
     switch (orientation) {
