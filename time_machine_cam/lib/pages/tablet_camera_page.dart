@@ -30,7 +30,8 @@ class TabletCameraPage extends StatefulWidget {
   TabletCameraPageState createState() => TabletCameraPageState();
 }
 
-class TabletCameraPageState extends State<TabletCameraPage> {
+class TabletCameraPageState extends State<TabletCameraPage>
+    with WidgetsBindingObserver {
   final audioPlayer = AudioPlayer()
     ..setAudioContext(AudioContextConfig(
       focus: AudioContextConfigFocus.mixWithOthers,
@@ -57,8 +58,16 @@ class TabletCameraPageState extends State<TabletCameraPage> {
     cameraController = TabletCameraController();
     _loadPictureFuture = controller.loadPicture(widget.pictureId);
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(cameraController.loadDisplayRotation());
     unawaited(controller.init());
     unawaited(cameraController.init());
+  }
+
+  @override
+  void didChangeMetrics() {
+    unawaited(cameraController.loadDisplayRotation());
+    super.didChangeMetrics();
   }
 
   @override
@@ -71,6 +80,7 @@ class TabletCameraPageState extends State<TabletCameraPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     audioPlayer.dispose();
     controller.dispose();
     cameraController.dispose();
@@ -144,7 +154,29 @@ class TabletCameraPageState extends State<TabletCameraPage> {
         final pluginNetTurns = (1 - deviceTurns) % 4;
         final netTurns = (correctionTurns + pluginNetTurns) % 4;
         final isAndroid = defaultTargetPlatform == TargetPlatform.android;
-        final contentAspect = netTurns.isOdd ? 1 / aspect : aspect;
+        final bool portraitContent;
+        if (isAndroid) {
+          // The preview content one sees after the plugin's own rotation is the
+          // raw sensor frame turned by `sensor - display * facingSign` quarter
+          // turns. When odd, the upright content is portrait and the box must
+          // swap its aspect. `display` is the Android default-display rotation
+          // constant (real Surface rotation), which is what historically broke
+          // the guess; we read it natively because a landscape window can still
+          // report ROTATION_0 on natural-landscape displays.
+          final sensorQuarterTurns = camera.description.sensorOrientation ~/ 90;
+          final facingSign =
+              camera.description.lensDirection == CameraLensDirection.back
+                  ? -1
+                  : 1;
+          final displayQuarterTurns =
+              cameraController.displayQuarterTurns ?? deviceTurns;
+          final contentTurns =
+              (sensorQuarterTurns - facingSign * displayQuarterTurns) % 4;
+          portraitContent = contentTurns.isOdd;
+        } else {
+          portraitContent = netTurns.isOdd;
+        }
+        final contentAspect = portraitContent ? 1 / aspect : aspect;
         if (area.isFinite && !area.isEmpty) {
           _previewBox = _computePreviewBox(area, contentAspect);
         }

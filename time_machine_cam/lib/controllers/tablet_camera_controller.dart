@@ -2,8 +2,12 @@ import 'dart:async';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 
 class TabletCameraController extends ChangeNotifier {
+  static const MethodChannel _displayRotationChannel =
+      MethodChannel('com.fakegem.historylens/orientation');
+
   CameraController? _controller;
   List<CameraDescription> _cameras = [];
   CameraDescription? _currentCamera;
@@ -21,6 +25,39 @@ class TabletCameraController extends ChangeNotifier {
   FlashMode get flashMode => _flashMode;
   bool get isInitialized => _controller?.value.isInitialized ?? false;
   bool get canSwitchCamera => _cameras.length > 1;
+
+  /// Quarter turns (0-3) of the Android default-display rotation, read natively
+  /// via the `com.fakegem.historylens/orientation` channel. Only used on
+  /// Android; null elsewhere, where the page falls back to `deviceOrientation`.
+  int? get displayQuarterTurns => _displayQuarterTurns;
+  int? _displayQuarterTurns;
+
+  Future<void> loadDisplayRotation() async {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
+    try {
+      final rotation = await _displayRotationChannel
+          .invokeMethod<int>('defaultDisplayRotation');
+      final quarterTurns = _surfaceRotationQuarterTurns(rotation);
+      if (_disposed || quarterTurns == _displayQuarterTurns) {
+        return;
+      }
+      _displayQuarterTurns = quarterTurns;
+      notifyListeners();
+    } catch (_) {
+      // Channel unavailable; rely on the deviceOrientation-derived fallback.
+    }
+  }
+
+  int _surfaceRotationQuarterTurns(int? rotation) {
+    return switch (rotation) {
+      1 => 3, // Surface.ROTATION_90
+      2 => 2, // Surface.ROTATION_180
+      3 => 1, // Surface.ROTATION_270
+      _ => 0,
+    };
+  }
 
   Future<void> init() async {
     try {
