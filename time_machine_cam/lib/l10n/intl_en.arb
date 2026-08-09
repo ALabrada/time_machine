@@ -13,5 +13,8 @@
   "menuActionShare": "Share picture",
   "menuActionView": "Show picture",
   "pictureAddedToGallery": "Picture added to the gallery",
-  "viewPicture": "View"
+  "viewPicture": "View",
+  "arCameraAuthorizationRequired": "Camera authorization is required",
+  "arCameraAuthorizationDenied": "Camera authorization was denied",
+  "arCameraInitializationError": "Could not initialize the camera"
 }

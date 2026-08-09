@@ -13,5 +13,8 @@
   "menuActionShare": "Поделиться фотографией",
   "menuActionView": "Посмотреть фотографию",
   "pictureAddedToGallery": "Фотография добавлена в галерею",
-  "viewPicture": "Посмотреть"
+  "viewPicture": "Посмотреть",
+  "arCameraAuthorizationRequired": "Требуется разрешение на доступ к камере",
+  "arCameraAuthorizationDenied": "Разрешение на доступ к камере было отклонено",
+  "arCameraInitializationError": "Не удалось инициализировать камеру"
 }
