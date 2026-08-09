@@ -35,9 +35,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _selectTab(widget.initialTab);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _applyPageOrientations();
-    });
     _importSubscription = context.read<SharingService>().imported
       .listen((v) => _onImported(success: v));
   }
@@ -47,14 +44,7 @@ class _HomePageState extends State<HomePage> {
     super.didUpdateWidget(oldWidget);
     if (widget.initialTab != oldWidget.initialTab) {
       _selectTab(widget.initialTab);
-      _applyPageOrientations();
     }
-  }
-
-  @override
-  void dispose() {
-    _restorePageOrientations();
-    super.dispose();
   }
 
   @override
@@ -138,25 +128,6 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       currentPageIndex = index;
     });
-    _applyPageOrientations();
-  }
-
-  void _applyPageOrientations() {
-    // if (!isTabletLayout(context)) {
-    //   return;
-    // }
-    // if (currentPageIndex == 1) {
-    //   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    // } else {
-    //   SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-    // }
-  }
-
-  void _restorePageOrientations() {
-    // if (!isTabletLayout(context)) {
-    //   return;
-    // }
-    // SystemChrome.setPreferredOrientations(DeviceOrientation.values);
   }
 
   Widget _buildNavigationBarLayout() {
@@ -176,21 +147,17 @@ class _HomePageState extends State<HomePage> {
     final extendRail =
         MediaQuery.orientationOf(context) == Orientation.landscape;
     return Scaffold(
-      body: SafeArea(
-        child: Row(
-          children: [
-            _buildRail(extended: extendRail),
-            const VerticalDivider(
-              thickness: 1,
-              width: 1,
-            ),
-            Expanded(
-              child: currentPageIndex == 1
-                  ? ClipRect(child: _buildPage())
-                  : _buildPage(),
-            ),
-          ],
-        ),
+      body: Row(
+        children: [
+          _buildRail(extended: extendRail),
+          const VerticalDivider(
+            thickness: 1,
+            width: 1,
+          ),
+          Expanded(
+            child: _buildPage(),
+          ),
+        ],
       ),
     );
   }
