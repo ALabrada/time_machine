@@ -96,7 +96,9 @@ class PicturePageState extends State<PicturePage> with SingleTickerProviderState
               }
             },
             child: PhotoView(
-              imageProvider: PictureFrame.imageFor(picture.url),
+              imageProvider: PictureFrame.imageFor(picture.url,
+                databaseService: context.read(),
+              ),
               scaleStateChangedCallback: (state) async {
                 if (animationController.value == 0.0 && state == PhotoViewScaleState.zoomedIn) {
                   await animationController.animateTo(1, curve: Curves.easeIn);
