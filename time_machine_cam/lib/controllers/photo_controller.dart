@@ -17,12 +17,18 @@ class PhotoController {
     this.configurationService,
     this.databaseService,
     this.networkService,
+    this.orientationStream,
   });
 
   final CacheService cacheService;
   final ConfigurationService? configurationService;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
+
+  /// Stream of the device orientation in camera terms. Supplies both the
+  /// [orientation] subject and the heading correction. Falls back to
+  /// portrait_up when null.
+  final Stream<CameraOrientations>? orientationStream;
   Picture? original;
 
   final isProcessing = BehaviorSubject<bool>.seeded(false);
@@ -73,36 +79,16 @@ class PhotoController {
     orientation.close();
   }
 
-  Stream<NativeDeviceOrientation> _nativeOrientationStream() {
-    return NativeDeviceOrientationCommunicator().onOrientationChanged();
-  }
-
-  double _headingOffset(NativeDeviceOrientation orientation) {
+  double _headingOffset(CameraOrientations orientation) {
     switch (orientation) {
-      case NativeDeviceOrientation.portraitUp:
-      case NativeDeviceOrientation.unknown:
+      case CameraOrientations.portrait_up:
         return 0;
-      case NativeDeviceOrientation.portraitDown:
+      case CameraOrientations.portrait_down:
         return 180;
-      case NativeDeviceOrientation.landscapeRight:
+      case CameraOrientations.landscape_right:
         return 90;
-      case NativeDeviceOrientation.landscapeLeft:
+      case CameraOrientations.landscape_left:
         return -90;
-    }
-  }
-
-  CameraOrientations _toCameraOrientations(NativeDeviceOrientation orientation) {
-    switch (orientation) {
-      case NativeDeviceOrientation.portraitUp:
-        return CameraOrientations.portrait_up;
-      case NativeDeviceOrientation.portraitDown:
-        return CameraOrientations.portrait_down;
-      case NativeDeviceOrientation.landscapeLeft:
-        return CameraOrientations.landscape_left;
-      case NativeDeviceOrientation.landscapeRight:
-        return CameraOrientations.landscape_right;
-      case NativeDeviceOrientation.unknown:
-        return CameraOrientations.portrait_up;
     }
   }
 
@@ -166,10 +152,10 @@ class PhotoController {
             }
             return e.heading;
           }),
-          _nativeOrientationStream(),
+          orientationStream ?? Stream.value(CameraOrientations.portrait_up),
               (trueHeading, orientation) {
             final corrected = trueHeading + _headingOffset(orientation);
-            return (corrected % 360, _toCameraOrientations(orientation));
+            return (corrected % 360, orientation);
           })
           .listen((value) {
             heading.add(value.$1);

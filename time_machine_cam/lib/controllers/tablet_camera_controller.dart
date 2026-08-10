@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:camera/camera.dart';
+import 'package:camerawesome/camerawesome_plugin.dart' hide FlashMode;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show MethodChannel;
+import 'package:native_device_orientation/native_device_orientation.dart';
 
 class TabletCameraController extends ChangeNotifier {
   static const MethodChannel _displayRotationChannel =
@@ -31,6 +33,29 @@ class TabletCameraController extends ChangeNotifier {
   /// Android; null elsewhere, where the page falls back to `deviceOrientation`.
   int? get displayQuarterTurns => _displayQuarterTurns;
   int? _displayQuarterTurns;
+
+  /// Stream of the device orientation in camera terms, sourced from the
+  /// native device orientation communicator.
+  Stream<CameraOrientations> onOrientationChanged() {
+    return NativeDeviceOrientationCommunicator()
+        .onOrientationChanged()
+        .map(_toCameraOrientations);
+  }
+
+  CameraOrientations _toCameraOrientations(NativeDeviceOrientation orientation) {
+    switch (orientation) {
+      case NativeDeviceOrientation.portraitUp:
+        return CameraOrientations.portrait_up;
+      case NativeDeviceOrientation.portraitDown:
+        return CameraOrientations.portrait_down;
+      case NativeDeviceOrientation.landscapeLeft:
+        return CameraOrientations.landscape_left;
+      case NativeDeviceOrientation.landscapeRight:
+        return CameraOrientations.landscape_right;
+      case NativeDeviceOrientation.unknown:
+        return CameraOrientations.portrait_up;
+    }
+  }
 
   Future<void> loadDisplayRotation() async {
     if (defaultTargetPlatform != TargetPlatform.android) {

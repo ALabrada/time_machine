@@ -49,13 +49,14 @@ class TabletCameraPageState extends State<TabletCameraPage>
 
   @override
   void initState() {
+    cameraController = TabletCameraController();
     controller = PhotoController(
       cacheService: context.read(),
       configurationService: context.read(),
       databaseService: context.read(),
       networkService: context.read(),
+      orientationStream: cameraController.onOrientationChanged(),
     );
-    cameraController = TabletCameraController();
     _loadPictureFuture = controller.loadPicture(widget.pictureId);
     super.initState();
     WidgetsBinding.instance.addObserver(this);
