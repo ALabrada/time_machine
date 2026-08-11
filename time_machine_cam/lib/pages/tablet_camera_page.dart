@@ -138,7 +138,11 @@ class TabletCameraPageState extends State<TabletCameraPage>
         if (!cameraController.isInitialized) {
           return const Center(child: CircularProgressIndicator());
         }
-        return _buildPreview(picture: picture);
+        final camera = cameraController.controller!;
+        return ValueListenableBuilder<CameraValue>(
+          valueListenable: camera,
+          builder: (context, _, __) => _buildPreview(picture: picture),
+        );
       },
     );
   }
