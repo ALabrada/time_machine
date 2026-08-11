@@ -16,7 +16,7 @@ import UIKit
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     deviceChannel = FlutterMethodChannel(
       name: "com.fakegem.historylens/device",
-      binaryMessenger: engineBridge.applicationRegistrar.messenger
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
     deviceChannel?.setMethodCallHandler { call, result in
       switch call.method {
