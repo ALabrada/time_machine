@@ -23,6 +23,7 @@ class TabletCameraController extends ChangeNotifier {
   List<CameraDescription> get cameras => _cameras;
   CameraDescription? get currentCamera => _currentCamera;
   double get zoomLevel => _zoomLevel;
+  double get minZoom => _minZoom;
   double get maxZoom => _maxZoom;
   FlashMode get flashMode => _flashMode;
   bool get isInitialized => _controller?.value.isInitialized ?? false;

@@ -256,7 +256,9 @@ class TabletCameraPageState extends State<TabletCameraPage>
 
   Widget _buildZoomIndicator() {
     final percent = 100.0 * cameraController.zoomLevel;
-    return IgnorePointer(
+    return InkWell(
+      onTap: () => unawaited(_toggleZoom()),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
@@ -269,6 +271,23 @@ class TabletCameraPageState extends State<TabletCameraPage>
         ),
       ),
     );
+  }
+
+  Future<void> _toggleZoom() async {
+    final min = cameraController.minZoom;
+    final max = cameraController.maxZoom;
+    if (max <= min) {
+      return;
+    }
+    // Cycle the zoom like the CameraPage's zoom button: step up by half the
+    // [min, max] range until the top is reached, then reset to the minimum.
+    var zoom = (cameraController.zoomLevel - min) / (max - min);
+    if (zoom + 0.25 <= 1) {
+      zoom += 0.5;
+    } else {
+      zoom = 0;
+    }
+    await cameraController.setZoom(zoom * (max - min) + min);
   }
 
   Widget _buildFlashButton(CameraController camera) {
