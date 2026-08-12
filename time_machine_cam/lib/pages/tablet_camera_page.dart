@@ -56,6 +56,7 @@ class TabletCameraPageState extends State<TabletCameraPage>
       databaseService: context.read(),
       networkService: context.read(),
       orientationStream: cameraController.onOrientationChanged(),
+      applyHeadingOffset: false,
     );
     _loadPictureFuture = controller.loadPicture(widget.pictureId);
     super.initState();

@@ -18,6 +18,7 @@ class PhotoController {
     this.databaseService,
     this.networkService,
     this.orientationStream,
+    this.applyHeadingOffset = true,
   });
 
   final CacheService cacheService;
@@ -29,8 +30,16 @@ class PhotoController {
   /// [orientation] subject and the heading correction. Falls back to
   /// portrait_up when null.
   final Stream<CameraOrientations>? orientationStream;
-  Picture? original;
 
+  /// Whether to add [_headingOffset] to the compass reading.
+  ///
+  /// Covers the camera page (whose overlay is fixed to the sensor frame and
+  /// counter-rotates the compass) — see `AwesomeOrientedWidget`. The tablet
+  /// page rotates with the device, so the raw compass heading is already
+  /// correct and this must be false.
+  final bool applyHeadingOffset;
+
+  Picture? original;
   final isProcessing = BehaviorSubject<bool>.seeded(false);
   final position = BehaviorSubject<Position>();
   final heading = BehaviorSubject<double>();
@@ -154,7 +163,9 @@ class PhotoController {
           }),
           orientationStream ?? Stream.value(CameraOrientations.portrait_up),
               (trueHeading, orientation) {
-            final corrected = trueHeading + _headingOffset(orientation);
+            final corrected = applyHeadingOffset
+                ? trueHeading + _headingOffset(orientation)
+                : trueHeading;
             return (corrected % 360, orientation);
           })
           .listen((value) {
