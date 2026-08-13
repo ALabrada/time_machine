@@ -48,6 +48,7 @@ class CameraPageState extends State<CameraPage> {
       configurationService: context.read(),
       databaseService: context.read(),
       networkService: context.read(),
+      orientationStream: CamerawesomePlugin.getNativeOrientation(),
     );
     _loadPictureFuture = controller.loadPicture(widget.pictureId);
     super.initState();

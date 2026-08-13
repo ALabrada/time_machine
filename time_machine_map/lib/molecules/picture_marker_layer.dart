@@ -87,7 +87,7 @@ class PictureMarkerLayerState extends State<PictureMarkerLayer> {
             final picture = marker is PictureMarker ? marker.picture : null;
             return Container(
               margin: EdgeInsets.all(5),
-              constraints: BoxConstraints(maxWidth: 0.8 * MediaQuery.of(context).size.width),
+              constraints: BoxConstraints(maxWidth: 0.8 * min(MediaQuery.of(context).size.width, MediaQuery.of(context).size.height)),
               child: PictureView.model(
                 model: picture,
                 onLongPress: picture == null || widget.onLongPress == null ? null : () => widget.onLongPress!(picture),

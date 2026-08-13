@@ -23,7 +23,6 @@ class FixedOrientationViewState extends State<FixedOrientationView>  with RouteA
   void initState() {
     final orientations = widget.orientations;
     if (orientations != null) {
-      debugPrint('Set orientations: $orientations');
       SystemChrome.setPreferredOrientations(orientations);
     }
     super.initState();
@@ -63,7 +62,6 @@ class FixedOrientationViewState extends State<FixedOrientationView>  with RouteA
   void didPopNext() {
     final orientations = widget.orientations;
     if (orientations != null) {
-      debugPrint('Set orientations: $orientations');
       SystemChrome.setPreferredOrientations(orientations);
     }
   }

@@ -121,6 +121,15 @@ class ComparisonPageState extends State<ComparisonPage> with SingleTickerProvide
         );
         return LayoutBuilder(
           builder: (context, constraints) {
+            final isLandscape = constraints.maxWidth > constraints.maxHeight;
+            if (isLandscape) {
+              return _buildLandscapeContent(
+                comparison: comparison,
+                record: record,
+                match: match,
+                direction: direction,
+              );
+            }
             return Stack(
               fit: StackFit.expand,
               children: [
@@ -152,6 +161,41 @@ class ComparisonPageState extends State<ComparisonPage> with SingleTickerProvide
           },
         );
       },
+    );
+  }
+
+  Widget _buildLandscapeContent({
+    required Widget? comparison,
+    required Record? record,
+    required double? match,
+    required SliderDirection direction,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: comparison ?? const SizedBox.expand(),
+        ),
+        SizedBox(
+          width: 300,
+          child: Material(
+            color: Theme.of(context).colorScheme.surface,
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: ComparisonDescription(
+                  firstPicture: record?.original,
+                  secondPicture: record?.picture,
+                  match: match,
+                  direction: direction,
+                  onTapFirstPicture: () => showPicture(record?.original),
+                  onTapSecondPicture: () => showPicture(record?.picture),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

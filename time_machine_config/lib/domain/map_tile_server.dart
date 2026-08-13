@@ -5,26 +5,26 @@ final class MapTileServer {
   static var values = <MapTileServer>[
     MapTileServer(
       id: 'OpenStreetMap',
-      url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      url: (_) => 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       attributionLabel: (_) => "OpenStreetMap contributors",
       attributionUrl: (_) => 'https://openstreetmap.org/copyright',
     ),
     MapTileServer(
       id: 'ÖPNVKarte',
-      url: 'https://tile.memomaps.de/tilegen/{z}/{x}/{y}.png',
+      url: (_) => 'https://tile.memomaps.de/tilegen/{z}/{x}/{y}.png',
       attributionLabel: (_) => "OpenStreetMap contributors",
       attributionUrl: (_) => 'https://openstreetmap.org/copyright',
     ),
     MapTileServer(
       id: 'Google Maps',
-      url: 'http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+      url: (_) => 'http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
       subdomains: ['mt0','mt1','mt2','mt3'],
       attributionLogo: (_) => 'assets/images/google_logo.png',
       attributionUrl: (_) => 'https://www.google.com/maps/',
     ),
     MapTileServer(
       id: 'Yandex Maps',
-      url: 'https://core-renderer-tiles.maps.yandex.net/tiles?l=map&z={z}&x={x}&y={y}&scale=2&projection=web_mercator&lang=ru_RU',
+      url: (_) => 'https://core-renderer-tiles.maps.yandex.net/tiles?l=map&z={z}&x={x}&y={y}&scale=2&projection=web_mercator&lang=ru_RU',
       attributionLogo: (context) => Intl.systemLocale.startsWith('ru')
           ? 'assets/images/yndex_logo_ru.png'
           : 'assets/images/yndex_logo_en.png',
@@ -32,13 +32,13 @@ final class MapTileServer {
     ),
     MapTileServer(
       id: '2ГИС',
-      url: 'http://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
+      url: (_) => 'http://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}',
       attributionLogo: (_) => 'assets/images/2gis_logo.png',
       attributionUrl: (_) => 'https://law.2gis.ru/privacy',
     ),
     MapTileServer(
       id: 'VK Maps',
-      url: 'mmr://api/styles/main_style.json',
+      url: (context) => Theme.of(context).brightness == Brightness.dark ? 'mmr://api/styles/dark_style.json' : 'mmr://api/styles/main_style.json',
       format: TileFormat.vector,
       attributionLogo: (_) => 'assets/images/vk_logo.png',
       attributionUrl: (_) => 'https://help.mail.ru/legal/terms/common/ua/',
@@ -56,7 +56,7 @@ final class MapTileServer {
   });
 
   final String id;
-  final String url;
+  final String Function(BuildContext) url;
   final TileFormat format;
   final List<String>? subdomains;
   final String Function(BuildContext)? attributionLogo;

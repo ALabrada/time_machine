@@ -43,9 +43,10 @@ class AdaptiveTileLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final url = tileServer.url(context);
     if (tileServer.format == TileFormat.image) {
       return TileLayer(
-        urlTemplate: tileServer.url,
+        urlTemplate: url,
         userAgentPackageName: userAgent,
         tileProvider: CancellableNetworkTileProvider(),
         subdomains: tileServer.subdomains ?? const ['a', 'b', 'c'],
@@ -53,7 +54,7 @@ class AdaptiveTileLayer extends StatelessWidget {
     }
     final vectorService = context.read<VectorService>();
     return FutureBuilder<VectorTileStyle>(
-      future: vectorService.loadStyle(tileServer.url),
+      future: vectorService.loadStyle(url),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const LoadingView();
@@ -75,7 +76,7 @@ class AdaptiveTileLayer extends StatelessWidget {
           return const SizedBox.shrink();
         }
         return _VectorTileCanvasLayer(
-          serverId: tileServer.url,
+          serverId: url,
           style: style,
           tileOffset: tileOffset,
           concurrency: concurrency,

@@ -52,58 +52,138 @@ class _HomePageState extends State<HomePage> {
     if (currentPageIndex < 0) {
       return Center(child: CircularProgressIndicator(),);
     }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarBrightness: Brightness.light,
-        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         statusBarColor: Theme.of(context).colorScheme.surface,
         systemNavigationBarColor: secondaryBackgroundColor(context),
-        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarContrastEnforced: false,
       ),
       child: Scaffold(
-        bottomNavigationBar: NavigationBar(
-          onDestinationSelected: (int index) {
-            setState(() {
-              currentPageIndex = index;
-            });
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            if (!isTabletLayout(context)) {
+              return _buildNavigationBarLayout();
+            }
+            return _buildNavigationRailLayout();
           },
-          indicatorColor: Theme.of(context).primaryColor,
-          backgroundColor: secondaryBackgroundColor(context),
-          selectedIndex: currentPageIndex,
-          destinations: <Widget>[
-            NavigationDestination(
-              selectedIcon: Icon(Icons.photo_album),
-              icon: Icon(Icons.photo_album_outlined),
-              label: AppLocalizations.of(context).homeTabsGallery,
-            ),
-            NavigationDestination(
-              selectedIcon: Icon(Icons.radar),
-              icon: Icon(Icons.radar_outlined),
-              label: AppLocalizations.of(context).homeTabsCamera,
-            ),
-            NavigationDestination(
-              selectedIcon: Icon(Icons.map),
-              icon: Icon(Icons.map_outlined),
-              label: AppLocalizations.of(context).homeTabsMap,
-            ),
-            NavigationDestination(
-              selectedIcon: Icon(Icons.settings),
-              icon: Icon(Icons.settings_outlined),
-              label: AppLocalizations.of(context).homeTabsConfig,
-            ),
-          ],
         ),
-        body: <Widget>[
-          GalleryPage(),
-          ScanningPage(),
-          MapPage(
-            pictureId: widget.pictureId,
-          ),
-          ConfigurationPage()
-        ][currentPageIndex],
       ),
     );
+  }
+
+  List<Widget> _buildDestinations() {
+    return <Widget>[
+      NavigationDestination(
+        selectedIcon: Icon(Icons.photo_album),
+        icon: Icon(Icons.photo_album_outlined),
+        label: AppLocalizations.of(context).homeTabsGallery,
+      ),
+      NavigationDestination(
+        selectedIcon: Icon(Icons.radar),
+        icon: Icon(Icons.radar_outlined),
+        label: AppLocalizations.of(context).homeTabsCamera,
+      ),
+      NavigationDestination(
+        selectedIcon: Icon(Icons.map),
+        icon: Icon(Icons.map_outlined),
+        label: AppLocalizations.of(context).homeTabsMap,
+      ),
+      NavigationDestination(
+        selectedIcon: Icon(Icons.settings),
+        icon: Icon(Icons.settings_outlined),
+        label: AppLocalizations.of(context).homeTabsConfig,
+      ),
+    ];
+  }
+
+  List<NavigationRailDestination> _buildRailDestinations() {
+    return <NavigationRailDestination>[
+      NavigationRailDestination(
+        selectedIcon: Icon(Icons.photo_album),
+        icon: Icon(Icons.photo_album_outlined),
+        label: Text(AppLocalizations.of(context).homeTabsGallery),
+      ),
+      NavigationRailDestination(
+        selectedIcon: Icon(Icons.radar),
+        icon: Icon(Icons.radar_outlined),
+        label: Text(AppLocalizations.of(context).homeTabsCamera),
+      ),
+      NavigationRailDestination(
+        selectedIcon: Icon(Icons.map),
+        icon: Icon(Icons.map_outlined),
+        label: Text(AppLocalizations.of(context).homeTabsMap),
+      ),
+      NavigationRailDestination(
+        selectedIcon: Icon(Icons.settings),
+        icon: Icon(Icons.settings_outlined),
+        label: Text(AppLocalizations.of(context).homeTabsConfig),
+      ),
+    ];
+  }
+
+  void _selectPage(int index) {
+    setState(() {
+      currentPageIndex = index;
+    });
+  }
+
+  Widget _buildNavigationBarLayout() {
+    return Scaffold(
+      bottomNavigationBar: NavigationBar(
+        onDestinationSelected: _selectPage,
+        indicatorColor: Theme.of(context).primaryColor,
+        backgroundColor: secondaryBackgroundColor(context),
+        selectedIndex: currentPageIndex,
+        destinations: _buildDestinations(),
+      ),
+      body: _buildPage(),
+    );
+  }
+
+  Widget _buildNavigationRailLayout() {
+    final extendRail =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    return Scaffold(
+      body: Row(
+        children: [
+          _buildRail(extended: extendRail),
+          const VerticalDivider(
+            thickness: 1,
+            width: 1,
+          ),
+          Expanded(
+            child: _buildPage(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRail({required bool extended}) {
+    return NavigationRail(
+      onDestinationSelected: _selectPage,
+      selectedIndex: currentPageIndex,
+      backgroundColor: secondaryBackgroundColor(context),
+      indicatorColor: Theme.of(context).primaryColor,
+      extended: extended,
+      destinations: _buildRailDestinations(),
+    );
+  }
+
+  Widget _buildPage() {
+    return <Widget>[
+      GalleryPage(),
+      ScanningPage(),
+      MapPage(
+        pictureId: widget.pictureId,
+      ),
+      ConfigurationPage()
+    ][currentPageIndex];
   }
 
   void _selectTab(String? name) {

@@ -2,3 +2,4 @@ export 'l10n/cam_localizations.dart';
 export 'pages/camera_page.dart';
 export 'pages/import_page.dart';
 export 'pages/scanning_page.dart';
+export 'pages/tablet_camera_page.dart';

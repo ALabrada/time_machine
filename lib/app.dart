@@ -66,7 +66,9 @@ class TimeMachineApp extends StatelessWidget {
                 GoRoute(
                     path: '/',
                     builder: (context, state) => FixedOrientationView(
-                      orientations: [DeviceOrientation.portraitUp],
+                      orientations: isTabletLayout(context)
+                          ? DeviceOrientation.values
+                          : [DeviceOrientation.portraitUp],
                       child: HomePage(
                         initialTab: state.uri.queryParameters['tab'],
                         pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
@@ -75,12 +77,19 @@ class TimeMachineApp extends StatelessWidget {
                     routes: [
                       GoRoute(
                         path: 'camera',
-                        builder: (context, state) => FixedOrientationView(
-                          orientations: DeviceOrientation.values,
-                          child: CameraPage(
-                            pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
-                          ),
-                        ),
+                        builder: (context, state) => isTabletLayout(context)
+                            ? FixedOrientationView(
+                                orientations: DeviceOrientation.values,
+                                child: TabletCameraPage(
+                                  pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
+                                ),
+                              )
+                            : FixedOrientationView(
+                                orientations: [DeviceOrientation.portraitUp],
+                                child: CameraPage(
+                                  pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
+                                ),
+                              ),
                       ),
                       GoRoute(
                         path: 'import',

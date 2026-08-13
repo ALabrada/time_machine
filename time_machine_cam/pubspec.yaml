@@ -24,10 +24,12 @@ dependencies:
 
   adaptive_action_sheet: 2.0.3
   animated_transform: ^1.0.6
-  ar_location_view: ^2.1.0
+  ar_location_view:
+    path: ../ar_location_view
   audioplayers: ^6.5.0
   cached_network_image: ^3.4.1
   camerawesome: ^2.4.0
+  camera: ^0.12.0
   cross_file: any
   custom_image_crop: ^0.1.1
   flutter_cache_manager : ^3.4.1

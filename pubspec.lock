@@ -52,10 +52,9 @@ packages:
   ar_location_view:
     dependency: transitive
     description:
-      name: ar_location_view
-      sha256: "7ab33e0865a6fe8e463595c3344a59c1177f9805113131816122a46c1b1b7e10"
-      url: "https://pub.dev"
-    source: hosted
+      path: ar_location_view
+      relative: true
+    source: path
     version: "2.1.0"
   archive:
     dependency: transitive

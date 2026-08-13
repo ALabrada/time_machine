@@ -4,3 +4,6 @@
 [submodule "fk_user_agent"]
 	path = fk_user_agent
 	url = https://github.com/ALabrada/fk_user_agent.git
+[submodule "ar_location_view"]
+	path = ar_location_view
+	url = https://github.com/ALabrada/ar_location_view.git

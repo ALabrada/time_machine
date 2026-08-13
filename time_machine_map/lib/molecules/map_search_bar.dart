@@ -43,9 +43,9 @@ class MapSearchBarState extends State<MapSearchBar> {
       transitionDuration: const Duration(milliseconds: 800),
       transitionCurve: Curves.easeInOut,
       physics: const BouncingScrollPhysics(),
-      axisAlignment: isPortrait ? 0.0 : -1.0,
+      axisAlignment: 0.0,
       openAxisAlignment: 0.0,
-      width: isPortrait ? 600 : 500,
+      width: isPortrait ? 600 : null,
       debounceDelay: const Duration(seconds: 1),
       onQueryChanged: (query) {
         unawaited(_searchController.locate(query));
