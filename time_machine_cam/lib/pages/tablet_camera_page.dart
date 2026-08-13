@@ -233,13 +233,11 @@ class TabletCameraPageState extends State<TabletCameraPage>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(width: 81),
                   _buildFlashButton(camera),
                   const SizedBox(width: 48),
                   _buildTrigger(),
                   const SizedBox(width: 48),
                   _buildSwitchButton(),
-                  const SizedBox(width: 81),
                 ],
               ),
             ),
