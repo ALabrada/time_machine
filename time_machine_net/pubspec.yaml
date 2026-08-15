@@ -25,8 +25,11 @@ dependencies:
   intl: any
   latlong2: any
   osm_nominatim: ^4.0.1
+  path: any
   supabase: ^2.6.0
   meta: any
+  uuid: any
+  pointycastle: ^4.0.0
 
 dev_dependencies:
   flutter_test:

@@ -46,7 +46,7 @@ abstract class CloudBase implements CloudSyncProvider {
   void dispose() {}
 }
 
-abstract class EventlessCloudBase extends CloudBase {
+mixin EventlessCloud implements CloudBase {
   @override
   bool get supportsEvents => false;
 
@@ -54,7 +54,7 @@ abstract class EventlessCloudBase extends CloudBase {
   Stream<CloudSyncEvent> get changes => Stream.empty(broadcast: true);
 }
 
-abstract class EventfulCloudBase extends CloudBase {
+mixin EventfulCloud implements CloudBase {
   final _streamController = StreamController<CloudSyncEvent>.broadcast();
 
   @override

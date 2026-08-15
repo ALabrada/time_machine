@@ -8,7 +8,7 @@ import 'package:time_machine_db/time_machine_db.dart';
 
 import 'cloud_base.dart';
 
-class SupabaseCloud extends EventfulCloudBase {
+class SupabaseCloud extends CloudBase with EventfulCloud {
   static const idColumn = 'id';
 
   final SupabaseClient _client;
