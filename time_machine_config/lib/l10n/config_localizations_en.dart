@@ -110,6 +110,13 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
   String get settingReferenceOpacity => 'Reference Opacity';
 
   @override
+  String get settingVolumeButton => 'Volume Button';
+
+  @override
+  String get settingVolumeButtonDescription =>
+      'Take a picture by pressing the volume keys';
+
+  @override
   String get settingSearchBeginning => 'Beginning (year)';
 
   @override

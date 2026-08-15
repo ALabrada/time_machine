@@ -263,6 +263,18 @@ abstract class ConfigLocalizations {
   /// **'Reference Opacity'**
   String get settingReferenceOpacity;
 
+  /// No description provided for @settingVolumeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume Button'**
+  String get settingVolumeButton;
+
+  /// No description provided for @settingVolumeButtonDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a picture by pressing the volume keys'**
+  String get settingVolumeButtonDescription;
+
   /// No description provided for @settingSearchBeginning.
   ///
   /// In en, this message translates to:

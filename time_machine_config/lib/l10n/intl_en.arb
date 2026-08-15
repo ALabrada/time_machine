@@ -62,6 +62,8 @@
   "settingMapProvider": "Map Provider",
   "settingPictureRatio": "Picture Ratio",
   "settingReferenceOpacity": "Reference Opacity",
+  "settingVolumeButton": "Volume Button",
+  "settingVolumeButtonDescription": "Take a picture by pressing the volume keys",
   "settingSearchBeginning": "Beginning (year)",
   "settingSearchEnd": "End (year)",
   "settingThemeMode": "Theme",

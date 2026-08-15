@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_cam/molecules/camera_zoom_button.dart';
 import 'package:time_machine_cam/molecules/rotated_view.dart';
+import 'package:time_machine_cam/services/physical_button_service.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_cam/controllers/photo_controller.dart';
 import 'package:time_machine_cam/molecules/compass_view.dart';
@@ -40,6 +41,8 @@ class CameraPageState extends State<CameraPage> {
     ..setReleaseMode(ReleaseMode.stop);
   late PhotoController controller;
   late Future<Picture?> _loadPictureFuture;
+  PhotoCameraState? _cameraState;
+  StreamSubscription<PhysicalButton>? _volumeSubscription;
 
   @override
   void initState() {
@@ -53,6 +56,11 @@ class CameraPageState extends State<CameraPage> {
     _loadPictureFuture = controller.loadPicture(widget.pictureId);
     super.initState();
     unawaited(controller.init());
+    if (!kIsWeb) {
+      _volumeSubscription =
+          context.read<PhysicalButtonService>().onButton.listen(_onPhysicalButton,
+              onError: (_) {});
+    }
   }
 
   @override
@@ -65,6 +73,7 @@ class CameraPageState extends State<CameraPage> {
 
   @override
   void dispose() {
+    _volumeSubscription?.cancel();
     audioPlayer.dispose();
     controller.dispose();
     super.dispose();
@@ -104,7 +113,7 @@ class CameraPageState extends State<CameraPage> {
       sensorConfig: SensorConfig.single(
         aspectRatio: controller.cameraMode,
       ),
-      enablePhysicalButton: true,
+      enablePhysicalButton: false,
       previewFit: CameraPreviewFit.contain,
 
       onMediaCaptureEvent: (capture) {
@@ -131,11 +140,14 @@ class CameraPageState extends State<CameraPage> {
           onPreparingCamera: (state) => const Center(
             child: CircularProgressIndicator(),
           ),
-          onPhotoMode: (state) => _buildUI(
-              state: state,
-              picture: picture,
-              previewSize: preview.previewSize
-          ),
+          onPhotoMode: (state) {
+            _cameraState = state;
+            return _buildUI(
+                state: state,
+                picture: picture,
+                previewSize: preview.previewSize
+            );
+          },
         );
       },
     );
@@ -235,6 +247,19 @@ class CameraPageState extends State<CameraPage> {
         return AwesomeCaptureButton(state: state);
       },
     );
+  }
+
+  void _onPhysicalButton(PhysicalButton button) {
+    if (button == PhysicalButton.volumeDown ||
+        button == PhysicalButton.volumeUp) {
+      if (controller.isProcessing.value) {
+        return;
+      }
+      final state = _cameraState;
+      if (state != null) {
+        unawaited(state.takePhoto());
+      }
+    }
   }
 
   Future<void> _playShutterSound() async {

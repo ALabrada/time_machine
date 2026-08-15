@@ -118,6 +118,14 @@ class ConfigurationPageState extends State<ConfigurationPage> {
             onChanged: (v) => controller.cameraPictureOpacity = v,
           ),
         ),
+        SettingsTile.switchTile(
+          initialValue: controller.volumeButton,
+          onToggle: (value) => controller.volumeButton = value,
+          title: Text(ConfigLocalizations.of(context).settingVolumeButton),
+          description: Text(
+            ConfigLocalizations.of(context).settingVolumeButtonDescription,
+          ),
+        ),
       ],
     );
   }

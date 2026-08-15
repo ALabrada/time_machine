@@ -13,6 +13,7 @@ import 'package:time_machine_cam/controllers/photo_controller.dart';
 import 'package:time_machine_cam/controllers/tablet_camera_controller.dart';
 import 'package:time_machine_cam/molecules/camera_trigger_button.dart';
 import 'package:time_machine_cam/molecules/compass_view.dart';
+import 'package:time_machine_cam/services/physical_button_service.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
@@ -44,6 +45,7 @@ class TabletCameraPageState extends State<TabletCameraPage>
   late PhotoController controller;
   late TabletCameraController cameraController;
   late Future<Picture?> _loadPictureFuture;
+  StreamSubscription<PhysicalButton>? _volumeSubscription;
 
   double _startZoom = 1.0;
 
@@ -64,6 +66,21 @@ class TabletCameraPageState extends State<TabletCameraPage>
     unawaited(cameraController.loadDisplayRotation());
     unawaited(controller.init());
     unawaited(cameraController.init());
+    if (!kIsWeb) {
+      _volumeSubscription =
+          context.read<PhysicalButtonService>().onButton.listen(_onPhysicalButton,
+              onError: (_) {});
+    }
+  }
+
+  void _onPhysicalButton(PhysicalButton button) {
+    if (button == PhysicalButton.volumeDown ||
+        button == PhysicalButton.volumeUp) {
+      if (controller.isProcessing.value) {
+        return;
+      }
+      unawaited(_takePicture());
+    }
   }
 
   @override
@@ -82,6 +99,7 @@ class TabletCameraPageState extends State<TabletCameraPage>
 
   @override
   void dispose() {
+    _volumeSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     audioPlayer.dispose();
     controller.dispose();

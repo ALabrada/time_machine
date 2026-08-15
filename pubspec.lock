@@ -1983,6 +1983,70 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "15.2.0"
+  vol_spotter:
+    dependency: transitive
+    description:
+      name: vol_spotter
+      sha256: "2c3a40f57b2d3aef3c0648beda27ad89fabf986cb3cfec4f4d85892be231a8f8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.1"
+  vol_spotter_android:
+    dependency: transitive
+    description:
+      name: vol_spotter_android
+      sha256: "172390aed602ad1070670d0fbe5c1384b21725776553c53dd04307f92f8092e5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.1"
+  vol_spotter_ios:
+    dependency: transitive
+    description:
+      name: vol_spotter_ios
+      sha256: "7145d415f51428aaafa72f0ae3e2828c3d7db409cb370d024c69ac5149312e53"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.1"
+  vol_spotter_linux:
+    dependency: transitive
+    description:
+      name: vol_spotter_linux
+      sha256: "645244cdd3d33639e54e9e5887dfadd67d0b1517c49b0faa446b61a4b34e28fd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.1"
+  vol_spotter_macos:
+    dependency: transitive
+    description:
+      name: vol_spotter_macos
+      sha256: "39ed49c1862d3af755f104241d82c2270d5ca3d480592303b8941573fafd2aa3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.1"
+  vol_spotter_platform_interface:
+    dependency: transitive
+    description:
+      name: vol_spotter_platform_interface
+      sha256: e821f3fb004d9382fd0683656d059040e437c84477dc73cb748f355204164795
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.1"
+  vol_spotter_web:
+    dependency: transitive
+    description:
+      name: vol_spotter_web
+      sha256: "95f4bf58332a4982507ce4a4e409125cd5031df9dda08d6463dbbd2db5308cda"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.1"
+  vol_spotter_windows:
+    dependency: transitive
+    description:
+      name: vol_spotter_windows
+      sha256: dc7c1cfa4f05a593268ff034b87a10297f015e4de0ad9f079bbd08e89e606eb1
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.1"
   watcher:
     dependency: transitive
     description:

@@ -7,6 +7,7 @@ final class ConfigurationService extends ChangeNotifier {
   static const defaultGeocoder = "OSM";
   static const defaultMaxYear = 2000;
   static const defaultMinYear = 1900;
+  static const defaultVolumeButton = true;
 
   ConfigurationService({
     required this.preferences,
@@ -84,6 +85,15 @@ final class ConfigurationService extends ChangeNotifier {
       preferences()?.remove('settings.tileServer');
     } else {
       preferences()?.setString('settings.tileServer', value);
+    }
+  }
+
+  bool? get volumeButton => preferences()?.getBool('settings.volumeButton');
+  set volumeButton(bool? value) {
+    if (value == null) {
+      preferences()?.remove('settings.volumeButton');
+    } else {
+      preferences()?.setBool('settings.volumeButton', value);
     }
   }
 }

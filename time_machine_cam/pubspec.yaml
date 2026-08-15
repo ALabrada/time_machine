@@ -48,6 +48,7 @@ dependencies:
   share_plus: ^11.0.0
   url_launcher: ^6.3.1
   uuid: any
+  vol_spotter: ^0.2.1
   path: ^1.9.0
 
 dev_dependencies:

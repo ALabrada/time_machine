@@ -92,6 +92,13 @@ final class ConfigurationController extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool get volumeButton => configurationService.volumeButton
+      ?? ConfigurationService.defaultVolumeButton;
+  set volumeButton(bool value) {
+    configurationService.volumeButton = value;
+    notifyListeners();
+  }
+
   void updateProvider(String key, bool selected) {
     final providers = configurationService.providers
         ?? networkService?.providers.keys.toList()

@@ -25,6 +25,8 @@
   "settingMapProvider": "Servicio de Mapas",
   "settingPictureRatio": "Relación de Aspecto",
   "settingReferenceOpacity": "Opacidad de la Referencia",
+  "settingVolumeButton": "Botón de Volumen",
+  "settingVolumeButtonDescription": "Tomar una foto presionando las teclas de volumen",
   "settingSearchBeginning": "Inicio (año)",
   "settingSearchEnd": "Fin (año)",
   "settingThemeMode": "Tema",

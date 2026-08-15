@@ -221,6 +221,11 @@ class TimeMachineApp extends StatelessWidget {
             preferences: context.read,
           ),
         ),
+        Provider<PhysicalButtonService>(
+          create: (context) => PhysicalButtonService(
+            configurationService: context.read(),
+          ),
+        ),
         Provider<TelegramService>(
           create: (_) => TelegramService(
             apiKey: secrets.TELEGRAM_BOT_TOKEN,

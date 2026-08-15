@@ -3,3 +3,4 @@ export 'pages/camera_page.dart';
 export 'pages/import_page.dart';
 export 'pages/scanning_page.dart';
 export 'pages/tablet_camera_page.dart';
+export 'services/physical_button_service.dart';

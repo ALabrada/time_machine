@@ -25,6 +25,8 @@
   "settingMapProvider": "Картографический Сервис",
   "settingPictureRatio": "Соотношение Сторон Изображения",
   "settingReferenceOpacity": "Прозрачность Эталона",
+  "settingVolumeButton": "Кнопка Громкости",
+  "settingVolumeButtonDescription": "Сделать снимок, нажав клавиши громкости",
   "settingSearchBeginning": "Начало (год)",
   "settingSearchEnd": "Конец (года)",
   "settingThemeMode": "Тема",

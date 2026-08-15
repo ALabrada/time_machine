@@ -112,6 +112,13 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
   String get settingReferenceOpacity => 'Прозрачность Эталона';
 
   @override
+  String get settingVolumeButton => 'Кнопка Громкости';
+
+  @override
+  String get settingVolumeButtonDescription =>
+      'Сделать снимок, нажав клавиши громкости';
+
+  @override
   String get settingSearchBeginning => 'Начало (год)';
 
   @override
