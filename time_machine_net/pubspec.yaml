@@ -21,7 +21,10 @@ dependencies:
   flutter_cache_manager: any
   flutter_map_math: ^0.2.4
   geocoding: ^4.0.0
+  googleapis: ^16.0.0
+  googleapis_auth: ^2.3.3
   html: any
+  http: any
   intl: any
   latlong2: any
   osm_nominatim: ^4.0.1
@@ -35,7 +38,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-  http: ^1.0.0
   fake_cloud_firestore: ^3.0.0
   firebase_auth_mocks: ^0.14.2
 

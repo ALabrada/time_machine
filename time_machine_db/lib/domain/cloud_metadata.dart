@@ -21,4 +21,16 @@ class CloudMetadata {
   factory CloudMetadata.fromJson(Map<String, dynamic> json) => _$CloudMetadataFromJson(json);
 
   Map<String, dynamic> toJson() => _$CloudMetadataToJson(this);
+
+  CloudMetadata copy({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
+  }) => CloudMetadata(
+    id: id ?? this.id,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt ?? this.deletedAt,
+  );
 }

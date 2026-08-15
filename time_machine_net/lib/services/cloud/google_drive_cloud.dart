@@ -1,0 +1,483 @@
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:googleapis_auth/googleapis_auth.dart' as auth;
+import 'package:http/http.dart' as http;
+import 'package:meta/meta.dart';
+import 'package:path/path.dart' as p;
+import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_net/services/cloud/cloud_base.dart';
+import 'package:time_machine_net/services/cloud/file_cloud_base.dart';
+
+class GoogleDriveCloud extends FileCloudBase with EventfulCloud {
+  GoogleDriveCloud({
+    http.Client? client,
+    bool closeClient = false,
+    String? accessToken,
+    Future<String> Function()? tokenProvider,
+    this.appRootFolderName = 'TimeMachine',
+    this.pollInterval = const Duration(minutes: 1),
+    super.encryptionKey,
+  }) : _accessToken = accessToken,
+       _tokenProvider = tokenProvider,
+       _ownsClient = client == null || closeClient {
+    _baseClient = client ?? http.Client();
+    final inner = (accessToken == null && tokenProvider == null)
+        ? _baseClient
+        : _TokenAuthClient(_baseClient, _resolveToken);
+    _drive = drive.DriveApi(inner);
+  }
+
+  /// Builds a cloud that authenticates requests using the given
+  /// [auth.AccessCredentials], without requiring Google Play Services.
+  factory GoogleDriveCloud.fromCredentials({
+    required http.Client baseClient,
+    required auth.AccessCredentials credentials,
+    auth.ClientId? clientId,
+    bool autoRefresh = false,
+    String? appRootFolderName,
+    Duration pollInterval = const Duration(minutes: 1),
+    Uint8List? encryptionKey,
+  }) {
+    final client = (autoRefresh && clientId != null)
+        ? auth.autoRefreshingClient(clientId, credentials, baseClient)
+        : auth.authenticatedClient(baseClient, credentials);
+    return GoogleDriveCloud(
+      client: client,
+      appRootFolderName: appRootFolderName ?? 'TimeMachine',
+      pollInterval: pollInterval,
+      encryptionKey: encryptionKey,
+    );
+  }
+
+  /// Grants the `driver`. Given an authenticated [http.Client], only the
+  /// Drive app data scope is requested.
+  static const appDataScope = drive.DriveApi.driveAppdataScope;
+
+  static const folderMimeType = 'application/vnd.google-apps.folder';
+  static const appDataFolder = 'appDataFolder';
+
+  late final drive.DriveApi _drive;
+  late final http.Client _baseClient;
+  final bool _ownsClient;
+  String? _accessToken;
+  final Future<String> Function()? _tokenProvider;
+  final String appRootFolderName;
+  final Duration pollInterval;
+
+  Timer? _pollTimer;
+  String? _nextChangeToken;
+  bool _polling = false;
+  bool _pollingStarted = false;
+
+  final Map<String, String> _folderIds = {};
+  final Map<String, String> _collectionByFolderId = {};
+  final Map<String, _DriveFileInfo> _driveFiles = {};
+  String? _rootFolderId;
+
+  void setAccessToken(String token) => _accessToken = token;
+
+  Future<String?> _resolveToken() async {
+    final provider = _tokenProvider;
+    if (provider != null) return provider();
+    return _accessToken;
+  }
+
+  @override
+  Future<String> initialize() async {
+    final about = await _drive.about.get($fields: 'user(emailAddress)');
+    final email = about.user?.emailAddress ?? 'unknown';
+    await _ensureRootFolder();
+    await _initCollectionFolders();
+    final tokenResult = await _drive.changes.getStartPageToken();
+    _nextChangeToken = tokenResult.startPageToken;
+    _startPolling();
+    publishEvent(const CloudReconnectedEvent());
+    return 'gdrive/$email';
+  }
+
+  Future<void> _initCollectionFolders() async {
+    for (final collection in collectionNames.values) {
+      final folderId = await _ensureFolderPath(p.join(FileCloudBase.modelsDir, collection));
+      _collectionByFolderId[folderId] = collection;
+    }
+  }
+
+  void _startPolling() {
+    if (_pollingStarted) return;
+    _pollingStarted = true;
+    _pollTimer = Timer.periodic(pollInterval, (_) => pollChanges());
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+    if (_ownsClient) _baseClient.close();
+    super.dispose();
+  }
+
+  /// Polls the Drive `changes` API for appDataFolder activity and publishes
+  /// cloud events. Exposed for testing.
+  @visibleForTesting
+  Future<void> pollChanges() async {
+    final token = _nextChangeToken;
+    if (token == null || _polling) return;
+    _polling = true;
+    try {
+      final result = await _drive.changes.list(
+        token,
+        spaces: appDataFolder,
+        includeRemoved: true,
+        pageSize: 100,
+        $fields: 'nextPageToken,changes('
+            'fileId,removed,time,'
+            'file(id,name,parents,createdTime,modifiedTime))',
+      );
+  
+      for (final change in result.changes ?? const []) {
+
+        _handleChange(change);
+      }
+      _nextChangeToken = result.nextPageToken ?? token;
+    } catch (_) {
+      // Transient network/API error: retry on the next poll.
+    } finally {
+      _polling = false;
+    }
+  }
+
+  void _handleChange(drive.Change change) {
+    final file = change.file;
+    final driveFileId = file?.id ?? change.fileId;
+    if (driveFileId == null) return;
+
+    if (change.removed == true) {
+      _handleRecordRemoved(driveFileId, change.time, file);
+      return;
+    }
+
+    final collection = _collectionFromParents(file?.parents);
+
+    if (collection == null) return;
+    final name = file?.name;
+    if (name == null) return;
+    final recordId = Uri.decodeComponent(name);
+    final now = DateTime.now();
+    final metadata = CloudMetadata(
+      id: recordId,
+      createdAt: file?.createdTime?.toLocal() ?? now,
+      updatedAt: file?.modifiedTime?.toLocal() ?? now,
+    );
+    _driveFiles[driveFileId] = _DriveFileInfo(
+      driveFileId: driveFileId,
+      collection: collection,
+      recordId: recordId,
+    );
+
+    publishEvent(CloudInsertedEvent(
+      metadata: metadata,
+      collection: collection,
+    ));
+  }
+
+  void _handleRecordRemoved(
+    String driveFileId,
+    DateTime? changeTime,
+    drive.File? file,
+  ) {
+    final tracked = _driveFiles.remove(driveFileId);
+    if (tracked != null) {
+      publishEvent(CloudDeletedEvent(
+        metadata: CloudMetadata(
+          id: tracked.recordId,
+          createdAt: changeTime?.toLocal() ?? DateTime.now(),
+          updatedAt: changeTime?.toLocal() ?? DateTime.now(),
+          deletedAt: changeTime?.toLocal() ?? DateTime.now(),
+        ),
+        collection: tracked.collection,
+      ));
+      return;
+    }
+    final collection = _collectionFromParents(file?.parents);
+    final name = file?.name;
+    if (collection != null && name != null) {
+      publishEvent(CloudDeletedEvent(
+        metadata: CloudMetadata(
+          id: Uri.decodeComponent(name),
+          createdAt: changeTime?.toLocal() ?? DateTime.now(),
+          updatedAt: changeTime?.toLocal() ?? DateTime.now(),
+          deletedAt: changeTime?.toLocal() ?? DateTime.now(),
+        ),
+        collection: collection,
+      ));
+    }
+  }
+
+  String? _collectionFromParents(List<String>? parents) {
+    if (parents == null) return null;
+    for (final parentId in parents) {
+      final collection = _collectionByFolderId[parentId];
+      if (collection != null) return collection;
+    }
+    return null;
+  }
+
+  @override
+  Stream<String> onList(String path) async* {
+    final folderId = await _resolveFolder(path);
+    if (folderId == null) return;
+    final collection = _collectionByFolderId[folderId];
+    await for (final file in _listFolder(folderId)) {
+      final fileName = file.name;
+      if (collection != null && fileName != null) {
+        final driveFileId = file.id!;
+        _driveFiles[driveFileId] = _DriveFileInfo(
+          driveFileId: driveFileId,
+          collection: collection,
+          recordId: Uri.decodeComponent(fileName),
+        );
+      }
+      if (fileName != null) yield fileName;
+    }
+  }
+
+  @override
+  Future<void> onPush({
+    required String path,
+    required Uint8List fileData,
+    String? mimeType,
+  }) async {
+    final parentDir = p.dirname(path);
+    final name = p.basename(path);
+    final parentId = await _ensureFolderPath(parentDir);
+    final existing = await _findChild(parentId, name);
+    if (existing != null) {
+      final driveFileId = existing.id!;
+      await _updateFile(driveFileId, fileData, mimeType);
+      _trackDriveFile(driveFileId, parentId, name);
+    } else {
+      final driveFileId = await _createFile(parentId, name, fileData, mimeType);
+      _trackDriveFile(driveFileId, parentId, name);
+    }
+  }
+
+  void _trackDriveFile(String driveFileId, String parentId, String name) {
+    final collection = _collectionByFolderId[parentId];
+    if (collection == null) return;
+    _driveFiles[driveFileId] = _DriveFileInfo(
+      driveFileId: driveFileId,
+      collection: collection,
+      recordId: Uri.decodeComponent(name),
+    );
+  }
+
+  @override
+  Future<String> onDelete(String path) async {
+    final fileId = await _resolveFileId(path);
+    if (fileId != null) {
+      await _deleteFile(fileId);
+      _driveFiles.remove(fileId);
+    }
+    return path;
+  }
+
+  @override
+  Future<Uint8List> onPull(String path) async {
+    final fileId = await _resolveFileId(path);
+    if (fileId == null) {
+      throw Exception('Not found: $path');
+    }
+    return _downloadFile(fileId);
+  }
+
+  Future<String?> _resolveFileId(String path) async {
+    final parentDir = p.dirname(path);
+    final name = p.basename(path);
+    final parentId = await _resolveFolder(parentDir);
+    if (parentId == null) return null;
+    final child = await _findChild(parentId, name);
+    return child?.id;
+  }
+
+  Future<String?> _resolveFolder(String folderPath) async {
+    if (folderPath == '' || folderPath == '.') return _rootFolderId;
+    final cached = _folderIds[folderPath];
+    if (cached != null) return cached;
+    final parent = p.dirname(folderPath);
+    final name = p.basename(folderPath);
+    final parentId = await _resolveFolder(parent);
+    if (parentId == null) return null;
+    final child = await _findChild(parentId, name, folder: true);
+    if (child == null) return null;
+    _folderIds[folderPath] = child.id!;
+    return child.id!;
+  }
+
+  Future<String> _ensureFolderPath(String folderPath) async {
+    if (folderPath == '' || folderPath == '.') {
+      return _rootFolderId ?? await _ensureRootFolder();
+    }
+    final resolved = await _resolveFolder(folderPath);
+    if (resolved != null) return resolved;
+    final parent = p.dirname(folderPath);
+    final name = p.basename(folderPath);
+    final parentId = await _ensureFolderPath(parent);
+    final id = await _createFolder(name, parentId);
+    _folderIds[folderPath] = id;
+    return id;
+  }
+
+  Future<String> _ensureRootFolder() async {
+    final existing = await _findChild(appDataFolder, appRootFolderName,
+        folder: true);
+    if (existing != null) {
+      final id = existing.id!;
+      _folderIds[''] = id;
+      _rootFolderId = id;
+      return id;
+    }
+    final id = await _createFolder(appRootFolderName, appDataFolder);
+    _folderIds[''] = id;
+    _rootFolderId = id;
+    return id;
+  }
+
+  Future<drive.File?> _findChild(
+    String parentId,
+    String name, {
+    bool folder = false,
+  }) async {
+    final mimeTypeClause = folder ? " and mimeType='$folderMimeType'" : '';
+    final escaped = name.replaceAll("'", "\\'");
+    final result = await _drive.files.list(
+      spaces: appDataFolder,
+      q: "'$parentId' in parents and name='$escaped' and trashed=false"
+          '$mimeTypeClause',
+      pageSize: 10,
+      orderBy: 'createdTime',
+      $fields: 'files(id,name,mimeType,createdTime,trashed)',
+    );
+    final files = result.files ?? const [];
+    if (files.isEmpty) return null;
+    return files.first;
+  }
+
+  Stream<drive.File> _listFolder(String parentId) async* {
+    String? pageToken;
+    do {
+      final result = await _drive.files.list(
+        spaces: appDataFolder,
+        q: "'$parentId' in parents and trashed=false",
+        pageSize: 1000,
+        orderBy: 'name',
+        pageToken: pageToken,
+        $fields: 'nextPageToken,files(id,name,mimeType)',
+      );
+      for (final file in result.files ?? <drive.File>[]) {
+        yield file;
+      }
+      pageToken = result.nextPageToken;
+    } while (pageToken != null);
+  }
+
+  Future<String> _createFolder(String name, String parentId) async {
+    final file = await _drive.files.create(
+      drive.File(name: name, mimeType: folderMimeType, parents: [parentId]),
+      $fields: 'id',
+    );
+    return file.id!;
+  }
+
+  Future<String> _createFile(
+    String parentId,
+    String name,
+    Uint8List fileData,
+    String? mimeType,
+  ) async {
+    final file = await _drive.files.create(
+      drive.File(name: name, parents: [parentId]),
+      uploadMedia: drive.Media(
+        Stream.value(fileData),
+        fileData.length,
+        contentType: mimeType ?? 'application/octet-stream',
+      ),
+      uploadOptions: drive.UploadOptions.defaultOptions,
+      $fields: 'id',
+    );
+    final id = file.id;
+    if (id == null) {
+      throw Exception('Failed to create file in Google Drive: $name');
+    }
+    return id;
+  }
+
+  Future<void> _updateFile(
+    String fileId,
+    Uint8List fileData,
+    String? mimeType,
+  ) async {
+    await _drive.files.update(
+      drive.File(),
+      fileId,
+      uploadMedia: drive.Media(
+        Stream.value(fileData),
+        fileData.length,
+        contentType: mimeType ?? 'application/octet-stream',
+      ),
+      uploadOptions: drive.UploadOptions.defaultOptions,
+      $fields: 'id',
+    );
+  }
+
+  Future<void> _deleteFile(String fileId) async {
+    await _drive.files.delete(fileId);
+  }
+
+  Future<Uint8List> _downloadFile(String fileId) async {
+    final media = await _drive.files.get(
+      fileId,
+      downloadOptions: drive.DownloadOptions.fullMedia,
+    ) as drive.Media;
+    final builder = BytesBuilder(copy: false);
+    await for (final chunk in media.stream) {
+      builder.add(chunk);
+    }
+    return builder.takeBytes();
+  }
+}
+
+class _TokenAuthClient extends http.BaseClient {
+  _TokenAuthClient(this._inner, this._resolveToken);
+
+  final http.Client _inner;
+  final Future<String?> Function() _resolveToken;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final token = await _resolveToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('No Google Drive access token available.');
+    }
+    request.headers['Authorization'] = 'Bearer $token';
+    return _inner.send(request);
+  }
+
+  @override
+  void close() {
+    _inner.close();
+  }
+}
+
+class _DriveFileInfo {
+  _DriveFileInfo({
+    required this.driveFileId,
+    required this.collection,
+    required this.recordId,
+  });
+
+  final String driveFileId;
+  final String collection;
+  final String recordId;
+}

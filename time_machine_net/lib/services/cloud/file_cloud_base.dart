@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
@@ -157,5 +158,79 @@ abstract class FileCloudBase extends CloudBase {
     return Uint8List.fromList(
       List<int>.generate(length, (_) => random.nextInt(256)),
     );
+  }
+}
+
+mixin EventfulFileCloud on FileCloudBase {
+  final _streamController = StreamController<CloudSyncEvent>.broadcast();
+
+  @override
+  bool get supportsEvents => true;
+
+  @override
+  Stream<CloudSyncEvent> get changes => _streamController.stream;
+
+  @override
+  void dispose() {
+    _streamController.close();
+  }
+
+  String? _findCollection(String path) {
+    final dirPath = p.dirname(path);
+    final collection = p.basename(dirPath);
+    if (p.dirname(dirPath) != FileCloudBase.modelsDir || !collectionNames.values.contains(collection)) {
+      return null;
+    }
+    return collection;
+  }
+
+  CloudMetadata _loadMetadata({required String path, String? metadata, bool deleted=false}) {
+    final id = p.basename(path);
+    final now = DateTime.now();
+    if (metadata == null) {
+      return CloudMetadata(id: id, createdAt: now, updatedAt: now, deletedAt: deleted ? null : now);
+    }
+    final result = CloudMetadata.fromJson(jsonDecode(metadata));
+    return deleted ? result.copy(deletedAt: now) : result;
+  }
+
+  void publishFileDeleted({required String path, String? metadata}) {
+    final collection = _findCollection(path);
+    if (collection == null) {
+      return;
+    }
+    final event = CloudDeletedEvent(
+      metadata: _loadMetadata(path: path, metadata: metadata, deleted: true),
+      collection: collection,
+    );
+    publishEvent(event);
+  }
+
+  void publishFileInserted({required String path, String? metadata}) {
+    final collection = _findCollection(path);
+    if (collection == null) {
+      return;
+    }
+    final event = CloudInsertedEvent(
+      metadata: _loadMetadata(path: path, metadata: metadata),
+      collection: collection,
+    );
+    publishEvent(event);
+  }
+
+  void publishFileUpdated({required String path, String? metadata}) {
+    final collection = _findCollection(path);
+    if (collection == null) {
+      return;
+    }
+    final event = CloudUpdatedEvent(
+      metadata: _loadMetadata(path: path, metadata: metadata),
+      collection: collection,
+    );
+    publishEvent(event);
+  }
+
+  void publishEvent(CloudSyncEvent event) {
+    _streamController.add(event);
   }
 }
