@@ -7,10 +7,9 @@ import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 import 'package:time_machine_db/time_machine_db.dart';
-import 'package:time_machine_net/services/cloud/cloud_base.dart';
 import 'package:time_machine_net/services/cloud/file_cloud_base.dart';
 
-class GoogleDriveCloud extends FileCloudBase with EventfulCloud {
+class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   GoogleDriveCloud({
     http.Client? client,
     bool closeClient = false,
@@ -73,7 +72,6 @@ class GoogleDriveCloud extends FileCloudBase with EventfulCloud {
 
   final Map<String, String> _folderIds = {};
   final Map<String, String> _collectionByFolderId = {};
-  final Map<String, _DriveFileInfo> _driveFiles = {};
   String? _rootFolderId;
 
   void setAccessToken(String token) => _accessToken = token;
@@ -132,8 +130,8 @@ class GoogleDriveCloud extends FileCloudBase with EventfulCloud {
         includeRemoved: true,
         pageSize: 100,
         $fields: 'nextPageToken,changes('
-            'fileId,removed,time,'
-            'file(id,name,parents,createdTime,modifiedTime))',
+            'fileId,removed,'
+            'file(id,name,parents,appProperties))',
       );
   
       for (final change in result.changes ?? const []) {
@@ -150,68 +148,23 @@ class GoogleDriveCloud extends FileCloudBase with EventfulCloud {
 
   void _handleChange(drive.Change change) {
     final file = change.file;
-    final driveFileId = file?.id ?? change.fileId;
-    if (driveFileId == null) return;
-
-    if (change.removed == true) {
-      _handleRecordRemoved(driveFileId, change.time, file);
-      return;
-    }
-
     final collection = _collectionFromParents(file?.parents);
-
     if (collection == null) return;
     final name = file?.name;
     if (name == null) return;
     final recordId = Uri.decodeComponent(name);
-    final now = DateTime.now();
-    final metadata = CloudMetadata(
-      id: recordId,
-      createdAt: file?.createdTime?.toLocal() ?? now,
-      updatedAt: file?.modifiedTime?.toLocal() ?? now,
-    );
-    _driveFiles[driveFileId] = _DriveFileInfo(
-      driveFileId: driveFileId,
-      collection: collection,
-      recordId: recordId,
-    );
 
-    publishEvent(CloudInsertedEvent(
-      metadata: metadata,
-      collection: collection,
-    ));
-  }
+    final path = p.join(
+      FileCloudBase.modelsDir,
+      collection,
+      Uri.encodeComponent(recordId),
+    );
+    final metadataJson = file?.appProperties?[FileCloudBase.metadataKey];
 
-  void _handleRecordRemoved(
-    String driveFileId,
-    DateTime? changeTime,
-    drive.File? file,
-  ) {
-    final tracked = _driveFiles.remove(driveFileId);
-    if (tracked != null) {
-      publishEvent(CloudDeletedEvent(
-        metadata: CloudMetadata(
-          id: tracked.recordId,
-          createdAt: changeTime?.toLocal() ?? DateTime.now(),
-          updatedAt: changeTime?.toLocal() ?? DateTime.now(),
-          deletedAt: changeTime?.toLocal() ?? DateTime.now(),
-        ),
-        collection: tracked.collection,
-      ));
-      return;
-    }
-    final collection = _collectionFromParents(file?.parents);
-    final name = file?.name;
-    if (collection != null && name != null) {
-      publishEvent(CloudDeletedEvent(
-        metadata: CloudMetadata(
-          id: Uri.decodeComponent(name),
-          createdAt: changeTime?.toLocal() ?? DateTime.now(),
-          updatedAt: changeTime?.toLocal() ?? DateTime.now(),
-          deletedAt: changeTime?.toLocal() ?? DateTime.now(),
-        ),
-        collection: collection,
-      ));
+    if (change.removed == true) {
+      publishFileDeleted(path: path, metadata: metadataJson);
+    } else {
+      publishFileInserted(path: path, metadata: metadataJson);
     }
   }
 
@@ -225,21 +178,17 @@ class GoogleDriveCloud extends FileCloudBase with EventfulCloud {
   }
 
   @override
-  Stream<String> onList(String path) async* {
+  Stream<CloudFileEntry> onList(String path) async* {
     final folderId = await _resolveFolder(path);
     if (folderId == null) return;
-    final collection = _collectionByFolderId[folderId];
     await for (final file in _listFolder(folderId)) {
       final fileName = file.name;
-      if (collection != null && fileName != null) {
-        final driveFileId = file.id!;
-        _driveFiles[driveFileId] = _DriveFileInfo(
-          driveFileId: driveFileId,
-          collection: collection,
-          recordId: Uri.decodeComponent(fileName),
+      if (fileName != null) {
+        yield CloudFileEntry(
+          name: fileName,
+          metadata: file.appProperties?[FileCloudBase.metadataKey],
         );
       }
-      if (fileName != null) yield fileName;
     }
   }
 
@@ -248,29 +197,20 @@ class GoogleDriveCloud extends FileCloudBase with EventfulCloud {
     required String path,
     required Uint8List fileData,
     String? mimeType,
+    String? metadata,
   }) async {
     final parentDir = p.dirname(path);
     final name = p.basename(path);
     final parentId = await _ensureFolderPath(parentDir);
     final existing = await _findChild(parentId, name);
+    final appProperties =
+        metadata == null ? null : {FileCloudBase.metadataKey: metadata};
     if (existing != null) {
       final driveFileId = existing.id!;
-      await _updateFile(driveFileId, fileData, mimeType);
-      _trackDriveFile(driveFileId, parentId, name);
+      await _updateFile(driveFileId, fileData, mimeType, appProperties);
     } else {
-      final driveFileId = await _createFile(parentId, name, fileData, mimeType);
-      _trackDriveFile(driveFileId, parentId, name);
+      await _createFile(parentId, name, fileData, mimeType, appProperties);
     }
-  }
-
-  void _trackDriveFile(String driveFileId, String parentId, String name) {
-    final collection = _collectionByFolderId[parentId];
-    if (collection == null) return;
-    _driveFiles[driveFileId] = _DriveFileInfo(
-      driveFileId: driveFileId,
-      collection: collection,
-      recordId: Uri.decodeComponent(name),
-    );
   }
 
   @override
@@ -278,7 +218,6 @@ class GoogleDriveCloud extends FileCloudBase with EventfulCloud {
     final fileId = await _resolveFileId(path);
     if (fileId != null) {
       await _deleteFile(fileId);
-      _driveFiles.remove(fileId);
     }
     return path;
   }
@@ -395,16 +334,21 @@ class GoogleDriveCloud extends FileCloudBase with EventfulCloud {
     String name,
     Uint8List fileData,
     String? mimeType,
+    Map<String, String>? appProperties,
   ) async {
     final file = await _drive.files.create(
-      drive.File(name: name, parents: [parentId]),
+      drive.File(
+        name: name,
+        parents: [parentId],
+        appProperties: appProperties,
+      ),
       uploadMedia: drive.Media(
         Stream.value(fileData),
         fileData.length,
         contentType: mimeType ?? 'application/octet-stream',
       ),
       uploadOptions: drive.UploadOptions.defaultOptions,
-      $fields: 'id',
+      $fields: 'id,appProperties',
     );
     final id = file.id;
     if (id == null) {
@@ -417,9 +361,10 @@ class GoogleDriveCloud extends FileCloudBase with EventfulCloud {
     String fileId,
     Uint8List fileData,
     String? mimeType,
+    Map<String, String>? appProperties,
   ) async {
     await _drive.files.update(
-      drive.File(),
+      drive.File(appProperties: appProperties),
       fileId,
       uploadMedia: drive.Media(
         Stream.value(fileData),
@@ -468,16 +413,4 @@ class _TokenAuthClient extends http.BaseClient {
   void close() {
     _inner.close();
   }
-}
-
-class _DriveFileInfo {
-  _DriveFileInfo({
-    required this.driveFileId,
-    required this.collection,
-    required this.recordId,
-  });
-
-  final String driveFileId;
-  final String collection;
-  final String recordId;
 }

@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_net/services/cloud/file_cloud_base.dart';
 import 'package:time_machine_net/services/cloud/google_drive_cloud.dart';
 
 import 'fakes/fake_drive_adapter.dart';
@@ -239,6 +243,35 @@ void main() {
       expect(events.first.runtimeType.toString(), 'CloudInsertedEvent');
       expect(events.first.collection, 'records');
       expect(events.first.metadata.id, metadata.id);
+    });
+
+    test('insert event carries metadata from the appProperties field', () async {
+      final createdAt = DateTime(2024, 1, 1, 10);
+      final updatedAt = DateTime(2024, 2, 2, 12);
+      final metadata = await cloud.saveRecord(
+        'records',
+        CloudMetadata(
+          id: 'meta-carry',
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+        ),
+        {'v': 1},
+      );
+
+      final entry = adapter.files.values
+          .firstWhere((f) => f.name == encodeName(metadata.id));
+      final body = utf8.decode(zlib.decode(entry.data));
+      expect(body.contains(FileCloudBase.dataKey), isTrue);
+      expect(body.contains(FileCloudBase.metadataKey), isTrue);
+      expect(entry.appProperties, isNotNull);
+
+      adapter.addChange(fileId: entry.id);
+      final events = await _collectEvents(cloud, () => cloud.pollChanges());
+
+      expect(events.first.metadata.id, 'meta-carry');
+      expect(events.first.metadata.createdAt, createdAt);
+      expect(events.first.metadata.updatedAt, updatedAt);
+      expect(events.first.metadata.deletedAt, isNull);
     });
 
     test('publishes a delete event when a file is removed', () async {

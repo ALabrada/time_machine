@@ -16,6 +16,7 @@ class DriveFile {
     required this.mimeType,
     required this.createdTime,
     Uint8List? data,
+    this.appProperties,
   }) : data = data ?? Uint8List(0);
 
   final String id;
@@ -23,6 +24,7 @@ class DriveFile {
   final String parentId;
   final String? mimeType;
   final DateTime createdTime;
+  Map<String, String>? appProperties;
   Uint8List data;
 }
 
@@ -64,7 +66,7 @@ class FakeDriveAdapter {
       'fileId': fileId,
       'removed': removed,
       'time': '2024-05-01T00:00:00.000Z',
-      if (!removed && file != null)
+      if (file != null)
         'file': {
           'id': file.id,
           'name': file.name,
@@ -72,6 +74,7 @@ class FakeDriveAdapter {
           'parents': [file.parentId],
           'createdTime': file.createdTime.toIso8601String(),
           'modifiedTime': file.createdTime.toIso8601String(),
+          if (file.appProperties != null) 'appProperties': file.appProperties,
         },
     });
   }
@@ -167,6 +170,7 @@ class FakeDriveAdapter {
             meta['name'] as String,
             meta['parents'] as List,
             folderMimeType,
+            appProperties: _appPropertiesOf(meta),
           );
         default:
           return http.Response('Method not allowed', 405);
@@ -191,12 +195,15 @@ class FakeDriveAdapter {
             );
           }
           if (file == null) return http.Response('Not found', 404);
-          return _json({
+          final r = {
             'id': file.id,
             'name': file.name,
             'mimeType': file.mimeType,
             'parents': [file.parentId],
-          });
+            'createdTime': file.createdTime.toIso8601String(),
+            if (file.appProperties != null) 'appProperties': file.appProperties,
+          };
+          return _json(r);
         case 'DELETE':
           files.remove(fileId);
           return http.Response('', 200);
@@ -234,9 +241,16 @@ class FakeDriveAdapter {
             'mimeType': f.mimeType,
             'parents': [f.parentId],
             'createdTime': f.createdTime.toIso8601String(),
+            if (f.appProperties != null) 'appProperties': f.appProperties,
           },
       ],
     });
+  }
+
+  Map<String, String>? _appPropertiesOf(Map<String, dynamic> meta) {
+    final appProperties = meta['appProperties'];
+    if (appProperties is! Map) return null;
+    return appProperties.map((k, v) => MapEntry(k.toString(), v.toString()));
   }
 
   Future<http.Response> _handleUpload(
@@ -253,11 +267,12 @@ class FakeDriveAdapter {
         as Map<String, dynamic>;
     final name = (metadata['name'] as String?) ?? '';
     final parents = (metadata['parents'] as List?) ?? const [];
+    final appProperties = _appPropertiesOf(metadata);
     final content = parts[1];
 
     if (method == 'POST') {
       return _create(name, parents, content.contentType,
-          data: content.data);
+          data: content.data, appProperties: appProperties);
     }
 
     if (method == 'PATCH' && segments.length == 5) {
@@ -265,6 +280,9 @@ class FakeDriveAdapter {
       final file = files[fileId];
       if (file == null) return http.Response('Not found', 404);
       file.data = content.data;
+      if (file.appProperties != null || appProperties != null) {
+        file.appProperties = appProperties;
+      }
       return _json({'id': file.id, 'name': file.name});
     }
 
@@ -276,6 +294,7 @@ class FakeDriveAdapter {
     List<dynamic> parents,
     String? mimeType, {
     List<int> data = const [],
+    Map<String, String>? appProperties,
   }) {
     final id = 'file_${_nextId++}';
     files[id] = DriveFile(
@@ -285,6 +304,7 @@ class FakeDriveAdapter {
       mimeType: mimeType,
       createdTime: DateTime.utc(2024, 1, 1),
       data: Uint8List.fromList(data),
+      appProperties: appProperties,
     );
     return _json({'id': id, 'name': name, 'parents': parents});
   }

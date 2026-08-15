@@ -12,6 +12,7 @@ class InMemoryFileCloud extends FileCloudBase with EventlessCloud {
   InMemoryFileCloud({super.encryptionKey});
 
   final Map<String, Uint8List> store = {};
+  final Map<String, String?> storeMetadata = {};
   final List<String> pushedPaths = [];
   final List<String> deletedPaths = [];
   final List<String?> pushedMimeTypes = [];
@@ -24,16 +25,19 @@ class InMemoryFileCloud extends FileCloudBase with EventlessCloud {
     required String path,
     required Uint8List fileData,
     String? mimeType,
+    String? metadata,
   }) async {
     pushedPaths.add(path);
     pushedMimeTypes.add(mimeType);
     store[path] = fileData;
+    storeMetadata[path] = metadata;
   }
 
   @override
   Future<String> onDelete(String path) async {
     deletedPaths.add(path);
     store.remove(path);
+    storeMetadata.remove(path);
     return path;
   }
 
@@ -47,7 +51,7 @@ class InMemoryFileCloud extends FileCloudBase with EventlessCloud {
   }
 
   @override
-  Stream<String> onList(String path) async* {
+  Stream<CloudFileEntry> onList(String path) async* {
     final prefix = path.endsWith('/') ? path : '$path/';
     final names = store.keys
         .where((key) => key.startsWith(prefix))
@@ -56,7 +60,7 @@ class InMemoryFileCloud extends FileCloudBase with EventlessCloud {
         .toList()
       ..sort();
     for (final name in names) {
-      yield name;
+      yield CloudFileEntry(name: name, metadata: storeMetadata['$prefix$name']);
     }
   }
 }
@@ -106,8 +110,13 @@ void main() {
       expect(cloud.pushedPaths.single, path);
 
       final model = storedModel(path);
-      expect(model['data'], {'id': 'src-1', 'name': 'Test'});
-      final stored = CloudMetadata.fromJson(model['metadata'] as Map<String, dynamic>);
+      expect(model, {
+        FileCloudBase.dataKey: {'id': 'src-1', 'name': 'Test'},
+        FileCloudBase.metadataKey: metadata.toJson(),
+      });
+      final stored = CloudMetadata.fromJson(
+        json.decode(cloud.storeMetadata[path]!) as Map<String, dynamic>,
+      );
       expect(stored.id, metadata.id);
       expect(stored.createdAt, metadata.createdAt);
       expect(stored.updatedAt, metadata.updatedAt);
@@ -129,7 +138,10 @@ void main() {
 
       final decoded = json.decode(utf8.decode(zlib.decode(raw)))
           as Map<String, dynamic>;
-      expect(decoded[FileCloudBase.dataKey], {'id': 'src-1', 'name': 'Test'});
+      expect(decoded, {
+        FileCloudBase.dataKey: {'id': 'src-1', 'name': 'Test'},
+        FileCloudBase.metadataKey: metadata.toJson(),
+      });
     });
 
     test('update preserves provided metadata and id', () async {
@@ -219,13 +231,7 @@ void main() {
       await cloud.onPush(
         path: 'models/records/data-less',
         fileData: Uint8List.fromList(
-          zlib.encode(utf8.encode(json.encode({
-            FileCloudBase.metadataKey: CloudMetadata(
-              id: 'data-less',
-              createdAt: DateTime(2024, 1, 1),
-              updatedAt: DateTime(2024, 1, 1),
-            ).toJson(),
-          }))),
+          zlib.encode(utf8.encode(json.encode({}))),
         ),
         mimeType: 'application/zlib',
       );
@@ -279,6 +285,34 @@ void main() {
 
       expect(results.length, 1);
       expect(results.single.id, 'a');
+    });
+
+    test('falls back to the metadata embedded in the file data when the '
+        'custom metadata field is absent', () async {
+      final createdAt = DateTime(2024, 1, 1);
+      final updatedAt = DateTime(2024, 2, 2, 3);
+      await cloud.onPush(
+        path: 'models/pictures/legacy',
+        fileData: Uint8List.fromList(
+          zlib.encode(utf8.encode(json.encode({
+            FileCloudBase.dataKey: {'id': 'src-legacy'},
+            FileCloudBase.metadataKey: CloudMetadata(
+              id: 'legacy',
+              createdAt: createdAt,
+              updatedAt: updatedAt,
+            ).toJson(),
+          }))),
+        ),
+        mimeType: 'application/zlib',
+      );
+
+      final results = await cloud.listRecords('pictures');
+
+      expect(results, hasLength(1));
+      expect(results.single.id, 'legacy');
+      expect(results.single.createdAt, createdAt);
+      expect(results.single.updatedAt, updatedAt);
+      expect(results.single.deletedAt, isNull);
     });
   });
 

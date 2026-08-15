@@ -53,10 +53,20 @@ abstract class FileCloudBase extends CloudBase {
   @override
   Future<List<CloudMetadata>> listRecords(String collection) async {
     final dirPath = p.join(modelsDir, collection);
-    return [
-      await for(final item in onList(dirPath))
-        CloudMetadata.fromJson((await _load(p.join(dirPath, item)))[metadataKey]),
-    ];
+    final result = <CloudMetadata>[];
+    await for (final entry in onList(dirPath)) {
+      var metadataJson = entry.metadata;
+      if (metadataJson == null) {
+        final body = await _load(p.join(dirPath, entry.name));
+        final stored = body[metadataKey];
+        if (stored is Map<String, dynamic>) {
+          metadataJson = jsonEncode(stored);
+        }
+      }
+      if (metadataJson == null) continue;
+      result.add(CloudMetadata.fromJson(jsonDecode(metadataJson)));
+    }
+    return result;
   }
 
   @override
@@ -76,7 +86,12 @@ abstract class FileCloudBase extends CloudBase {
         key,
       ),
     );
-    await onPush(path: path, fileData: binaryData, mimeType: 'application/zlib');
+    await onPush(
+      path: path,
+      fileData: binaryData,
+      mimeType: 'application/zlib',
+      metadata: jsonEncode(actualMetadata.toJson()),
+    );
     return actualMetadata;
   }
 
@@ -119,12 +134,13 @@ abstract class FileCloudBase extends CloudBase {
     await onDelete(path);
   }
 
-  Stream<String> onList(String path);
+  Stream<CloudFileEntry> onList(String path);
 
   Future<void> onPush({
     required String path,
     required Uint8List fileData,
     String? mimeType,
+    String? metadata,
   });
 
   Future<String> onDelete(String path);
@@ -161,6 +177,20 @@ abstract class FileCloudBase extends CloudBase {
   }
 }
 
+class CloudFileEntry {
+  const CloudFileEntry({
+    required this.name,
+    this.metadata,
+  });
+
+  final String name;
+
+  /// JSON-encoded [CloudMetadata], read from a custom metadata field of the
+  /// stored file. `null` when the file carries no custom metadata (e.g. plain
+  /// uploaded files).
+  final String? metadata;
+}
+
 mixin EventfulFileCloud on FileCloudBase {
   final _streamController = StreamController<CloudSyncEvent>.broadcast();
 
@@ -188,10 +218,10 @@ mixin EventfulFileCloud on FileCloudBase {
     final id = p.basename(path);
     final now = DateTime.now();
     if (metadata == null) {
-      return CloudMetadata(id: id, createdAt: now, updatedAt: now, deletedAt: deleted ? null : now);
+      return CloudMetadata(id: id, createdAt: now, updatedAt: now, deletedAt: deleted ? now : null);
     }
     final result = CloudMetadata.fromJson(jsonDecode(metadata));
-    return deleted ? result.copy(deletedAt: now) : result;
+    return deleted ? result.copy(deletedAt: result.deletedAt ?? now) : result;
   }
 
   void publishFileDeleted({required String path, String? metadata}) {
