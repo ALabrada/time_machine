@@ -13,5 +13,8 @@
   "menuActionShare": "Compartir foto",
   "menuActionView": "Ver foto",
   "pictureAddedToGallery": "Se añadió la foto a la galería",
-  "viewPicture": "Ver"
+  "viewPicture": "Ver",
+  "arCameraAuthorizationRequired": "Se requiere autorización de cámara",
+  "arCameraAuthorizationDenied": "Se denegó la autorización de cámara",
+  "arCameraInitializationError": "No se pudo inicializar la cámara"
 }

@@ -13,11 +13,7 @@ PODS:
   - flutter_inappwebview_ios/Core (0.0.1):
     - Flutter
     - OrderedSet (~> 6.0.3)
-  - flutter_rotation_sensor (0.0.1):
-    - Flutter
   - listen_sharing_intent (1.9.2):
-    - Flutter
-  - native_exif (0.0.1):
     - Flutter
   - OrderedSet (6.0.3)
 
@@ -27,9 +23,7 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_compass (from `.symlinks/plugins/flutter_compass/ios`)
   - flutter_inappwebview_ios (from `.symlinks/plugins/flutter_inappwebview_ios/ios`)
-  - flutter_rotation_sensor (from `.symlinks/plugins/flutter_rotation_sensor/ios`)
   - listen_sharing_intent (from `.symlinks/plugins/listen_sharing_intent/ios`)
-  - native_exif (from `.symlinks/plugins/native_exif/ios`)
 
 SPEC REPOS:
   trunk:
@@ -46,12 +40,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_compass/ios"
   flutter_inappwebview_ios:
     :path: ".symlinks/plugins/flutter_inappwebview_ios/ios"
-  flutter_rotation_sensor:
-    :path: ".symlinks/plugins/flutter_rotation_sensor/ios"
   listen_sharing_intent:
     :path: ".symlinks/plugins/listen_sharing_intent/ios"
-  native_exif:
-    :path: ".symlinks/plugins/native_exif/ios"
 
 SPEC CHECKSUMS:
   ar_location_view: 135d2ac125894b8d2567c3574600912021b2a214
@@ -59,9 +49,7 @@ SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_compass: cbbd285cea1584c7ac9c4e0c3e1f17cbea55e855
   flutter_inappwebview_ios: 6f63631e2c62a7c350263b13fa5427aedefe81d4
-  flutter_rotation_sensor: f37d8d24050572029bdd2d55a93e0f334e2eeac6
   listen_sharing_intent: 74a842adcbcf7bedf7bbc938c749da9155141b9a
-  native_exif: 837ad189661d7b353660ae7f19f9f6932418f195
   OrderedSet: e539b66b644ff081c73a262d24ad552a69be3a94
 
 PODFILE CHECKSUM: 40a049aa4c7619d16752d16644399b221d0aecdb

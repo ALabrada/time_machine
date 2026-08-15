@@ -94,6 +94,9 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
   String get sectionSearchOptions => 'Параметры Поиска';
 
   @override
+  String get sectionAppearance => 'Внешний Вид';
+
+  @override
   String get settingGeocoder => 'База Данных Адресов';
 
   @override
@@ -107,6 +110,13 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
 
   @override
   String get settingReferenceOpacity => 'Прозрачность Эталона';
+
+  @override
+  String get settingVolumeButton => 'Кнопка Громкости';
+
+  @override
+  String get settingVolumeButtonDescription =>
+      'Сделать снимок, нажав клавиши громкости';
 
   @override
   String get settingSearchBeginning => 'Начало (год)';
@@ -170,4 +180,16 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
   @override
   String get cloudPageActivationFailed =>
       'Не удалось активировать. Сначала войдите в провайдера.';
+
+  @override
+  String get settingThemeMode => 'Тема';
+
+  @override
+  String get settingThemeModeDark => 'Тёмная';
+
+  @override
+  String get settingThemeModeLight => 'Светлая';
+
+  @override
+  String get settingThemeModeSystem => 'Системная';
 }

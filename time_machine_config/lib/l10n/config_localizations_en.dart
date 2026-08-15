@@ -92,6 +92,9 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
   String get sectionSearchOptions => 'Search Options';
 
   @override
+  String get sectionAppearance => 'Appearance';
+
+  @override
   String get settingGeocoder => 'Address Database';
 
   @override
@@ -105,6 +108,13 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
 
   @override
   String get settingReferenceOpacity => 'Reference Opacity';
+
+  @override
+  String get settingVolumeButton => 'Volume Button';
+
+  @override
+  String get settingVolumeButtonDescription =>
+      'Take a picture by pressing the volume keys';
 
   @override
   String get settingSearchBeginning => 'Beginning (year)';
@@ -168,4 +178,16 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
   @override
   String get cloudPageActivationFailed =>
       'Activation failed. Sign in to the provider first.';
+
+  @override
+  String get settingThemeMode => 'Theme';
+
+  @override
+  String get settingThemeModeDark => 'Dark';
+
+  @override
+  String get settingThemeModeLight => 'Light';
+
+  @override
+  String get settingThemeModeSystem => 'System';
 }

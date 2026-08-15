@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_compare_slider/image_compare_slider.dart';
-import 'package:time_machine_res/tokens/colors.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 
 import '../l10n/img_localizations.dart';
@@ -28,7 +28,7 @@ class ComparisonDescription extends StatelessWidget {
     final labels = _labelsFor(context, direction);
     return Container(
       padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      color: background02.withAlpha(127),
+      color: secondaryBackgroundColor(context).withAlpha(127),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

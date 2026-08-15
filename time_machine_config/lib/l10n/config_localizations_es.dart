@@ -93,6 +93,9 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
   String get sectionSearchOptions => 'Opciones de Búsqueda';
 
   @override
+  String get sectionAppearance => 'Apariencia';
+
+  @override
   String get settingGeocoder => 'Base de Datos de Direcciones';
 
   @override
@@ -106,6 +109,13 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
 
   @override
   String get settingReferenceOpacity => 'Opacidad de la Referencia';
+
+  @override
+  String get settingVolumeButton => 'Botón de Volumen';
+
+  @override
+  String get settingVolumeButtonDescription =>
+      'Tomar una foto presionando las teclas de volumen';
 
   @override
   String get settingSearchBeginning => 'Inicio (año)';
@@ -169,4 +179,16 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
   @override
   String get cloudPageActivationFailed =>
       'La activación falló. Inicia sesión en el proveedor primero.';
+
+  @override
+  String get settingThemeMode => 'Tema';
+
+  @override
+  String get settingThemeModeDark => 'Oscuro';
+
+  @override
+  String get settingThemeModeLight => 'Claro';
+
+  @override
+  String get settingThemeModeSystem => 'Sistema';
 }

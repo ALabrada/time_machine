@@ -227,6 +227,12 @@ abstract class ConfigLocalizations {
   /// **'Search Options'**
   String get sectionSearchOptions;
 
+  /// No description provided for @sectionAppearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get sectionAppearance;
+
   /// No description provided for @settingGeocoder.
   ///
   /// In en, this message translates to:
@@ -256,6 +262,18 @@ abstract class ConfigLocalizations {
   /// In en, this message translates to:
   /// **'Reference Opacity'**
   String get settingReferenceOpacity;
+
+  /// No description provided for @settingVolumeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume Button'**
+  String get settingVolumeButton;
+
+  /// No description provided for @settingVolumeButtonDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a picture by pressing the volume keys'**
+  String get settingVolumeButtonDescription;
 
   /// No description provided for @settingSearchBeginning.
   ///
@@ -376,6 +394,30 @@ abstract class ConfigLocalizations {
   /// In en, this message translates to:
   /// **'Activation failed. Sign in to the provider first.'**
   String get cloudPageActivationFailed;
+
+  /// No description provided for @settingThemeMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingThemeMode;
+
+  /// No description provided for @settingThemeModeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get settingThemeModeDark;
+
+  /// No description provided for @settingThemeModeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get settingThemeModeLight;
+
+  /// No description provided for @settingThemeModeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get settingThemeModeSystem;
 }
 
 class _ConfigLocalizationsDelegate

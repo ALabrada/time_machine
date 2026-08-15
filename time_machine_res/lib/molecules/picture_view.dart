@@ -46,8 +46,8 @@ class PictureView extends StatelessWidget {
         padding: EdgeInsets.all(8),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.black, width: 1),
+          color: Theme.of(context).colorScheme.surface,
+          border: Border.all(color: Theme.of(context).colorScheme.outline, width: 1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(

@@ -20,12 +20,17 @@ extension CamDatabaseService on DatabaseService {
     Picture? original,
     double? height,
     double? width,
+    NativeDeviceOrientation? orientation,
+    double? aspectRatio,
     required CacheService cacheService,
   }) async {
     final time = createdAt ?? DateTime.now();
     var id = Uuid().v4();
     String url;
-    var image = await _getImage(file);
+    var image = await _getImage(file, orientation: orientation);
+    if (aspectRatio != null) {
+      image = _cropToAspectRatio(image, aspectRatio);
+    }
     final dirPath = filePath;
     if (dirPath == null || dirPath.isEmpty || kIsWeb) {
       final data = img.encodeJpg(image);
@@ -103,16 +108,34 @@ extension CamDatabaseService on DatabaseService {
       throw Exception('Invalid image');
     }
 
-    if (orientation == null) {
-      return originalImage;
+    if (orientation != null) {
+      return img.bakeOrientation(originalImage);
     }
 
-    final qt = turns[orientation];
-    if (qt == null || qt == 0) {
-      return originalImage;
-    }
+    return originalImage;
+  }
 
-    return img.copyRotate(originalImage, angle: 90 * qt);
+  img.Image _cropToAspectRatio(img.Image image, double aspectRatio) {
+    final w = image.width.toDouble();
+    final h = image.height.toDouble();
+    final current = w / h;
+    int cropW = image.width;
+    int cropH = image.height;
+    if (current > aspectRatio) {
+      cropW = (h * aspectRatio).round();
+    } else if (current < aspectRatio) {
+      cropH = (w / aspectRatio).round();
+    }
+    if (cropW >= image.width && cropH >= image.height) {
+      return image;
+    }
+    return img.copyCrop(
+      image,
+      x: (image.width - cropW) ~/ 2,
+      y: (image.height - cropH) ~/ 2,
+      width: cropW,
+      height: cropH,
+    );
   }
 
   String _getViewPort(double picHeight, double picWidth, double screenHeight, double screenWidth) {
@@ -125,10 +148,3 @@ extension CamDatabaseService on DatabaseService {
     return '$l,$t,$w,$h';
   }
 }
-
-Map<NativeDeviceOrientation, int> turns = {
-  NativeDeviceOrientation.portraitUp: 0,
-  NativeDeviceOrientation.landscapeRight: 1,
-  NativeDeviceOrientation.portraitDown: 2,
-  NativeDeviceOrientation.landscapeLeft: 3,
-};

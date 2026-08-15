@@ -2,50 +2,50 @@ import 'package:time_machine_res/foundation/color_foundation.dart';
 import 'package:time_machine_res/foundation/typography_foundation.dart';
 import 'package:flutter/material.dart';
 
-const bodyStyle = TextStyle(
-  color: bodyColor,
+TextStyle bodyStyle(BuildContext context) => TextStyle(
+  color: bodyColor(context),
   fontFamily: bodyFontFamily,
   fontSize: bodyFontSize,
   fontWeight: bodyFontWeight,
 );
 
-const h1Style = TextStyle(
-  color: h1Color,
+TextStyle h1Style(BuildContext context) => TextStyle(
+  color: h1Color(context),
   fontFamily: h1FontFamily,
   fontSize: h1FontSize,
   fontWeight: h1FontWeight,
 );
 
-const h2Style = TextStyle(
-  color: h2Color,
+TextStyle h2Style(BuildContext context) => TextStyle(
+  color: h2Color(context),
   fontFamily: h2FontFamily,
   fontSize: h2FontSize,
   fontWeight: h2FontWeight,
 );
 
-const h3Style = TextStyle(
-  color: h3Color,
+TextStyle h3Style(BuildContext context) => TextStyle(
+  color: h3Color(context),
   fontFamily: h3FontFamily,
   fontSize: h3FontSize,
   fontWeight: h3FontWeight,
 );
 
-const secondaryLabelStyle = TextStyle(
-  color: secondaryLabelColor,
+TextStyle secondaryLabelStyle(BuildContext context) => TextStyle(
+  color: secondaryLabelColor(context),
   fontFamily: secondaryLabelFontFamily,
   fontSize: secondaryLabelFontSize,
   fontWeight: secondaryLabelFontWeight,
 );
 
-const tertiaryLabelStyle = TextStyle(
-  color: tertiaryLabelColor,
+TextStyle tertiaryLabelStyle(BuildContext context) => TextStyle(
+  color: tertiaryLabelColor(context),
   fontFamily: tertiaryLabelFontFamily,
   fontSize: tertiaryLabelFontSize,
   fontWeight: tertiaryLabelFontWeight,
 );
 
-const textFieldLabelStyle = TextStyle(
-  color: textFieldLabelColor,
+TextStyle textFieldLabelStyle(BuildContext context) => TextStyle(
+  color: textFieldLabelColor(context),
   fontFamily: textFieldLabelFontFamily,
   fontSize: textFieldLabelFontSize,
   fontWeight: textFieldLabelFontWeight,

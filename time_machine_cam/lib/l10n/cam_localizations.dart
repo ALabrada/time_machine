@@ -189,6 +189,24 @@ abstract class CamLocalizations {
   /// In en, this message translates to:
   /// **'View'**
   String get viewPicture;
+
+  /// No description provided for @arCameraAuthorizationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera authorization is required'**
+  String get arCameraAuthorizationRequired;
+
+  /// No description provided for @arCameraAuthorizationDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera authorization was denied'**
+  String get arCameraAuthorizationDenied;
+
+  /// No description provided for @arCameraInitializationError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not initialize the camera'**
+  String get arCameraInitializationError;
 }
 
 class _CamLocalizationsDelegate

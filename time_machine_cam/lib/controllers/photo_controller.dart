@@ -3,6 +3,7 @@ import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_cam/services/database_service.dart';
 import 'package:time_machine_config/time_machine_config.dart';
@@ -16,14 +17,29 @@ class PhotoController {
     this.configurationService,
     this.databaseService,
     this.networkService,
+    this.orientationStream,
+    this.applyHeadingOffset = true,
   });
 
   final CacheService cacheService;
   final ConfigurationService? configurationService;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
-  Picture? original;
 
+  /// Stream of the device orientation in camera terms. Supplies both the
+  /// [orientation] subject and the heading correction. Falls back to
+  /// portrait_up when null.
+  final Stream<CameraOrientations>? orientationStream;
+
+  /// Whether to add [_headingOffset] to the compass reading.
+  ///
+  /// Covers the camera page (whose overlay is fixed to the sensor frame and
+  /// counter-rotates the compass) — see `AwesomeOrientedWidget`. The tablet
+  /// page rotates with the device, so the raw compass heading is already
+  /// correct and this must be false.
+  final bool applyHeadingOffset;
+
+  Picture? original;
   final isProcessing = BehaviorSubject<bool>.seeded(false);
   final position = BehaviorSubject<Position>();
   final heading = BehaviorSubject<double>();
@@ -43,6 +59,10 @@ class PhotoController {
     } else {
       return CameraAspectRatios.ratio_16_9;
     }
+  }
+
+  String get cameraRatioString {
+    return configurationService?.cameraRatio ?? ConfigurationService.defaultCameraRatio;
   }
 
   String get targetPath {
@@ -68,6 +88,19 @@ class PhotoController {
     orientation.close();
   }
 
+  double _headingOffset(CameraOrientations orientation) {
+    switch (orientation) {
+      case CameraOrientations.portrait_up:
+        return 0;
+      case CameraOrientations.portrait_down:
+        return 180;
+      case CameraOrientations.landscape_right:
+        return 90;
+      case CameraOrientations.landscape_left:
+        return -90;
+    }
+  }
+
   Future<Picture?> loadPicture(int? id) async {
     if (id == null) {
       return null;
@@ -80,6 +113,8 @@ class PhotoController {
     required XFile file,
     double? height,
     double? width,
+    NativeDeviceOrientation? orientation,
+    double? aspectRatio,
   }) async {
     isProcessing.value = true;
     try {
@@ -93,6 +128,8 @@ class PhotoController {
         heading: heading.valueOrNull,
         height: height,
         width: width,
+        orientation: orientation,
+        aspectRatio: aspectRatio,
         cacheService: cacheService,
       );
     } finally {
@@ -124,18 +161,12 @@ class PhotoController {
             }
             return e.heading;
           }),
-          CamerawesomePlugin.getNativeOrientation() ?? Stream.value(CameraOrientations.portrait_up),
+          orientationStream ?? Stream.value(CameraOrientations.portrait_up),
               (trueHeading, orientation) {
-            switch (orientation) {
-              case CameraOrientations.portrait_up:
-                return (trueHeading, orientation);
-              case CameraOrientations.portrait_down:
-                return (trueHeading + 180, orientation);
-              case CameraOrientations.landscape_right:
-                return (trueHeading + 90, orientation);
-              case CameraOrientations.landscape_left:
-                return (trueHeading - 90, orientation);
-            }
+            final corrected = applyHeadingOffset
+                ? trueHeading + _headingOffset(orientation)
+                : trueHeading;
+            return (corrected % 360, orientation);
           })
           .listen((value) {
             heading.add(value.$1);

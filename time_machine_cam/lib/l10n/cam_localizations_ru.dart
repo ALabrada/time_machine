@@ -57,4 +57,16 @@ class CamLocalizationsRu extends CamLocalizations {
 
   @override
   String get viewPicture => 'Посмотреть';
+
+  @override
+  String get arCameraAuthorizationRequired =>
+      'Требуется разрешение на доступ к камере';
+
+  @override
+  String get arCameraAuthorizationDenied =>
+      'Разрешение на доступ к камере было отклонено';
+
+  @override
+  String get arCameraInitializationError =>
+      'Не удалось инициализировать камеру';
 }

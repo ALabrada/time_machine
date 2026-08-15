@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../foundation/color_foundation.dart';
 import '../foundation/typography_foundation.dart';
 
-const searchFieldDecoration = InputDecorationTheme(
+InputDecorationTheme searchFieldDecoration(BuildContext context) => InputDecorationTheme(
   enabledBorder: OutlineInputBorder(
     borderSide: BorderSide(
       color: Colors.transparent,
@@ -18,10 +18,10 @@ const searchFieldDecoration = InputDecorationTheme(
     borderRadius: BorderRadius.all(Radius.circular(4)),
   ),
   contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-  fillColor: textFieldBackgroundColor,
+  fillColor: textFieldBackgroundColor(context),
   filled: true,
   hintStyle: TextStyle(
-    color: textFieldHintColor,
+    color: textFieldHintColor(context),
     fontFamily: textFieldFontFamily,
     fontSize: textFieldFontSize,
     fontWeight: textFieldFontWeight,

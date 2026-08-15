@@ -15,6 +15,8 @@ import 'package:go_router/go_router.dart';
 import 'package:time_machine_res/molecules/context_menu.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../l10n/cam_localizations.dart';
+
 class ScanningPage extends StatefulWidget {
   const ScanningPage({
     super.key,
@@ -52,6 +54,27 @@ class ScanningPageState extends State<ScanningPage> {
         stream: arController.annotations,
         builder: (context, snapshot) {
           return ArLocationWidget(
+            errorBuilder: (context, error) {
+              final l10n = CamLocalizations.of(context);
+              final message = switch (error) {
+                ArCameraError.authorizationRequired =>
+                  l10n.arCameraAuthorizationRequired,
+                ArCameraError.authorizationDenied =>
+                  l10n.arCameraAuthorizationDenied,
+                ArCameraError.initializationFailed =>
+                  l10n.arCameraInitializationError,
+              };
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              );
+            },
             showDebugInfoSensor: !kReleaseMode,
             annotations: snapshot.data ?? [],
             maxVisibleDistance: widget.maxDistanceInMeters,

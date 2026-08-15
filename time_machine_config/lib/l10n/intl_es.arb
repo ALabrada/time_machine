@@ -19,11 +19,14 @@
   "sectionInformation": "Información",
   "sectionMap": "Mapa",
   "sectionSearchOptions": "Opciones de Búsqueda",
+  "sectionAppearance": "Apariencia",
   "settingGeocoder": "Base de Datos de Direcciones",
   "settingHelp": "Preguntas Frecuentes",
   "settingMapProvider": "Servicio de Mapas",
   "settingPictureRatio": "Relación de Aspecto",
   "settingReferenceOpacity": "Opacidad de la Referencia",
+  "settingVolumeButton": "Botón de Volumen",
+  "settingVolumeButtonDescription": "Tomar una foto presionando las teclas de volumen",
   "settingSearchBeginning": "Inicio (año)",
   "settingSearchEnd": "Fin (año)",
   "cloudPageTitle": "Nube",
@@ -43,5 +46,9 @@
   "cloudPageSignOut": "Cerrar sesión",
   "cloudPageActivate": "Activar",
   "cloudPageActivationSuccess": "Nube activada.",
-  "cloudPageActivationFailed": "La activación falló. Inicia sesión en el proveedor primero."
+  "cloudPageActivationFailed": "La activación falló. Inicia sesión en el proveedor primero.",
+  "settingThemeMode": "Tema",
+  "settingThemeModeDark": "Oscuro",
+  "settingThemeModeLight": "Claro",
+  "settingThemeModeSystem": "Sistema"
 }

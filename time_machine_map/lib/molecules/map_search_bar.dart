@@ -43,9 +43,9 @@ class MapSearchBarState extends State<MapSearchBar> {
       transitionDuration: const Duration(milliseconds: 800),
       transitionCurve: Curves.easeInOut,
       physics: const BouncingScrollPhysics(),
-      axisAlignment: isPortrait ? 0.0 : -1.0,
+      axisAlignment: 0.0,
       openAxisAlignment: 0.0,
-      width: isPortrait ? 600 : 500,
+      width: isPortrait ? 600 : null,
       debounceDelay: const Duration(seconds: 1),
       onQueryChanged: (query) {
         unawaited(_searchController.locate(query));
@@ -62,7 +62,7 @@ class MapSearchBarState extends State<MapSearchBar> {
         return ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Material(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             elevation: 4.0,
             child: _buildResults(),
           ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:time_machine_res/atoms/inputs.dart';
-import 'package:time_machine_res/tokens/colors.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 
 class GallerySearchBar extends StatelessWidget {
   const GallerySearchBar({
@@ -16,13 +15,13 @@ class GallerySearchBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(4),
         boxShadow: [
           BoxShadow(
             offset: Offset(0,2),
             blurRadius: 10.0,
-            color: gray05.withValues(alpha: 0.5),
+            color: shadowColor(context).withValues(alpha: 0.5),
           ),
         ],
       ),
@@ -45,7 +44,7 @@ class GallerySearchBar extends StatelessWidget {
               );
             },
           ),
-        ).applyDefaults(searchFieldDecoration),
+        ).applyDefaults(searchFieldDecoration(context)),
       ),
     );
   }

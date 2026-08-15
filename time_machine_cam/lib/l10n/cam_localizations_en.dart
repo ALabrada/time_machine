@@ -56,4 +56,14 @@ class CamLocalizationsEn extends CamLocalizations {
 
   @override
   String get viewPicture => 'View';
+
+  @override
+  String get arCameraAuthorizationRequired =>
+      'Camera authorization is required';
+
+  @override
+  String get arCameraAuthorizationDenied => 'Camera authorization was denied';
+
+  @override
+  String get arCameraInitializationError => 'Could not initialize the camera';
 }

@@ -19,11 +19,14 @@
   "sectionInformation": "Информация",
   "sectionMap": "Карта",
   "sectionSearchOptions": "Параметры Поиска",
+  "sectionAppearance": "Внешний Вид",
   "settingGeocoder": "База Данных Адресов",
   "settingHelp": "Частые Вопросы",
   "settingMapProvider": "Картографический Сервис",
   "settingPictureRatio": "Соотношение Сторон Изображения",
   "settingReferenceOpacity": "Прозрачность Эталона",
+  "settingVolumeButton": "Кнопка Громкости",
+  "settingVolumeButtonDescription": "Сделать снимок, нажав клавиши громкости",
   "settingSearchBeginning": "Начало (год)",
   "settingSearchEnd": "Конец (года)",
   "cloudPageTitle": "Облако",
@@ -43,5 +46,9 @@
   "cloudPageSignOut": "Выйти",
   "cloudPageActivate": "Активировать",
   "cloudPageActivationSuccess": "Облако активировано.",
-  "cloudPageActivationFailed": "Не удалось активировать. Сначала войдите в провайдера."
+  "cloudPageActivationFailed": "Не удалось активировать. Сначала войдите в провайдера.",
+  "settingThemeMode": "Тема",
+  "settingThemeModeDark": "Тёмная",
+  "settingThemeModeLight": "Светлая",
+  "settingThemeModeSystem": "Системная"
 }

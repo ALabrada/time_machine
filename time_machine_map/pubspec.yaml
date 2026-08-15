@@ -33,7 +33,7 @@ dependencies:
   flutter_map_marker_cluster_plus: any
   vector_map_tiles: any
   vector_tile_renderer: any
-  geolocator: 13.0.4
+  geolocator: ^14.0.0
   go_router: any
   intl: any
   latlong2: ^0.9.1

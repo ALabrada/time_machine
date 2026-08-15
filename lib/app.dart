@@ -30,6 +30,28 @@ class TimeMachineApp extends StatelessWidget {
   final PackageInfo? packageInfo;
   final String? userAgent;
 
+  ThemeData _buildTheme(ColorScheme scheme) => ThemeData.from(
+    colorScheme: scheme,
+    useMaterial3: true,
+  ).copyWith(
+    appBarTheme: AppBarTheme(
+      backgroundColor: scheme.secondary,
+      foregroundColor: scheme.onSecondary,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.light,
+        statusBarColor: scheme.secondary,
+      ),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: scheme.secondary,
+      actionBackgroundColor: scheme.primary,
+      contentTextStyle: TextStyle(
+        color: scheme.onSecondary,
+      ),
+    ),
+  );
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -45,7 +67,9 @@ class TimeMachineApp extends StatelessWidget {
                 GoRoute(
                     path: '/',
                     builder: (context, state) => FixedOrientationView(
-                      orientations: [DeviceOrientation.portraitUp],
+                      orientations: isTabletLayout(context)
+                          ? DeviceOrientation.values
+                          : [DeviceOrientation.portraitUp],
                       child: HomePage(
                         initialTab: state.uri.queryParameters['tab'],
                         pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
@@ -54,12 +78,19 @@ class TimeMachineApp extends StatelessWidget {
                     routes: [
                       GoRoute(
                         path: 'camera',
-                        builder: (context, state) => FixedOrientationView(
-                          orientations: DeviceOrientation.values,
-                          child: CameraPage(
-                            pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
-                          ),
-                        ),
+                        builder: (context, state) => isTabletLayout(context)
+                            ? FixedOrientationView(
+                                orientations: DeviceOrientation.values,
+                                child: TabletCameraPage(
+                                  pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
+                                ),
+                              )
+                            : FixedOrientationView(
+                                orientations: [DeviceOrientation.portraitUp],
+                                child: CameraPage(
+                                  pictureId: int.tryParse(state.uri.queryParameters['pictureId'] ?? ''),
+                                ),
+                              ),
                       ),
                       GoRoute(
                         path: 'import',
@@ -204,9 +235,14 @@ class TimeMachineApp extends StatelessWidget {
           ),
           lazy: false,
         ),
-        Provider<ConfigurationService>(
+        ChangeNotifierProvider<ConfigurationService>(
           create: (context) => ConfigurationService(
             preferences: context.read,
+          ),
+        ),
+        Provider<PhysicalButtonService>(
+          create: (context) => PhysicalButtonService(
+            configurationService: context.read(),
           ),
         ),
         Provider<TelegramService>(
@@ -238,26 +274,10 @@ class TimeMachineApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: AppLocalizations.supportedLocales,
-          theme: ThemeData.from(
-            colorScheme: colorScheme,
-            useMaterial3: true,
-          ).copyWith(
-            appBarTheme: AppBarTheme(
-              backgroundColor: colorScheme.secondary,
-              foregroundColor: colorScheme.onSecondary,
-              systemOverlayStyle: SystemUiOverlayStyle(
-                statusBarBrightness: Brightness.dark,
-                statusBarIconBrightness: Brightness.light,
-                statusBarColor: colorScheme.secondary,
-              ),
-            ),
-            snackBarTheme: SnackBarThemeData(
-              backgroundColor: colorScheme.secondary,
-              actionBackgroundColor: colorScheme.primary,
-              contentTextStyle: TextStyle(
-                color: colorScheme.onSecondary,
-              ),
-            ),
+          theme: _buildTheme(colorScheme),
+          darkTheme: _buildTheme(darkColorScheme),
+          themeMode: themeModeOf(
+            context.watch<ConfigurationService>().themeMode ?? 'system',
           ),
           routerConfig: context.read<GoRouter>(),
         );

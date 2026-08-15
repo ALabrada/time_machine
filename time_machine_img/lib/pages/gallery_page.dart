@@ -159,8 +159,8 @@ class GalleryPageState extends State<GalleryPage> {
         }
         return GroupGridView(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 160,
             mainAxisSpacing: 0,
             crossAxisSpacing: 0,
           ),
