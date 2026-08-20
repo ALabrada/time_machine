@@ -8,6 +8,7 @@ import 'package:photo_view/photo_view.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_img/controllers/picture_controller.dart';
+import 'package:time_machine_img/molecules/edit_description_dialog.dart';
 import 'package:time_machine_img/molecules/tool_bar.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -151,6 +152,11 @@ class PicturePageState extends State<PicturePage> with SingleTickerProviderState
               onPressed: () => _openSite(picture!.site!),
               icon: Icon(Icons.open_in_browser),
             ),
+          if (picture?.provider == '')
+            IconButton(
+              onPressed: () => _editDescription(picture!),
+              icon: Icon(Icons.edit),
+            ),
           IconButton(
             onPressed: widget.pictureId == null ? null : () {
               unawaited(pictureController.sharePicture());
@@ -181,6 +187,21 @@ class PicturePageState extends State<PicturePage> with SingleTickerProviderState
 
   void _openSite(String site) {
     unawaited(launchUrlString(site));
+  }
+
+  Future<void> _editDescription(Picture picture) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => EditDescriptionDialog(
+        initialDescription: picture.description,
+      ),
+    );
+    if (result != null) {
+      await pictureController.updateDescription(result.trim());
+      if (mounted) {
+        setState(() {});
+      }
+    }
   }
 
   Future<void> showCreationMenu() async {

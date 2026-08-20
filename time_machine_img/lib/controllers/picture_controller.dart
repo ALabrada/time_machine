@@ -37,4 +37,13 @@ class PictureController {
       text: picture.text,
     ));
   }
+
+  Future<void> updateDescription(String description) async {
+    final picture = this.picture;
+    if (picture == null) {
+      return;
+    }
+    picture.description = description.isEmpty ? null : description;
+    await databaseService?.savePicture(picture);
+  }
 }

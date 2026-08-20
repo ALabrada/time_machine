@@ -25,6 +25,20 @@ extension DatabaseExtensions on DatabaseService {
     return picture;
   }
 
+  Future<Picture> savePicture(Picture model) async {
+    final repo = createRepository<Picture>();
+    await repo.upsert(model);
+    final pictureId = model.localId;
+    if (pictureId != null) {
+      final records = await createRepository<Record>().findRecordsWithPictures([pictureId]);
+      for (final record in records) {
+        record.updateAt = DateTime.now();
+        await createRepository<Record>().update(record);
+      }
+    }
+    return model;
+  }
+
   Future<Record?> loadRecord(int id) async {
     final repo = createRepository<Record>();
     final record = await repo.getById(id);
