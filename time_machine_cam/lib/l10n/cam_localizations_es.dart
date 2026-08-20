@@ -68,4 +68,12 @@ class CamLocalizationsEs extends CamLocalizations {
 
   @override
   String get arCameraInitializationError => 'No se pudo inicializar la cámara';
+
+  @override
+  String get arLocationPermissionDisallowed =>
+      'No se permite el acceso a la ubicación';
+
+  @override
+  String get arLocationServiceDisabled =>
+      'Los servicios de ubicación están desactivados';
 }

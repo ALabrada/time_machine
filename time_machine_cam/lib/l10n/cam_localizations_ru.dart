@@ -69,4 +69,10 @@ class CamLocalizationsRu extends CamLocalizations {
   @override
   String get arCameraInitializationError =>
       'Не удалось инициализировать камеру';
+
+  @override
+  String get arLocationPermissionDisallowed => 'Доступ к геолокации запрещён';
+
+  @override
+  String get arLocationServiceDisabled => 'Службы геолокации отключены';
 }
