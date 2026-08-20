@@ -29,10 +29,11 @@ extension DatabaseExtensions on DatabaseService {
     final repo = createRepository<Picture>();
     await repo.upsert(model);
     final pictureId = model.localId;
+    final timestamp = DateTime.now().toUtc();
     if (pictureId != null) {
       final records = await createRepository<Record>().findRecordsWithPictures([pictureId]);
       for (final record in records) {
-        record.updateAt = DateTime.now();
+        record.updateAt = timestamp;
         await createRepository<Record>().update(record);
       }
     }
