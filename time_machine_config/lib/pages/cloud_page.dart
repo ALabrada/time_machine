@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_config/controllers/cloud_controller.dart';
+import 'package:time_machine_config/molecules/google_drive_cloud_content.dart';
+import 'package:time_machine_config/molecules/supabase_cloud_content.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 
 import '../l10n/config_localizations.dart';
 
@@ -12,8 +15,6 @@ class CloudPage extends StatefulWidget {
 }
 
 class CloudPageState extends State<CloudPage> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
   late final CloudController controller;
 
   @override
@@ -23,13 +24,12 @@ class CloudPageState extends State<CloudPage> {
       configurationService: context.read(),
       networkService: context.read(),
       cloudSyncService: context.read(),
+      googleDriveSignIn: context.read<GoogleDriveSignIn?>(),
     );
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
     controller.dispose();
     super.dispose();
   }
@@ -45,13 +45,17 @@ class CloudPageState extends State<CloudPage> {
       body: ListenableBuilder(
         listenable: controller,
         builder: (context, _) {
-          return !controller.cloudAvailable
-              ? _buildUnavailable(context)
-              : controller.loading
-              ? const Center(child: CircularProgressIndicator())
-              : controller.error != null
-              ? _buildError(context, controller.error!)
-              : _buildContent(context);
+          if (!controller.cloudAvailable) {
+            return _buildUnavailable(context);
+          }
+          if (controller.loading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final error = controller.error;
+          if (error != null) {
+            return _buildError(context, error);
+          }
+          return _buildContent(context);
         },
       ),
     );
@@ -99,6 +103,7 @@ class CloudPageState extends State<CloudPage> {
 
   Widget _buildContent(BuildContext context) {
     final localizations = ConfigLocalizations.of(context);
+    final cloud = controller.cloud;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -123,78 +128,16 @@ class CloudPageState extends State<CloudPage> {
             ),
           ),
         ]),
-        if (controller.supportsAuthentication)
-          _buildAuthSection(context),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: controller.loading
-              ? null
-              : () => _activate(context),
-          icon: controller.loading
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.cloud_upload_outlined),
-          label: Text(localizations.cloudPageActivate),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAuthSection(BuildContext context) {
-    final localizations = ConfigLocalizations.of(context);
-    final authenticated = controller.isAuthenticated;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: 16),
-        _buildSection(context, [
-          ListTile(
-            leading: Icon(
-              authenticated ? Icons.verified_user : Icons.person_outline,
-              color: authenticated
-                  ? Colors.green
-                  : Theme.of(context).colorScheme.outline,
-            ),
-            title: Text(localizations.cloudPageAuthSection),
-            trailing: authenticated
-                ? Text(localizations.cloudPageStatusActive)
-                : Text(localizations.cloudPageStatusInactive),
+        if (cloud is SupabaseCloud)
+          SupabaseCloudContent(
+            state: controller.value,
+            onEvent: controller.handleEvent,
+          )
+        else if (cloud is GoogleDriveCloud)
+          GoogleDriveCloudContent(
+            state: controller.value,
+            onEvent: controller.handleEvent,
           ),
-        ]),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
-          autocorrect: false,
-          decoration: InputDecoration(
-            labelText: localizations.cloudPageEmail,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _passwordController,
-          obscureText: true,
-          onSubmitted: (_) => _signIn(),
-          decoration: InputDecoration(
-            labelText: localizations.cloudPagePassword,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: controller.loading ? null : _signIn,
-          child: Text(localizations.cloudPageSignIn),
-        ),
-        TextButton(
-          onPressed: controller.loading
-              ? null
-              : () => _runAuth(controller.signOut),
-          child: Text(localizations.cloudPageSignOut),
-        ),
       ],
     );
   }
@@ -203,45 +146,5 @@ class CloudPageState extends State<CloudPage> {
     return Card(
       child: Column(children: children),
     );
-  }
-
-  Future<void> _signIn() {
-    return _runAuth(
-      () => controller.signIn(_emailController.text, _passwordController.text),
-    );
-  }
-
-  Future<void> _runAuth(Future<void> Function() action) async {
-    final localizations = ConfigLocalizations.of(context);
-    try {
-      await action();
-      if (!mounted) return;
-      _showMessage(localizations.cloudPageAuthSuccess);
-    } catch (error) {
-      if (!mounted) return;
-      _showMessage(localizations.cloudPageAuthFailed, error: error);
-    }
-  }
-
-  Future<void> _activate(BuildContext context) async {
-    final localizations = ConfigLocalizations.of(context);
-    try {
-      final activated = await controller.activate();
-      if (!mounted) return;
-      _showMessage(
-        activated
-            ? localizations.cloudPageActivationSuccess
-            : localizations.cloudPageActivationFailed,
-      );
-    } catch (error) {
-      if (!mounted) return;
-      _showMessage(localizations.cloudPageActivationFailed, error: error);
-    }
-  }
-
-  void _showMessage(String message, {Object? error}) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(error == null ? message : '$message\n$error'),
-    ));
   }
 }

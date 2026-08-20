@@ -395,6 +395,24 @@ abstract class ConfigLocalizations {
   /// **'Activation failed. Sign in to the provider first.'**
   String get cloudPageActivationFailed;
 
+  /// No description provided for @cloudPageDeactivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate'**
+  String get cloudPageDeactivate;
+
+  /// No description provided for @cloudPageDeactivationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud deactivated.'**
+  String get cloudPageDeactivationSuccess;
+
+  /// No description provided for @cloudPageDeactivationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivation failed.'**
+  String get cloudPageDeactivationFailed;
+
   /// No description provided for @settingThemeMode.
   ///
   /// In en, this message translates to:

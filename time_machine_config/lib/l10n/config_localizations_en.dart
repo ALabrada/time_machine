@@ -180,6 +180,15 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
       'Activation failed. Sign in to the provider first.';
 
   @override
+  String get cloudPageDeactivate => 'Deactivate';
+
+  @override
+  String get cloudPageDeactivationSuccess => 'Cloud deactivated.';
+
+  @override
+  String get cloudPageDeactivationFailed => 'Deactivation failed.';
+
+  @override
   String get settingThemeMode => 'Theme';
 
   @override

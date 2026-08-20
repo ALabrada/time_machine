@@ -1,8 +1,11 @@
+import 'package:app_links/app_links.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:googleapis_auth/googleapis_auth.dart' as auth;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -55,6 +58,7 @@ class TimeMachineApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    final gdriveScheme = Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI).scheme;
     return MultiProvider(
       providers: [
         Provider<RouteObserver>(
@@ -63,6 +67,10 @@ class TimeMachineApp extends StatelessWidget {
         Provider<GoRouter>(
           create: (context) {
             return GoRouter(
+              redirect: (context, state) => oauthDeepLinkRedirect(
+                state.uri,
+                redirectScheme: gdriveScheme,
+              ),
               routes: [
                 GoRoute(
                     path: '/',
@@ -172,6 +180,10 @@ class TimeMachineApp extends StatelessWidget {
                 supabaseUrl: secrets.SUPABASE_URL,
                 supabaseKey: secrets.SUPABASE_ANON_KEY,
               ),
+              // No Google Play Services involved: OAuth runs through the
+              // system browser and a custom URL scheme delivered to the app
+              // as a deep link, so the cloud only needs the token store.
+              'gdrive': GoogleDriveCloud(),
             },
             userAgent: userAgent,
             geocoders: {
@@ -207,6 +219,24 @@ class TimeMachineApp extends StatelessWidget {
             },
           ),
         ),
+        Provider<GoogleDriveSignIn>(
+          create: (_) {
+            final appLinks = AppLinks();
+            return GoogleDriveSignIn(
+              clientId: auth.ClientId(
+                defaultTargetPlatform == TargetPlatform.iOS
+                    ? secrets.GOOGLE_DRIVE_CLIENT_ID_IOS
+                    : secrets.GOOGLE_DRIVE_CLIENT_ID_ANDROID,
+                null,
+              ),
+              // Cold-start deep links (the app relaunched by the OAuth
+              // scheme) are only reported by `getInitialUri`; warm redirects
+              // arrive through `uriLinkStream`. Merge both into one stream.
+              redirectStream: _mergeDeepLinks(appLinks),
+              redirectUri: Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI),
+            );
+          },
+        ),
         if (packageInfo != null)
           Provider.value(value: packageInfo!),
         FutureProvider<DatabaseService?>(
@@ -226,7 +256,9 @@ class TimeMachineApp extends StatelessWidget {
           ),
         ),
         Provider<SharingService>(
-          create: (_) => SharingService(),
+          create: (_) => SharingService(
+            ignoreUriSchemes: {gdriveScheme},
+          ),
         ),
         FutureProvider<SharedPreferencesWithCache?>(
           initialData: null,
@@ -284,4 +316,25 @@ class TimeMachineApp extends StatelessWidget {
       },
     );
   }
+}
+
+/// Merges the cold-start deep link (relaunch via the OAuth URL scheme) with
+/// the stream of warm deep links, so a consent redirect is never missed
+/// regardless of whether the app was already running.
+Stream<Uri> _mergeDeepLinks(AppLinks appLinks) async* {
+  final initial = await appLinks.getInitialLink();
+  if (initial != null) {
+    yield initial;
+  }
+  yield* appLinks.uriLinkStream;
+}
+
+/// Bounces custom-scheme deep links (the OAuth consent return) back to the
+/// home route. The auth flow reads the URI off the app_links stream, so the
+/// router must not try to match it or it throws "no routes for location".
+String? oauthDeepLinkRedirect(Uri uri, {required String redirectScheme}) {
+  if (uri.scheme == redirectScheme) {
+    return '/';
+  }
+  return null;
 }

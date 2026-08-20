@@ -5,6 +5,7 @@ export 'services/cloud/cloud_base.dart';
 export 'services/cloud/file_cloud_base.dart';
 export 'services/cloud/google_drive_auth.dart';
 export 'services/cloud/google_drive_cloud.dart';
+export 'services/cloud/google_drive_token_store.dart';
 export 'services/cloud/supabase_cloud.dart';
 export 'services/geocoders/geonames_geocoder.dart';
 export 'services/providers/history_pin_provider.dart';

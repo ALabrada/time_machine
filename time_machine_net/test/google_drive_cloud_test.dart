@@ -3,21 +3,30 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:googleapis_auth/googleapis_auth.dart' as auth;
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/services/cloud/file_cloud_base.dart';
 import 'package:time_machine_net/services/cloud/google_drive_cloud.dart';
+import 'package:time_machine_net/services/cloud/google_drive_token_store.dart';
 
 import 'fakes/fake_drive_adapter.dart';
 
 void main() {
+  final clientId = auth.ClientId('test-id.apps.googleusercontent.com', null);
   late FakeDriveAdapter adapter;
   late GoogleDriveCloud cloud;
+  late _MemoryTokenStore store;
 
   setUp(() {
     adapter = FakeDriveAdapter();
+    store = _MemoryTokenStore()
+      ..session = GoogleDriveSession(
+        clientId: clientId.identifier,
+        refreshToken: 'refresh-token',
+      );
     cloud = GoogleDriveCloud(
       client: adapter.client(),
-      accessToken: 'test-token',
+      tokenStore: store,
       appRootFolderName: 'TimeMachine',
     );
   });
@@ -46,42 +55,39 @@ void main() {
       expect(adapter.children(appDataFolder).single.id, 'existing');
     });
 
-    test('throws when no token can be provided', () async {
-      final anon = GoogleDriveCloud(
+    test('restores the session from the store when no client is given',
+        () async {
+      final store = _MemoryTokenStore()
+        ..session = GoogleDriveSession(
+          clientId: clientId.identifier,
+          refreshToken: 'refresh-token',
+        );
+      final restored = GoogleDriveCloud(
         client: adapter.client(),
-        tokenProvider: () async => 'provider-token',
+        tokenStore: store,
+        appRootFolderName: 'TimeMachine',
       );
 
+      await restored.initialize();
+
+      expect(adapter.exchangedCodes, isEmpty);
+      expect(
+        adapter.authorizationHeaders,
+        everyElement('Bearer access-token'),
+      );
+      final root = adapter.children(appDataFolder).single;
+      expect(root.name, 'TimeMachine');
+      restored.dispose();
+    });
+
+    test('throws when the token store cannot provide a refresh token',
+        () async {
       final failing = GoogleDriveCloud(
         client: adapter.client(),
-        tokenProvider: () async => throw Exception('Not signed in'),
+        tokenStore: _ThrowingTokenStore(),
       );
 
       expect(failing.initialize(), throwsException);
-      expect(failing.onPush(
-        path: 'files/a.jpg',
-        fileData: Uint8List.fromList([1]),
-      ), throwsException);
-      expect(anon.initialize(), completes);
-    });
-
-    test('uses the tokenProvider result for authorization', () async {
-      final provided = GoogleDriveCloud(
-        client: adapter.client(),
-        tokenProvider: () async => 'provider-token',
-      );
-
-      await provided.initialize();
-      await provided.onPush(
-        path: 'files/a.jpg',
-        fileData: Uint8List.fromList([1]),
-        mimeType: 'image/jpeg',
-      );
-
-      expect(
-        adapter.authorizationHeaders,
-        everyElement('Bearer provider-token'),
-      );
     });
   });
 
@@ -287,6 +293,63 @@ void main() {
       expect(events.first.metadata.id, metadata.id);
     });
   });
+
+  group('credentials', () {
+    test('initializes from the store and persists the account email',
+        () async {
+      await cloud.initialize();
+
+      expect(adapter.authorizationHeaders, everyElement('Bearer access-token'));
+      expect(store.session!.userEmail, 'user@example.com');
+      cloud.dispose();
+    });
+
+    test('logout clears the saved credentials and token', () async {
+      final cloud = GoogleDriveCloud(
+        client: adapter.client(),
+        tokenStore: store,
+        appRootFolderName: 'TimeMachine',
+      );
+
+      await cloud.initialize();
+      await cloud.logout();
+
+      expect(store.session, isNull);
+      expect(
+        cloud.onPush(
+          path: 'files/a.jpg',
+          fileData: Uint8List.fromList([1]),
+        ),
+        throwsException,
+      );
+      cloud.dispose();
+    });
+  });
+}
+
+class _MemoryTokenStore implements GoogleDriveTokenStore {
+  GoogleDriveSession? session;
+
+  @override
+  Future<GoogleDriveSession?> read() async => session;
+
+  @override
+  Future<void> write(GoogleDriveSession value) async => session = value;
+
+  @override
+  Future<void> clear() async => session = null;
+}
+
+class _ThrowingTokenStore implements GoogleDriveTokenStore {
+  @override
+  Future<GoogleDriveSession?> read() async =>
+      throw Exception('Unreadable store');
+
+  @override
+  Future<void> write(GoogleDriveSession value) async {}
+
+  @override
+  Future<void> clear() async {}
 }
 
 /// Subscribes to [cloud]'s change stream, runs [trigger], then collects every

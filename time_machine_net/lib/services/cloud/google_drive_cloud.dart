@@ -2,52 +2,27 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:googleapis_auth/auth_io.dart' as auth_io;
 import 'package:googleapis_auth/googleapis_auth.dart' as auth;
 import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/services/cloud/file_cloud_base.dart';
+import 'package:time_machine_net/services/cloud/google_drive_token_store.dart';
 
 class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   GoogleDriveCloud({
     http.Client? client,
     bool closeClient = false,
-    String? accessToken,
-    Future<String> Function()? tokenProvider,
+    GoogleDriveTokenStore? tokenStore,
     this.appRootFolderName = 'TimeMachine',
     this.pollInterval = const Duration(minutes: 1),
     super.encryptionKey,
-  }) : _accessToken = accessToken,
-       _tokenProvider = tokenProvider,
+  }) : tokenStore = tokenStore ?? const SecureGoogleDriveTokenStore(),
        _ownsClient = client == null || closeClient {
     _baseClient = client ?? http.Client();
-    final inner = (accessToken == null && tokenProvider == null)
-        ? _baseClient
-        : _TokenAuthClient(_baseClient, _resolveToken);
-    _drive = drive.DriveApi(inner);
-  }
-
-  /// Builds a cloud that authenticates requests using the given
-  /// [auth.AccessCredentials], without requiring Google Play Services.
-  factory GoogleDriveCloud.fromCredentials({
-    required http.Client baseClient,
-    required auth.AccessCredentials credentials,
-    auth.ClientId? clientId,
-    bool autoRefresh = false,
-    String? appRootFolderName,
-    Duration pollInterval = const Duration(minutes: 1),
-    Uint8List? encryptionKey,
-  }) {
-    final client = (autoRefresh && clientId != null)
-        ? auth.autoRefreshingClient(clientId, credentials, baseClient)
-        : auth.authenticatedClient(baseClient, credentials);
-    return GoogleDriveCloud(
-      client: client,
-      appRootFolderName: appRootFolderName ?? 'TimeMachine',
-      pollInterval: pollInterval,
-      encryptionKey: encryptionKey,
-    );
+    _drive = drive.DriveApi(_baseClient);
   }
 
   /// Grants the `driver`. Given an authenticated [http.Client], only the
@@ -57,11 +32,21 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   static const folderMimeType = 'application/vnd.google-apps.folder';
   static const appDataFolder = 'appDataFolder';
 
-  late final drive.DriveApi _drive;
+  late drive.DriveApi _drive;
   late final http.Client _baseClient;
   final bool _ownsClient;
-  String? _accessToken;
-  final Future<String> Function()? _tokenProvider;
+
+  /// Stores the persisted credentials used to restore the session.
+  final GoogleDriveTokenStore tokenStore;
+
+  /// Set after [logout] so no further token is presented until re-auth.
+  bool _signedOut = false;
+
+  /// The session read from [tokenStore] during [initialize], kept so the
+  /// account email can be persisted back once known.
+  GoogleDriveSession? _restoredSession;
+
+  http.Client? _sessionClient;
   final String appRootFolderName;
   final Duration pollInterval;
 
@@ -74,18 +59,52 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   final Map<String, String> _collectionByFolderId = {};
   String? _rootFolderId;
 
-  void setAccessToken(String token) => _accessToken = token;
+  /// Signs out, clearing the persisted credentials and the current session
+  /// so every subsequent request fails until the cloud is re-authenticated.
+  Future<void> logout() async {
+    _signedOut = true;
+    final sessionClient = _sessionClient;
+    _sessionClient = null;
+    if (sessionClient != null && sessionClient != _baseClient) {
+      sessionClient.close();
+    }
+    _drive = drive.DriveApi(_RejectingClient());
+    await tokenStore.clear();
+  }
 
-  Future<String?> _resolveToken() async {
-    final provider = _tokenProvider;
-    if (provider != null) return provider();
-    return _accessToken;
+  /// Restores a previously signed-in session from the saved refresh token
+  /// when no credentials were supplied at construction.
+  Future<void> _restoreSession() async {
+    if (_signedOut) {
+      return;
+    }
+    final session = await tokenStore.read();
+    if (session == null) {
+      return;
+    }
+    final clientId = session.clientId;
+    final refreshToken = session.refreshToken;
+    if (clientId.isEmpty || refreshToken.isEmpty) {
+      return;
+    }
+    _restoredSession = session;
+    final client = await auth_io.clientViaRefreshToken(
+      auth.ClientId(clientId, null),
+      refreshToken,
+      const [appDataScope],
+      baseClient: _baseClient,
+    );
+    _signedOut = false;
+    _sessionClient = client;
+    _drive = drive.DriveApi(client);
   }
 
   @override
   Future<String> initialize() async {
+    await _restoreSession();
     final about = await _drive.about.get($fields: 'user(emailAddress)');
     final email = about.user?.emailAddress ?? 'unknown';
+    await _persistUserEmail(email);
     await _ensureRootFolder();
     await _initCollectionFolders();
     final tokenResult = await _drive.changes.getStartPageToken();
@@ -93,6 +112,21 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     _startPolling();
     publishEvent(const CloudReconnectedEvent());
     return 'gdrive/$email';
+  }
+
+  /// Records the signed-in account in the persisted session, so it is
+  /// available without contacting the API later.
+  Future<void> _persistUserEmail(String email) {
+    final session = _restoredSession;
+    if (session == null || session.userEmail == email) {
+      return Future.value();
+    }
+    _restoredSession = GoogleDriveSession(
+      refreshToken: session.refreshToken,
+      clientId: session.clientId,
+      userEmail: email,
+    );
+    return tokenStore.write(_restoredSession!);
   }
 
   Future<void> _initCollectionFolders() async {
@@ -112,7 +146,13 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   void dispose() {
     _pollTimer?.cancel();
     _pollTimer = null;
-    if (_ownsClient) _baseClient.close();
+    final sessionClient = _sessionClient;
+    if (sessionClient != null && sessionClient != _baseClient) {
+      sessionClient.close();
+    }
+    if (_ownsClient && _baseClient != sessionClient) {
+      _baseClient.close();
+    }
     super.dispose();
   }
 
@@ -393,24 +433,9 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   }
 }
 
-class _TokenAuthClient extends http.BaseClient {
-  _TokenAuthClient(this._inner, this._resolveToken);
-
-  final http.Client _inner;
-  final Future<String?> Function() _resolveToken;
-
+class _RejectingClient extends http.BaseClient {
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    final token = await _resolveToken();
-    if (token == null || token.isEmpty) {
-      throw Exception('No Google Drive access token available.');
-    }
-    request.headers['Authorization'] = 'Bearer $token';
-    return _inner.send(request);
-  }
-
-  @override
-  void close() {
-    _inner.close();
+    throw Exception('No Google Drive access token available.');
   }
 }

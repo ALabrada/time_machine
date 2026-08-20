@@ -1,114 +1,152 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:time_machine_config/domain/cloud_event.dart';
+import 'package:time_machine_config/domain/cloud_state.dart';
 import 'package:time_machine_config/services/configuration_service.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/time_machine_net.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
-final class CloudController extends ChangeNotifier {
+final class CloudController extends ValueNotifier<CloudState> {
   CloudController({
     required this.configurationService,
     required this.networkService,
     required this.cloudSyncService,
-  }) {
-    connect();
+    this.googleDriveSignIn,
+  }) : super(const NotSelectedState()) {
+    unawaited(_load());
   }
 
   final ConfigurationService configurationService;
   final NetworkService networkService;
   final CloudSyncService cloudSyncService;
 
-  CloudBase? _cloud;
-  bool _loading = false;
-  Object? _error;
+  /// Runs the Google OAuth consent flow used when activating a
+  /// [GoogleDriveCloud]. When null, Google Drive cannot be activated.
+  final GoogleDriveSignIn? googleDriveSignIn;
 
   String? get cloudName => configurationService.cloud;
-  CloudBase? get cloud => _cloud;
-  bool get loading => _loading;
-  Object? get error => _error;
+
+  CloudBase? get cloud {
+    final name = configurationService.cloud;
+    if (name == null) {
+      return null;
+    }
+    return networkService.clouds[name];
+  }
+
+  bool get cloudAvailable => cloud != null;
+
   bool get isActive => cloudSyncService.isActive;
 
-  bool get cloudAvailable {
-    final name = cloudName;
-    return name != null && networkService.clouds.containsKey(name);
-  }
+  bool get loading => value is LoadingState;
 
-  bool get supportsAuthentication {
-    final cloud = _cloud;
-    return cloud is SupabaseCloud;
-  }
-
-  bool get isAuthenticated {
-    final cloud = _cloud;
-    if (cloud is SupabaseCloud) {
-      return cloud.isAuthenticated;
+  Object? get error {
+    final current = value;
+    if (current is FailedState) {
+      return current.error;
     }
-    return false;
+    return null;
   }
 
-  Future<void> connect() async {
-    final cloudName = configurationService.cloud;
-    if (cloudName == null) {
-      return;
+  Future<void> handleEvent(CloudEvent event) async {
+    switch (event) {
+      case CloudActivateEvent():
+        await _activate();
+      case CloudDeactivateEvent():
+        await _deactivate();
     }
-    final cloud = networkService.clouds[cloudName];
+  }
+
+  Future<void> _load() async {
+    value = const LoadingState();
+    final cloud = this.cloud;
     if (cloud == null) {
+      value = const NotSelectedState();
       return;
     }
-    _setLoading(true);
     try {
       await cloud.connect();
-      _cloud = cloud;
-      _error = null;
+      value = _stateFor(cloud);
     } catch (error) {
-      _error = error;
-    } finally {
-      _setLoading(false);
+      value = FailedState(error: error);
     }
   }
 
-  Future<void> signIn(String email, String password) async {
-    final cloud = _cloud;
-    _setLoading(true);
+  Future<void> _activate() async {
+    final previous = value;
+    final cloud = this.cloud;
+    if (cloud == null) {
+      return;
+    }
+    value = const LoadingState();
     try {
-      if (cloud is SupabaseCloud) {
-        await cloud.authenticate(email, password);
-      } else {
-        throw Exception('No cloud provider available to sign in to.');
+      final active = await _authenticate(cloud);
+      if (!cloudSyncService.isActive) {
+        throw Exception('Cloud activation failed');
       }
-    } finally {
-      _setLoading(false);
+      value = _stateFor(active);
+    } catch (error) {
+      value = previous;
+      rethrow;
     }
   }
 
-  Future<void> signOut() async {
-    final cloud = _cloud;
-    _setLoading(true);
+  Future<CloudBase> _authenticate(CloudBase cloud) async {
+    if (cloud is GoogleDriveCloud) {
+      final signIn = googleDriveSignIn;
+      if (signIn == null) {
+        throw UnsupportedError('Google Drive sign-in is not configured');
+      }
+      final authenticated = await signIn.connect(openBrowser: _openBrowser);
+      networkService.clouds[cloudName!] = authenticated;
+      await cloudSyncService.setProvider(authenticated);
+      return authenticated;
+    }
+    await cloudSyncService.setProvider(cloud);
+    return cloud;
+  }
+
+  Future<void> _openBrowser(Uri uri) async {
+    final opened = await launchUrlString(uri.toString());
+    if (!opened) {
+      throw Exception('Could not open the browser');
+    }
+  }
+
+  Future<void> _deactivate() async {
+    final previous = value;
+    final cloud = this.cloud;
+    if (cloud == null) {
+      return;
+    }
+    value = const LoadingState();
     try {
+      await cloudSyncService.setProvider(null);
       if (cloud is SupabaseCloud) {
         await cloud.signOut();
+        value = const SupabaseState(isActive: false);
+      } else if (cloud is GoogleDriveCloud) {
+        await cloud.logout();
+        value = const GoogleDriveState(isConnected: false, isActive: false);
       } else {
-        throw Exception('No cloud provider available to sign out from.');
+        value = const NotSelectedState();
       }
-    } finally {
-      _setLoading(false);
+    } catch (error) {
+      value = previous;
+      rethrow;
     }
   }
 
-  Future<bool> activate() async {
-    final cloud = _cloud;
-    if (cloud == null) {
-      return false;
+  CloudState _stateFor(CloudBase cloud) {
+    final isActive = cloudSyncService.isActive;
+    if (cloud is GoogleDriveCloud) {
+      return GoogleDriveState(isConnected: true, isActive: isActive);
     }
-    _setLoading(true);
-    try {
-      await cloudSyncService.setProvider(cloud);
-    } finally {
-      _setLoading(false);
+    if (cloud is SupabaseCloud) {
+      return SupabaseState(userName: cloud.userEmail, isActive: isActive);
     }
-    return cloudSyncService.isActive;
-  }
-
-  void _setLoading(bool value) {
-    _loading = value;
-    notifyListeners();
+    return const NotSelectedState();
   }
 }

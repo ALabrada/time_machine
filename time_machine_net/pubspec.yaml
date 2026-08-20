@@ -20,6 +20,7 @@ dependencies:
   dio: ^5.7.0
   flutter_cache_manager: any
   flutter_map_math: ^0.2.4
+  flutter_secure_storage: ^9.2.2
   geocoding: ^4.0.0
   googleapis: ^16.0.0
   googleapis_auth: ^2.3.3

@@ -181,6 +181,15 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
       'La activación falló. Inicia sesión en el proveedor primero.';
 
   @override
+  String get cloudPageDeactivate => 'Desactivar';
+
+  @override
+  String get cloudPageDeactivationSuccess => 'Nube desactivada.';
+
+  @override
+  String get cloudPageDeactivationFailed => 'No se pudo desactivar.';
+
+  @override
   String get settingThemeMode => 'Tema';
 
   @override

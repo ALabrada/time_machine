@@ -182,6 +182,15 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
       'Не удалось активировать. Сначала войдите в провайдера.';
 
   @override
+  String get cloudPageDeactivate => 'Деактивировать';
+
+  @override
+  String get cloudPageDeactivationSuccess => 'Облако деактивировано.';
+
+  @override
+  String get cloudPageDeactivationFailed => 'Не удалось деактивировать.';
+
+  @override
   String get settingThemeMode => 'Тема';
 
   @override

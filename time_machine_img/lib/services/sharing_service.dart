@@ -8,6 +8,9 @@ import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_img/services/database_service.dart';
 
 final class SharingService {
+  SharingService({this.ignoreUriSchemes = const {}});
+
+  final Set<String> ignoreUriSchemes;
   final imported = PublishSubject<bool>();
   final importedRecords = BehaviorSubject<List<Record>>.seeded([]);
   StreamSubscription? _intentSub;
@@ -21,13 +24,21 @@ final class SharingService {
 
     _intentSub?.cancel();
     _intentSub = ReceiveSharingIntent.instance.getMediaStream().listen((value) {
-      unawaited(_import(files: value, databaseService: databaseService));
+      unawaited(
+        _import(
+          files: filterSharedMedia(value, ignoreUriSchemes),
+          databaseService: databaseService,
+        ),
+      );
     }, onError: (err) {
       debugPrint("getIntentDataStream error: $err");
     });
 
     final initialData = await ReceiveSharingIntent.instance.getInitialMedia();
-    await _import(files: initialData, databaseService: databaseService);
+    await _import(
+      files: filterSharedMedia(initialData, ignoreUriSchemes),
+      databaseService: databaseService,
+    );
     await ReceiveSharingIntent.instance.reset();
   }
 
@@ -68,4 +79,22 @@ final class SharingService {
       databaseService: databaseService,
     );
   }
+}
+
+/// Drops shares whose path is a URI with an ignored scheme. Used to keep the
+/// OAuth consent return (`com.fakegem.historylens:/oauth2redirect?...`), which
+/// arrives on Android as an ACTION_VIEW intent, from being imported as a
+/// shared "url".
+List<SharedMediaFile> filterSharedMedia(
+  List<SharedMediaFile> files,
+  Set<String> ignoreUriSchemes,
+) {
+  if (files.isEmpty || ignoreUriSchemes.isEmpty) {
+    return files;
+  }
+  return files
+      .where((file) =>
+          file.type != SharedMediaType.url ||
+          !ignoreUriSchemes.contains(Uri.tryParse(file.path)?.scheme))
+      .toList();
 }

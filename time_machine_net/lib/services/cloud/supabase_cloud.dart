@@ -143,6 +143,8 @@ class SupabaseCloud extends CloudBase with EventfulCloud {
 
   bool get isAuthenticated => _client.auth.currentSession != null;
 
+  String? get userEmail => _client.auth.currentSession?.user.email;
+
   @override
   void dispose() {
     for (final channel in _realtimeChannels) {
