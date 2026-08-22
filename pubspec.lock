@@ -456,6 +456,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
+  dropbox_api:
+    dependency: transitive
+    description:
+      name: dropbox_api
+      sha256: "5bd9ceec233cb0d9f7c2bbb8b4722b47e49ebe3851af9311a5622397611a30a3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.6"
   elegant:
     dependency: transitive
     description:
@@ -1417,6 +1425,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.6"
+  oauth2restclient:
+    dependency: transitive
+    description:
+      name: oauth2restclient
+      sha256: "4522861da28f412f05e6411bf72e76dc54bac888724480f1de795258cef299fb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.9"
   objective_c:
     dependency: transitive
     description:

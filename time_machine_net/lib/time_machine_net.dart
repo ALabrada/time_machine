@@ -2,6 +2,8 @@ export 'domain/area.dart';
 export 'domain/place_info.dart';
 export 'services/cache_service.dart';
 export 'services/cloud/cloud_base.dart';
+export 'services/cloud/dropbox_cloud.dart';
+export 'services/cloud/dropbox_token_store.dart';
 export 'services/cloud/file_cloud_base.dart';
 export 'services/cloud/google_drive_auth.dart';
 export 'services/cloud/google_drive_cloud.dart';

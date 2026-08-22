@@ -15,6 +15,7 @@ dependencies:
     path: ../time_machine_db
 
   cachette: ^1.0.0
+  dropbox_api: ^0.0.6
   cross_file: any
   collection: any
   dio: ^5.7.0
@@ -29,6 +30,7 @@ dependencies:
   intl: any
   latlong2: any
   osm_nominatim: ^4.0.1
+  oauth2restclient: ^0.0.9
   path: any
   supabase: ^2.6.0
   meta: any
