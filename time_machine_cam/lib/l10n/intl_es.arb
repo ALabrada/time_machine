@@ -16,5 +16,7 @@
   "viewPicture": "Ver",
   "arCameraAuthorizationRequired": "Se requiere autorización de cámara",
   "arCameraAuthorizationDenied": "Se denegó la autorización de cámara",
-  "arCameraInitializationError": "No se pudo inicializar la cámara"
+  "arCameraInitializationError": "No se pudo inicializar la cámara",
+  "arLocationPermissionDisallowed": "No se permite el acceso a la ubicación",
+  "arLocationServiceDisabled": "Los servicios de ubicación están desactivados"
 }

@@ -16,5 +16,7 @@
   "viewPicture": "Посмотреть",
   "arCameraAuthorizationRequired": "Требуется разрешение на доступ к камере",
   "arCameraAuthorizationDenied": "Разрешение на доступ к камере было отклонено",
-  "arCameraInitializationError": "Не удалось инициализировать камеру"
+  "arCameraInitializationError": "Не удалось инициализировать камеру",
+  "arLocationPermissionDisallowed": "Доступ к геолокации запрещён",
+  "arLocationServiceDisabled": "Службы геолокации отключены"
 }

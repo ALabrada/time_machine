@@ -207,6 +207,18 @@ abstract class CamLocalizations {
   /// In en, this message translates to:
   /// **'Could not initialize the camera'**
   String get arCameraInitializationError;
+
+  /// No description provided for @arLocationPermissionDisallowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Location access is not allowed'**
+  String get arLocationPermissionDisallowed;
+
+  /// No description provided for @arLocationServiceDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Location services are disabled'**
+  String get arLocationServiceDisabled;
 }
 
 class _CamLocalizationsDelegate

@@ -54,7 +54,7 @@ class ScanningPageState extends State<ScanningPage> {
         stream: arController.annotations,
         builder: (context, snapshot) {
           return ArLocationWidget(
-            errorBuilder: (context, error) {
+            cameraErrorBuilder: (context, error) {
               final l10n = CamLocalizations.of(context);
               final message = switch (error) {
                 ArCameraError.authorizationRequired =>
@@ -78,12 +78,43 @@ class ScanningPageState extends State<ScanningPage> {
             showDebugInfoSensor: !kReleaseMode,
             annotations: snapshot.data ?? [],
             maxVisibleDistance: widget.maxDistanceInMeters,
+            locationErrorBuilder: (context, error) {
+              final l10n = CamLocalizations.of(context);
+              final message = switch (error) {
+                ArLocationError.permissionDisallowed =>
+                  l10n.arLocationPermissionDisallowed,
+                ArLocationError.serviceDisabled =>
+                  l10n.arLocationServiceDisabled,
+              };
+              return _buildLocationErrorMessage(context, message);
+            },
             annotationViewBuilder: _buildAnnotation,
             onLocationChange: (p) {
               unawaited(arController.loadPictures(p));
             },
           );
         }
+    );
+  }
+
+  Widget _buildLocationErrorMessage(BuildContext context, String message) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.black.withAlpha(180),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(color: Colors.white),
+        ),
+      ),
     );
   }
 

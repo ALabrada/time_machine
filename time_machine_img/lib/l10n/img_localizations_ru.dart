@@ -45,6 +45,15 @@ class ImgLocalizationsRu extends ImgLocalizations {
   String get errorLoadingPage => 'Не удалось подключиться к серверу';
 
   @override
+  String get editDescriptionTitle => 'Изменить описание';
+
+  @override
+  String get editDescriptionHint => 'Описание';
+
+  @override
+  String get editDescriptionSave => 'Сохранить';
+
+  @override
   String get comparisonPage => 'Сравнение';
 
   @override

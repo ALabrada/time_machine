@@ -46,6 +46,15 @@ class ImgLocalizationsEn extends ImgLocalizations {
   String get errorLoadingPage => 'Could not connect to the server';
 
   @override
+  String get editDescriptionTitle => 'Edit description';
+
+  @override
+  String get editDescriptionHint => 'Description';
+
+  @override
+  String get editDescriptionSave => 'Save';
+
+  @override
   String get comparisonPage => 'Comparison';
 
   @override
