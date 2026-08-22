@@ -36,15 +36,10 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     super.encryptionKey,
     HttpOAuth2RestClient? client,
     dropbox.DropboxApi? api,
-  }) : redirectUri = redirectUri ?? defaultRedirectUri {
-    if (api != null) {
-      _api = api;
-      _restClient = null;
-    } else {
-      _restClient =
-          client ?? HttpOAuth2RestClient(refreshToken: _refreshAccessToken);
-      _api = dropbox.DropboxRestApi(_restClient!);
-    }
+  })  : redirectUri = redirectUri ?? defaultRedirectUri,
+        _injectedApi = api,
+        _externalClient = client {
+    _connectApi();
   }
 
   /// OAuth 2 client identifier registered for this app at
@@ -69,6 +64,11 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
   dropbox.DropboxApi? _api;
   HttpOAuth2RestClient? _restClient;
 
+  /// Dependencies supplied at construction; restored by [_connectApi] after
+  /// [logout] released the previous connection.
+  final dropbox.DropboxApi? _injectedApi;
+  final HttpOAuth2RestClient? _externalClient;
+
   DropboxSession? _session;
   bool _signedOut = false;
 
@@ -81,6 +81,27 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
   final Map<String, Map<String, String>> _snapshots = {};
 
   final Set<String> _ensuredFolders = {};
+
+  /// Builds the API connection. Called by the constructor and again by
+  /// [initialize] when [logout] had released it.
+  void _connectApi() {
+    if (_api != null) return;
+    final injected = _injectedApi;
+    if (injected != null) {
+      _api = injected;
+      return;
+    }
+    _restClient = _externalClient ??
+        HttpOAuth2RestClient(refreshToken: _refreshAccessToken);
+    _api = dropbox.DropboxRestApi(_restClient!);
+  }
+
+  /// Drops the REST transport so its socket pool can be reclaimed. The
+  /// package's client exposes no close method, so releasing is by reference.
+  void _releaseApi() {
+    _api = null;
+    _restClient = null;
+  }
 
   /// Runs the Dropbox OAuth consent flow through the `dropbox_api` package
   /// (Dropbox app or browser on mobile, loopback HTTP server on desktop) and
@@ -107,10 +128,12 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
   @override
   Future<String> initialize() async {
     final session = await tokenStore.read();
-    if (_signedOut || session == null || session.accessToken.isEmpty) {
+    if (session == null || session.accessToken.isEmpty) {
       throw Exception('No Dropbox session available');
     }
+    _signedOut = false;
     _session = session;
+    _connectApi();
     final restClient = _restClient;
     if (restClient != null) {
       restClient.accessToken = session.accessToken;
@@ -145,19 +168,28 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     _pollTimer = Timer.periodic(pollInterval, (_) => pollChanges());
   }
 
-  @override
-  void dispose() {
+  void _stopPolling() {
     _pollTimer?.cancel();
     _pollTimer = null;
+    _pollingStarted = false;
+  }
+
+  @override
+  void dispose() {
+    _stopPolling();
     super.dispose();
   }
 
-  /// Clears the persisted session; every subsequent API call fails until the
-  /// cloud is re-authenticated.
+  /// Clears the persisted session, releases the API connection and stops
+  /// polling. Every subsequent API call fails until the cloud is
+  /// re-authenticated; the same instance can be reused after a new session
+  /// was stored and [initialize] ran again.
   Future<void> logout() async {
     _signedOut = true;
-    _api = null;
+    _session = null;
+    _releaseApi();
     _snapshots.clear();
+    _stopPolling();
     await tokenStore.clear();
   }
 
@@ -192,6 +224,10 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     }
     return api;
   }
+
+  /// The signed-in account, once [initialize] has persisted it. Mirrors
+  /// `SupabaseCloud.userEmail`.
+  String? get userEmail => _session?.accountEmail;
 
   @override
   Stream<CloudFileEntry> onList(String path) async* {

@@ -32,3 +32,10 @@ class SupabaseState extends CloudState {
 
   const SupabaseState({this.userName, required this.isActive,});
 }
+
+class DropBoxState extends CloudState {
+  final String? accountEmail;
+  final bool isActive;
+
+  const DropBoxState({this.accountEmail, required this.isActive});
+}

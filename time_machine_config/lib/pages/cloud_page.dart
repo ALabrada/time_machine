@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_config/controllers/cloud_controller.dart';
+import 'package:time_machine_config/molecules/dropbox_cloud_content.dart';
 import 'package:time_machine_config/molecules/google_drive_cloud_content.dart';
 import 'package:time_machine_config/molecules/supabase_cloud_content.dart';
 import 'package:time_machine_net/time_machine_net.dart';
@@ -135,6 +136,11 @@ class CloudPageState extends State<CloudPage> {
           )
         else if (cloud is GoogleDriveCloud)
           GoogleDriveCloudContent(
+            state: controller.value,
+            onEvent: controller.handleEvent,
+          )
+        else if (cloud is DropBoxCloud)
+          DropBoxCloudContent(
             state: controller.value,
             onEvent: controller.handleEvent,
           ),

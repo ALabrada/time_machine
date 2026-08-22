@@ -184,6 +184,10 @@ class TimeMachineApp extends StatelessWidget {
               // system browser and a custom URL scheme delivered to the app
               // as a deep link, so the cloud only needs the token store.
               'gdrive': GoogleDriveCloud(),
+              'dropbox': DropBoxCloud(
+                clientId: secrets.DROPBOX_APP_KEY,
+                redirectUri: secrets.DROPBOX_REDIRECT_URI,
+              ),
             },
             userAgent: userAgent,
             geocoders: {

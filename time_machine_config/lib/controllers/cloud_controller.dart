@@ -104,6 +104,13 @@ final class CloudController extends ValueNotifier<CloudState> {
       await cloudSyncService.setProvider(authenticated);
       return authenticated;
     }
+    if (cloud is DropBoxCloud) {
+      final session = await DropBoxCloud.authorize(
+        clientId: cloud.clientId,
+        redirectUri: cloud.redirectUri,
+      );
+      await cloud.tokenStore.write(session);
+    }
     await cloudSyncService.setProvider(cloud);
     return cloud;
   }
@@ -130,6 +137,9 @@ final class CloudController extends ValueNotifier<CloudState> {
       } else if (cloud is GoogleDriveCloud) {
         await cloud.logout();
         value = const GoogleDriveState(isConnected: false, isActive: false);
+      } else if (cloud is DropBoxCloud) {
+        await cloud.logout();
+        value = const DropBoxState(isActive: false);
       } else {
         value = const NotSelectedState();
       }
@@ -146,6 +156,9 @@ final class CloudController extends ValueNotifier<CloudState> {
     }
     if (cloud is SupabaseCloud) {
       return SupabaseState(userName: cloud.userEmail, isActive: isActive);
+    }
+    if (cloud is DropBoxCloud) {
+      return DropBoxState(accountEmail: cloud.userEmail, isActive: isActive);
     }
     return const NotSelectedState();
   }

@@ -275,6 +275,23 @@ void main() {
       );
       expect(cloud.initialize(), throwsException);
     });
+
+    test('releases the API connection on logout and restores it on initialize',
+        () async {
+      await cloud.initialize();
+      await cloud.logout();
+      store.session = const DropboxSession(
+        accessToken: 'access-token-2',
+        refreshToken: 'refresh-token-2',
+      );
+
+      final cloudId = await cloud.initialize();
+
+      // The same instance serves requests again through the restored API.
+      expect(cloudId, 'dropbox/user@example.com');
+      final metadata = await cloud.saveRecord('records', null, {'v': 1});
+      expect(await cloud.getRecord('records', metadata.id), {'v': 1});
+    });
   });
 }
 
