@@ -2,8 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:time_machine_db/time_machine_db.dart';
-import 'package:time_machine_img/controllers/comparison_controller.dart';
+import 'package:gif/gif.dart';
 import 'package:time_machine_img/controllers/timelapse_controller.dart';
 import 'package:time_machine_img/domain/timelapse_state.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
@@ -24,28 +23,21 @@ class TimelapsePage extends StatefulWidget {
 
 class TimelapsePageState extends State<TimelapsePage>
     with SingleTickerProviderStateMixin {
+  static const duration = Duration(seconds: 3);
 
-  late AnimationController animationController;
+  late GifController animationController;
   late TimelapseController controller;
 
   @override
   void initState() {
-    animationController = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: 4),
-    )..repeat(reverse: true);
+    animationController = GifController(vsync: this);
     controller = TimelapseController(
       cacheService: context.read(),
       databaseService: context.read(),
+      duration: duration,
     );
     super.initState();
-    unawaited(_init());
-  }
-
-  Future<void> _init() async {
-    animationController.stop();
-    await controller.loadRecord(widget.recordId);
-    animationController.repeat(min: 0, reverse: true);
+    unawaited(controller.loadRecord(widget.recordId));
   }
 
   @override
@@ -114,7 +106,14 @@ class TimelapsePageState extends State<TimelapsePage>
         ),
       );
     } else if (state is FinishedState) {
-      return Image.memory(state.data);
+      return Gif(
+        image: MemoryImage(state.data),
+        duration: controller.duration,
+        controller: animationController,
+        onFetchCompleted: () {
+          animationController.repeat(reverse: true);
+        },
+      );
     } else {
       return LoadingView();
     }

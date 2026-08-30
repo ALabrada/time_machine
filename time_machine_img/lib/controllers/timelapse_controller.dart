@@ -11,12 +11,14 @@ import '../services/database_service.dart';
 class TimelapseController extends ValueNotifier<TimelapseState> {
   TimelapseController({
     required this.cacheService,
+    required this.duration,
     this.databaseService,
   }) : super(UninitializedState());
 
   final _cancelToken = CancelToken();
   final CacheService cacheService;
   final DatabaseService? databaseService;
+  final Duration duration;
   TimelapseService? _service;
 
   @override
@@ -96,7 +98,7 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
       secondImage: ownImage,
       width: 512,
       height: 512,
-      duration: Duration(seconds: 3),
+      duration: duration,
       fps: 1,
       onReceiveProgress: (cur, tot) {
         value = RenderingState(
