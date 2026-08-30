@@ -3,7 +3,6 @@ import 'dart:math';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:dart_tensor_preprocessing/dart_tensor_preprocessing.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_litert/native.dart';
@@ -128,32 +127,26 @@ class TimelapseService {
     return _encodeGifFromImages(frames, fps);
   }
 
+  // FILM operates on float inputs/outputs in the [0, 1] range; the model
+  // performs the [0, 1] -> [-1, 1] normalization internally.
   static Future<Float32List> _createInput(img.Image image) async {
-    final rgbData = Uint8List(image.width * image.height * 3);
+    final data = Float32List(image.width * image.height * 3);
     int idx = 0;
     for (var y = 0; y < image.height; y++) {
       for (var x = 0; x < image.width; x++) {
         final pixel = image.getPixel(x, y);
-        rgbData[idx++] = pixel.r.toInt();
-        rgbData[idx++] = pixel.g.toInt();
-        rgbData[idx++] = pixel.b.toInt();
+        data[idx++] = pixel.r / 255.0;
+        data[idx++] = pixel.g / 255.0;
+        data[idx++] = pixel.b / 255.0;
       }
     }
-
-    var tensor = TensorBuffer.fromUint8List(image.getBytes(), [image.height, image.width, 3]);
-    final pipeline = TensorPipeline([
-      ToTensorOp(normalize: true),
-      TypeCastOp(DType.float32),
-      UnsqueezeOp.batch(),
-    ]);
-    tensor = await pipeline.runAsync(tensor);
-    return tensor.toChannelsLast().contiguous().dataAsFloat32List;
+    return data;
   }
 
   static img.Image _decodeImage(Float32List data, int width, int height) {
     final outputImage = img.Image(width: width, height: height);
 
-    // Fill pixel data from tensor (clamping values to [0.0, 1.0] range)
+    // FILM outputs values in [0.0, 1.0]; scale back to [0, 255].
     for (var y = 0; y < height; y++) {
       for (var x = 0; x < width; x++) {
         final idx = (y * width + x) * 3;
@@ -186,7 +179,7 @@ class TimelapseService {
     required Float32List secondImage,
     required double delay,
   }) async {
-    final timeData = Float32List.fromList([0.5]);
+    final timeData = Float32List.fromList([delay]);
     final inputs = [
       timeData.buffer.asUint8List(),
       firstImage.buffer.asUint8List(),
@@ -195,14 +188,14 @@ class TimelapseService {
 
     final outputs = <int, Object>{};
     for (int i = 0; i < outputTensors.length; i++) {
-      final tensor = outputTensors[i];
-      outputs[i] = TensorBuffer.zeros(tensor.shape);
+      // Allocate native typed buffers so Tensor.copyTo can bulk-copy the
+      // model output into them (it cannot write into a TensorBuffer).
+      outputs[i] = Float32List(outputTensors[i].data.length ~/ 4);
     }
 
     await interpreter.runForMultipleInputs(inputs, outputs);
 
-    final output = outputs[1] as TensorBuffer;
-    return output.dataAsFloat32List;
+    return outputs[1] as Float32List;
   }
 
   static img.Image _resize(img.Image image, int width, int height) {

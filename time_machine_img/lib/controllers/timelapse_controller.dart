@@ -99,7 +99,7 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
       width: 512,
       height: 512,
       duration: duration,
-      fps: 1,
+      fps: 4,
       onReceiveProgress: (cur, tot) {
         value = RenderingState(
           progress: clampDouble(cur / tot, 0, 1),
