@@ -384,6 +384,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.7"
+  dart_tensor_preprocessing:
+    dependency: transitive
+    description:
+      name: dart_tensor_preprocessing
+      sha256: "5da24593f2109ef20f780ce88555fb3852c04758724061eb2e9db8f684986bbc"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.1"
   dbus:
     dependency: transitive
     description:
@@ -1481,6 +1489,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.0"
+  quiver:
+    dependency: transitive
+    description:
+      name: quiver
+      sha256: ea0b925899e64ecdfbf9c7becb60d5b50e706ade44a85b2363be2a22d88117d2
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.2.2"
   record_use:
     dependency: transitive
     description:
@@ -1798,6 +1814,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.11"
+  tflite_flutter:
+    dependency: transitive
+    description:
+      name: tflite_flutter
+      sha256: "0bba9040d8decda0960d7abf8eabf32243bf092bc7d0084e8e19681866b0bdbe"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.12.1"
   time_machine_cam:
     dependency: "direct main"
     description:

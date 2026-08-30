@@ -69,37 +69,26 @@ class TimelapsePageState extends State<TimelapsePage>
   }
 
   Widget _buildContent(Record? record) {
-    final aspectRatio = record?.aspectRatio ?? defaultAspectRatio;
-    final picture = record?.picture;
-    final original = record?.original;
-    if (picture == null || original == null) {
-      return const SizedBox.shrink();
-    }
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        PictureFrame(
-          aspectRatio: aspectRatio,
-          child: Image(
-            image: PictureFrame.imageFor(
-              original.url,
-              databaseService: context.read(),
+    return FutureBuilder(
+      future: comparisonController.createTimelapse(record),
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              children: [
+                Text(snapshot.error.toString(), style: h3Style(context),),
+                SizedBox(height: 8,),
+                Text(snapshot.stackTrace.toString(), style: bodyStyle(context),)
+              ],
             ),
-          ),
-        ),
-        FadeTransition(
-          opacity: animationController,
-          child: PictureFrame(
-            aspectRatio: aspectRatio,
-            child: Image(
-              image: PictureFrame.imageFor(
-                picture.url,
-                databaseService: context.read(),
-              ),
-            ),
-          ),
-        ),
-      ],
+          );
+        }
+        if (data == null) {
+          return LoadingView();
+        }
+        return Image.memory(data);
+      },
     );
   }
 }
