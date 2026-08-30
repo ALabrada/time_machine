@@ -211,6 +211,10 @@ class ComparisonPageState extends State<ComparisonPage> with SingleTickerProvide
               icon: Icon(Icons.rotate_right),
             ),
             IconButton(
+              onPressed: widget.recordId == null ? null : openTimelapse,
+              icon: Icon(Icons.timelapse),
+            ),
+            IconButton(
               onPressed: openMap,
               icon: Icon(Icons.location_pin),
             ),
@@ -298,6 +302,10 @@ class ComparisonPageState extends State<ComparisonPage> with SingleTickerProvide
       return;
     }
     context.go('/?tab=map&pictureId=$pictureId');
+  }
+
+  void openTimelapse() {
+    context.go('/gallery/${widget.recordId}/timelapse');
   }
 
   Future<void> publishToTelegram() async {

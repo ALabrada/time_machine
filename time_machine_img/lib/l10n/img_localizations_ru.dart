@@ -45,15 +45,6 @@ class ImgLocalizationsRu extends ImgLocalizations {
   String get errorLoadingPage => 'Не удалось подключиться к серверу';
 
   @override
-  String get editDescriptionTitle => 'Изменить описание';
-
-  @override
-  String get editDescriptionHint => 'Описание';
-
-  @override
-  String get editDescriptionSave => 'Сохранить';
-
-  @override
   String get comparisonPage => 'Сравнение';
 
   @override
@@ -70,6 +61,9 @@ class ImgLocalizationsRu extends ImgLocalizations {
 
   @override
   String get comparisonTop => 'Выше';
+
+  @override
+  String get timelapsePage => 'Таймлапс';
 
   @override
   String galleryEmptyListBody(
@@ -91,6 +85,15 @@ class ImgLocalizationsRu extends ImgLocalizations {
 
   @override
   String get importSuccessful => 'Файл успешно импортирован';
+
+  @override
+  String get editDescriptionTitle => 'Изменить описание';
+
+  @override
+  String get editDescriptionHint => 'Описание';
+
+  @override
+  String get editDescriptionSave => 'Сохранить';
 
   @override
   String get searchBarHint => 'Поискать...';

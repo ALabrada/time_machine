@@ -46,15 +46,6 @@ class ImgLocalizationsEs extends ImgLocalizations {
   String get errorLoadingPage => 'No se pudo conectarse al servidor';
 
   @override
-  String get editDescriptionTitle => 'Editar descripción';
-
-  @override
-  String get editDescriptionHint => 'Descripción';
-
-  @override
-  String get editDescriptionSave => 'Guardar';
-
-  @override
   String get comparisonPage => 'Comparación';
 
   @override
@@ -71,6 +62,9 @@ class ImgLocalizationsEs extends ImgLocalizations {
 
   @override
   String get comparisonTop => 'Arriba';
+
+  @override
+  String get timelapsePage => 'Time-lapse';
 
   @override
   String galleryEmptyListBody(
@@ -92,6 +86,15 @@ class ImgLocalizationsEs extends ImgLocalizations {
 
   @override
   String get importSuccessful => 'Archivo importado correctamente';
+
+  @override
+  String get editDescriptionTitle => 'Editar descripción';
+
+  @override
+  String get editDescriptionHint => 'Descripción';
+
+  @override
+  String get editDescriptionSave => 'Guardar';
 
   @override
   String get searchBarHint => 'Buscar...';

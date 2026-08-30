@@ -166,24 +166,6 @@ abstract class ImgLocalizations {
   /// **'Could not connect to the server'**
   String get errorLoadingPage;
 
-  /// No description provided for @editDescriptionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit description'**
-  String get editDescriptionTitle;
-
-  /// No description provided for @editDescriptionHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Description'**
-  String get editDescriptionHint;
-
-  /// No description provided for @editDescriptionSave.
-  ///
-  /// In en, this message translates to:
-  /// **'Save'**
-  String get editDescriptionSave;
-
   /// No description provided for @comparisonPage.
   ///
   /// In en, this message translates to:
@@ -219,6 +201,12 @@ abstract class ImgLocalizations {
   /// In en, this message translates to:
   /// **'Top'**
   String get comparisonTop;
+
+  /// No description provided for @timelapsePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse'**
+  String get timelapsePage;
 
   /// No description provided for @galleryEmptyListBody.
   ///
@@ -256,6 +244,24 @@ abstract class ImgLocalizations {
   /// In en, this message translates to:
   /// **'File imported successfully'**
   String get importSuccessful;
+
+  /// No description provided for @editDescriptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit description'**
+  String get editDescriptionTitle;
+
+  /// No description provided for @editDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get editDescriptionHint;
+
+  /// No description provided for @editDescriptionSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get editDescriptionSave;
 
   /// No description provided for @searchBarHint.
   ///
