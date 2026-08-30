@@ -69,7 +69,7 @@ class TimelapseService {
     );
   }
 
-  Future<img.Image> generateImage({
+  Future<Uint8List> generateImage({
     required img.Image firstImage,
     required img.Image secondImage,
     int? width,
@@ -87,7 +87,8 @@ class TimelapseService {
       secondImage: secondTensor,
       delay: delay,
     );
-    return _decodeImage(output, actualWidth, actualHeight);
+    final image = _decodeImage(output, actualWidth, actualHeight);
+    return img.JpegEncoder().encode(image);
   }
 
   Future<Uint8List?> generateVideo({
@@ -167,10 +168,10 @@ class TimelapseService {
   }
 
   Future<Uint8List?> _encodeGifFromImages(List<img.Image> images, double fps) async {
-    final encoder = img.GifEncoder(samplingFactor: 10);
+    final encoder = img.GifEncoder();
 
     for (var image in images) {
-      encoder.addFrame(image, duration: (1 / fps).toInt());
+      encoder.addFrame(image, duration: (1000 / fps).toInt());
     }
 
     final gifBytes = encoder.finish();
