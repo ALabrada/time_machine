@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:io';
 import 'dart:typed_data';
@@ -16,19 +17,31 @@ class TimelapseService {
 
   final IsolateInterpreter interpreter;
   final List<Tensor> outputTensors;
+  bool disposed = false;
 
   TimelapseService({
     required this.interpreter,
     required this.outputTensors,
   });
 
-  static Future<TimelapseService> download() async {
+  void dispose() {
+    disposed = true;
+    unawaited(interpreter.close());
+  }
+
+  static Future<TimelapseService> download({
+    ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
+  }) async {
     final cacheDir = await getApplicationCacheDirectory();
     final filePath = p.join(cacheDir.path, 'film.tflite');
     final file = File(filePath);
     try {
       if (!await file.exists()) {
-        await Dio().download(modelUrl, filePath);
+        await Dio().download(modelUrl, filePath,
+          onReceiveProgress: onReceiveProgress,
+          cancelToken: cancelToken,
+        );
       }
 
       final interpreter = Interpreter.fromFile(file);
@@ -78,6 +91,7 @@ class TimelapseService {
     int? height,
     Duration duration = const Duration(seconds: 5),
     double fps = 24,
+    ProgressCallback? onReceiveProgress,
   }) async {
     final actualWidth = width ?? min(firstImage.width, secondImage.width);
     final actualHeight = height ?? min(firstImage.height, secondImage.height);
@@ -86,16 +100,22 @@ class TimelapseService {
     final secondTensor = await _createInput(_resize(secondImage, actualWidth, actualHeight));
 
     final totalFrames = (duration.inMilliseconds * fps / 1000).toInt();
+    onReceiveProgress?.call(0, totalFrames + 1);
     final frames = <img.Image>[];
     for (final idx in Iterable.generate(totalFrames + 1)) {
-      debugPrint("Generating frame $idx");
+      if (disposed) {
+        return null;
+      }
       final output = await _generateFrame(
         firstImage: firstTensor,
         secondImage: secondTensor,
         delay: idx / totalFrames,
       );
-      debugPrint("Decoding frame $idx");
+      if (disposed) {
+        return null;
+      }
       frames.add(_decodeImage(output, actualWidth, actualHeight));
+      onReceiveProgress?.call(idx + 1, totalFrames + 1);
     }
 
     return _encodeGifFromImages(frames, fps);

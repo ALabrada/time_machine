@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'tool_bar.dart';
 
-class TimelapseToolBar extends StatefulWidget {
-  const TimelapseToolBar({
+class PlaybackToolBar extends StatefulWidget {
+  const PlaybackToolBar({
     super.key,
     required this.animationController,
   });
@@ -11,10 +11,10 @@ class TimelapseToolBar extends StatefulWidget {
   final AnimationController animationController;
 
   @override
-  TimelapseToolBarState createState() => TimelapseToolBarState();
+  PlaybackToolBarState createState() => PlaybackToolBarState();
 }
 
-class TimelapseToolBarState extends State<TimelapseToolBar> {
+class PlaybackToolBarState extends State<PlaybackToolBar> {
   bool _repeat = true;
 
   @override

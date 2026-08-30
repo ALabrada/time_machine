@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/controllers/comparison_controller.dart';
+import 'package:time_machine_img/controllers/timelapse_controller.dart';
+import 'package:time_machine_img/domain/timelapse_state.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
-import 'package:time_machine_img/molecules/timelapse_tool_bar.dart';
+import 'package:time_machine_img/molecules/playback_tool_bar.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
 class TimelapsePage extends StatefulWidget {
@@ -20,10 +24,9 @@ class TimelapsePage extends StatefulWidget {
 
 class TimelapsePageState extends State<TimelapsePage>
     with SingleTickerProviderStateMixin {
-  static const defaultAspectRatio = 4.0 / 3.0;
 
-  late ComparisonController comparisonController;
   late AnimationController animationController;
+  late TimelapseController controller;
 
   @override
   void initState() {
@@ -31,32 +34,40 @@ class TimelapsePageState extends State<TimelapsePage>
       vsync: this,
       duration: Duration(seconds: 4),
     )..repeat(reverse: true);
-    comparisonController = ComparisonController(
+    controller = TimelapseController(
       cacheService: context.read(),
       databaseService: context.read(),
-      networkService: context.read(),
-      telegramService: context.read(),
     );
     super.initState();
+    unawaited(_init());
+  }
+
+  Future<void> _init() async {
+    animationController.stop();
+    await controller.loadRecord(widget.recordId);
+    animationController.repeat(min: 0, reverse: true);
   }
 
   @override
   void dispose() {
     animationController.dispose();
+    controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _buildAppBar(),
-      body: FutureBuilder(
-        future: comparisonController.loadRecord(widget.recordId),
-        builder: (context, snapshot) => _buildContent(snapshot.data),
-      ),
-      bottomNavigationBar: TimelapseToolBar(
-        animationController: animationController,
-      ),
+    return ValueListenableBuilder<TimelapseState>(
+      valueListenable: controller,
+      builder: (context, state, _) {
+        return Scaffold(
+          appBar: _buildAppBar(),
+          body: _buildContent(state),
+          bottomNavigationBar: state is FinishedState ? PlaybackToolBar(
+            animationController: animationController,
+          ) : null,
+        );
+      },
     );
   }
 
@@ -68,27 +79,44 @@ class TimelapsePageState extends State<TimelapsePage>
     );
   }
 
-  Widget _buildContent(Record? record) {
-    return FutureBuilder(
-      future: comparisonController.createTimelapse(record),
-      builder: (context, snapshot) {
-        final data = snapshot.data;
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              children: [
-                Text(snapshot.error.toString(), style: h3Style(context),),
-                SizedBox(height: 8,),
-                Text(snapshot.stackTrace.toString(), style: bodyStyle(context),)
-              ],
-            ),
-          );
-        }
-        if (data == null) {
-          return LoadingView();
-        }
-        return Image.memory(data);
-      },
-    );
+  Widget _buildContent(TimelapseState state) {
+    if (state is FailedState) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(state.error.toString(), style: h3Style(context),),
+            SizedBox(height: 8),
+            Text(state.stackTrace.toString(), style: bodyStyle(context),)
+          ],
+        ),
+      );
+    } else if (state is DownloadingState) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(value: state.progress),
+            SizedBox(height: 8),
+            Text("Downloading...", style: bodyStyle(context),),
+          ],
+        ),
+      );
+    } else if (state is RenderingState) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(value: state.progress),
+            SizedBox(height: 8),
+            Text("Rendering...", style: bodyStyle(context),),
+          ],
+        ),
+      );
+    } else if (state is FinishedState) {
+      return Image.memory(state.data);
+    } else {
+      return LoadingView();
+    }
   }
 }

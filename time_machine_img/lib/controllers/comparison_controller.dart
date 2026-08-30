@@ -1,14 +1,11 @@
 import 'dart:isolate';
-import 'dart:math';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
-import 'package:image/image.dart' as img;
 import 'package:image_compare_2/image_compare_2.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/services/database_service.dart';
 import 'package:time_machine_img/services/telegram_service.dart';
-import 'package:time_machine_img/services/timelapse_service.dart';
+import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
@@ -139,12 +136,12 @@ class ComparisonController with TaskManager {
           ? null
           : originalViewPort.intersection(pictureViewPort);
 
-      final originalImage = await _cropImage(
+      final originalImage = await cropImageFile(
         file: originalFile,
         viewPort: originalViewPort,
         intersection: intersection,
       );
-      final ownImage = await _cropImage(
+      final ownImage = await cropImageFile(
         file: ownFile,
         viewPort: pictureViewPort,
         intersection: intersection,
@@ -160,71 +157,5 @@ class ComparisonController with TaskManager {
       );
     });
     return similarity;
-  }
-
-  Future<Uint8List?> createTimelapse(Record? record) async {
-    final picture = record?.picture;
-    final original = record?.original;
-    if (record == null || picture == null || original == null) {
-      return null;
-    }
-    final originalFile = await cacheService.fetch(original.url);
-    final ownFile = await cacheService.fetch(picture.url);
-
-    final service = await TimelapseService.download();
-
-    final originalViewPort = Record.tryParseViewPort(record.originalViewPort);
-    final pictureViewPort = Record.tryParseViewPort(record.pictureViewPort);
-    final intersection = originalViewPort == null || pictureViewPort == null
-        ? null
-        : originalViewPort.intersection(pictureViewPort);
-
-    final originalImage = await _cropImage(
-      file: originalFile,
-      viewPort: originalViewPort,
-      intersection: intersection,
-    );
-    final ownImage = await _cropImage(
-      file: ownFile,
-      viewPort: pictureViewPort,
-      intersection: intersection,
-    );
-    if (originalImage == null || ownImage == null) {
-      return null;
-    }
-
-    return service.generateVideo(
-      firstImage: originalImage,
-      secondImage: ownImage,
-      width: 512,
-      height: 512,
-      duration: Duration(seconds: 3),
-      fps: 10,
-    );
-  }
-
-  static Future<img.Image?> _cropImage({
-    required XFile file,
-    Rectangle<num>? viewPort,
-    Rectangle<num>? intersection,
-  }) async {
-    var originalImage = kIsWeb
-        ? img.decodeImage(await file.readAsBytes())
-        : await img.decodeImageFile(file.path);
-    if (originalImage == null || intersection == null || viewPort == null) {
-      return null;
-    }
-    final rect = cropImage(
-      width: originalImage.width,
-      height: originalImage.height,
-      viewPort: viewPort,
-      intersection: intersection,
-    );
-    return img.copyCrop(originalImage,
-      x: rect.left,
-      y: rect.top,
-      width: rect.width,
-      height: rect.height,
-    );
   }
 }
