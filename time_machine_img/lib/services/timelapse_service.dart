@@ -6,8 +6,8 @@ import 'dart:typed_data';
 import 'package:dart_tensor_preprocessing/dart_tensor_preprocessing.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_litert/native.dart';
 import 'package:image/image.dart' as img;
-import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -44,7 +44,10 @@ class TimelapseService {
         );
       }
 
-      final interpreter = Interpreter.fromFile(file);
+      final (options, delegate) = InterpreterFactory.create(
+        PerformanceConfig.xnnpack(numThreads: 4),
+      );
+      final interpreter = Interpreter.fromFile(file, options: options);
       return TimelapseService(
         outputTensors: interpreter.getOutputTensors().toList(),
         interpreter: await IsolateInterpreter.create(address: interpreter.address),
@@ -56,7 +59,10 @@ class TimelapseService {
   }
 
   static Future<TimelapseService> load() async {
-    final interpreter = await Interpreter.fromAsset(assetName);
+    final (options, delegate) = InterpreterFactory.create(
+      PerformanceConfig.xnnpack(numThreads: 4),
+    );
+    final interpreter = await Interpreter.fromAsset(assetName, options: options);
     return TimelapseService(
       outputTensors: interpreter.getOutputTensors().toList(),
       interpreter: await IsolateInterpreter.create(address: interpreter.address),

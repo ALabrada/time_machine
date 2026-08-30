@@ -39,6 +39,7 @@ dependencies:
   extended_text: ^15.0.2
   file_picker: ^10.1.7
   flutter_cache_manager : ^3.4.1
+  flutter_litert: ^3.8.0
   go_router: any
   group_grid_view: ^1.0.1
   image: ^4.5.2
@@ -55,7 +56,6 @@ dependencies:
   share_plus: ^11.0.0
   shared_preferences: any
   televerse: any
-  tflite_flutter: ^0.12.1
   url_launcher: ^6.3.1
   uuid: any
 
