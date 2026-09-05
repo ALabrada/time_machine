@@ -39,11 +39,15 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
       return;
     }
 
-    record.picture = await databaseService?.createRepository<Picture>().getById(record.pictureId);
+    record.picture = await databaseService
+        ?.createRepository<Picture>()
+        .getById(record.pictureId);
 
     final originalId = record.originalId;
     if (originalId != null) {
-      record.original = await databaseService?.createRepository<Picture>().getById(originalId);
+      record.original = await databaseService
+          ?.createRepository<Picture>()
+          .getById(originalId);
     }
 
     final data = await _createTimelapse(record);
@@ -108,12 +112,15 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
       secondImage: ownImage,
       duration: duration,
       fps: 4,
-      onReceiveProgress: (cur, tot) {
+      onFrame: (bytes, frameIndex, totalFrames, stepsDone, totalSteps) {
         value = RenderingState(
-          progress: clampDouble(cur / tot, 0, 1),
+          progress: clampDouble(stepsDone / totalSteps, 0, 1),
           record: record,
+          frame: bytes,
+          frameIndex: frameIndex,
+          totalFrames: totalFrames,
         );
-      }
+      },
     );
   }
 }

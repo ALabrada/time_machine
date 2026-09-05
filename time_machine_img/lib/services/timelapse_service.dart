@@ -15,8 +15,19 @@ import 'package:path_provider/path_provider.dart';
 /// delegate. Input tensors are resized once (in [TimelapseService.load]) to the
 /// requested frame size; all frames of one render share the same resolution.
 
-/// Progress callback: (stepsDone, totalSteps).
-typedef ProgressCallback = void Function(int, int);
+/// Callback reported as each interpolated frame is produced during streaming.
+///
+/// [bytes] is the JPEG-encoded frame buffer, [frameIndex] its temporal position
+/// within the full [totalFrames] frame sequence, and [stepsDone]/[totalSteps]
+/// the rendering progress. Frames are reported the moment they are ready, in
+/// pre-order bisection rather than playback order.
+typedef FrameCallback = void Function(
+  Uint8List bytes,
+  int frameIndex,
+  int totalFrames,
+  int stepsDone,
+  int totalSteps,
+);
 
 class TimelapseService {
   static const _modelUrl =
@@ -144,24 +155,21 @@ class TimelapseService {
   ///
   /// Frames are produced by recursive bisection at t=0.5 — the only way FILM
   /// yields accurate full-range frames. Each intermediate is computed and
-  /// reported through [onReceiveProgress] the moment it is ready (out of
-  /// playback order), so the first frame appears almost immediately for
-  /// onscreen preview. Depth is chosen so 2^depth + 1 >= frames needed for
-  /// [duration] at [fps].
+  /// reported through [onFrame] the moment it is ready (out of playback order),
+  /// so the first frame appears almost immediately for onscreen preview. Depth
+  /// is chosen so 2^depth + 1 >= frames needed for [duration] at [fps].
   Future<Uint8List?> generateVideo({
     required img.Image firstImage,
     required img.Image secondImage,
     Duration duration = const Duration(seconds: 5),
     double fps = 24,
-    ProgressCallback? onReceiveProgress,
+    FrameCallback? onFrame,
   }) async {
     final neededFrames = (duration.inMilliseconds * fps / 1000).ceil();
     var depth = 0;
     while ((1 << depth) < neededFrames) {
       depth++;
     }
-    final totalSteps = (1 << depth) + 1;
-    onReceiveProgress?.call(0, totalSteps);
 
     final frames = await _renderStreaming(
       _resize(firstImage, _width, _height),
@@ -169,7 +177,7 @@ class TimelapseService {
       depth,
       _width,
       _height,
-      onReceiveProgress,
+      onFrame,
     );
 
     return _encodeGifFromImages(frames, fps);
@@ -206,16 +214,17 @@ class TimelapseService {
   /// bisection at t=0.5, using [depth] subdivision levels, producing
   /// 2^depth+1 frames.
   ///
-  /// Each midpoint is computed and reported through [onReceiveProgress] the
-  /// moment it is ready (in *pre-order*, not playback order), so the first
-  /// frame appears after a single model call for near-instant onscreen preview.
+  /// Each midpoint is computed and reported through [onFrame] the moment it is
+  /// ready (in *pre-order*, not playback order), together with its temporal
+  /// index in the final sequence, so the first frame appears after a single
+  /// model call for near-instant onscreen preview.
   Future<List<img.Image>> _renderStreaming(
     img.Image a,
     img.Image b,
     int depth,
     int width,
     int height,
-    ProgressCallback? onReceiveProgress,
+    FrameCallback? onFrame,
   ) async {
     var done = 1; // both endpoints count as shown immediately
     final total = (1 << depth) + 1;
@@ -223,6 +232,7 @@ class TimelapseService {
     Future<List<img.Image>> render(
       img.Image lo,
       img.Image hi,
+      int base,
       int d,
     ) async {
       if (d <= 0) return [lo, hi];
@@ -231,14 +241,30 @@ class TimelapseService {
         width,
         height,
       );
+      final midIndex = base + (1 << (d - 1));
       done += 1;
-      onReceiveProgress?.call(done, total);
-      final left = await render(lo, mid, d - 1);
-      final right = await render(mid, hi, d - 1);
+      onFrame?.call(
+        img.JpegEncoder().encode(mid),
+        midIndex,
+        total,
+        done,
+        total,
+      );
+      final left = await render(lo, mid, base, d - 1);
+      final right = await render(mid, hi, midIndex, d - 1);
       return [...left, ...right.skip(1)];
     }
 
-    final frames = await render(a, b, depth);
+    final frames = await render(a, b, 0, depth);
+    if (onFrame != null) {
+      onFrame(
+        img.JpegEncoder().encode(b),
+        total - 1,
+        total,
+        total,
+        total,
+      );
+    }
     return frames;
   }
 
@@ -285,6 +311,7 @@ class TimelapseService {
 
   static img.Image _resize(img.Image image, int width, int height) {
     if (image.width == width && image.height == height) return image;
-    return img.copyResize(image, width: width, height: height, maintainAspect: false);
+    return img.copyResize(image,
+        width: width, height: height, maintainAspect: false);
   }
 }

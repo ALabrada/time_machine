@@ -6,6 +6,7 @@ import 'package:gif/gif.dart';
 import 'package:time_machine_img/controllers/timelapse_controller.dart';
 import 'package:time_machine_img/domain/timelapse_state.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
+import 'package:time_machine_img/molecules/frame_view.dart';
 import 'package:time_machine_img/molecules/playback_tool_bar.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
@@ -55,9 +56,11 @@ class TimelapsePageState extends State<TimelapsePage>
         return Scaffold(
           appBar: _buildAppBar(),
           body: _buildContent(state),
-          bottomNavigationBar: state is FinishedState ? PlaybackToolBar(
-            animationController: animationController,
-          ) : null,
+          bottomNavigationBar: state is FinishedState
+              ? PlaybackToolBar(
+                  animationController: animationController,
+                )
+              : null,
         );
       },
     );
@@ -77,42 +80,80 @@ class TimelapsePageState extends State<TimelapsePage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(state.error.toString(), style: h3Style(context),),
+            Text(
+              state.error.toString(),
+              style: h3Style(context),
+            ),
             SizedBox(height: 8),
-            Text(state.stackTrace.toString(), style: bodyStyle(context),)
+            Text(
+              state.stackTrace.toString(),
+              style: bodyStyle(context),
+            )
           ],
         ),
       );
     } else if (state is DownloadingState) {
+      final percent = (state.progress * 100).toStringAsFixed(1);
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(value: state.progress),
             SizedBox(height: 8),
-            Text("Downloading...", style: bodyStyle(context),),
+            Text(
+              "Downloading...",
+              style: h3Style(context),
+            ),
+            Text(
+              "$percent%",
+              style: bodyStyle(context),
+            ),
           ],
         ),
       );
     } else if (state is RenderingState) {
+      final showPreview = state.frame != null &&
+          state.frameIndex != null &&
+          state.totalFrames != null;
+      final percent = (state.progress * 100).toStringAsFixed(1);
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(value: state.progress),
             SizedBox(height: 8),
-            Text("Rendering...", style: bodyStyle(context),),
+            Text(
+              "Rendering...",
+              style: h3Style(context),
+            ),
+            Text(
+              "$percent%",
+              style: bodyStyle(context),
+            ),
+            if (showPreview) ...[
+              SizedBox(height: 24),
+              FrameView(
+                frame: state.frame!,
+                frameIndex: state.frameIndex!,
+                totalFrames: state.totalFrames!,
+              ),
+            ],
           ],
         ),
       );
     } else if (state is FinishedState) {
-      return Gif(
-        image: MemoryImage(state.data),
-        duration: controller.duration,
-        controller: animationController,
-        onFetchCompleted: () {
-          animationController.repeat(reverse: true);
-        },
+      return SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: Gif(
+            image: MemoryImage(state.data),
+            duration: controller.duration,
+            controller: animationController,
+            onFetchCompleted: () {
+              animationController.repeat(reverse: true);
+            },
+          ),
+        ),
       );
     } else {
       return LoadingView();
