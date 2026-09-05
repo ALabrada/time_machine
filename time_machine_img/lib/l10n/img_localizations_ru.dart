@@ -66,6 +66,44 @@ class ImgLocalizationsRu extends ImgLocalizations {
   String get timelapsePage => 'Таймлапс';
 
   @override
+  String get timelapseShare => 'Поделиться GIF';
+
+  @override
+  String get timelapseSettings => 'Настройки';
+
+  @override
+  String get timelapseAutoReplay => 'Автовоспроизведение';
+
+  @override
+  String get timelapsePlaybackSpeed => 'Скорость воспроизведения';
+
+  @override
+  String get timelapseQuality => 'Качество';
+
+  @override
+  String get timelapseResolution => 'Разрешение';
+
+  @override
+  String get timelapseFramesPerSecond => 'Кадров в секунду';
+
+  @override
+  String timelapseFps(Object fps) {
+    return '$fps кар./с';
+  }
+
+  @override
+  String get timelapseCancel => 'Отменить';
+
+  @override
+  String get timelapseApply => 'Применить';
+
+  @override
+  String get timelapseDownloading => 'Загрузка...';
+
+  @override
+  String get timelapseRendering => 'Рендеринг...';
+
+  @override
   String galleryEmptyListBody(
       Object importIcon, Object mapLink, Object nearbyLink) {
     return 'Вы можете начать с поиска исторических фотографий [поблизости]($nearbyLink) или на [карте]($mapLink). Когда вы создадите реплику исторической фотографии, ваша фотография появится здесь. Также, можете нажать $importIcon, чтобы импортировать свои фотографии из файла, если вы ранее экспортировали их с помощью приложения';

@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:gif/gif.dart';
+import 'package:provider/provider.dart';
+import 'package:time_machine_img/controllers/playback_controller.dart';
 import 'package:time_machine_img/controllers/timelapse_controller.dart';
 import 'package:time_machine_img/domain/timelapse_state.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
@@ -26,16 +27,20 @@ class TimelapsePageState extends State<TimelapsePage>
     with SingleTickerProviderStateMixin {
   static const duration = Duration(seconds: 3);
 
-  late GifController animationController;
+  late PlaybackController playbackController;
   late TimelapseController controller;
 
   @override
   void initState() {
-    animationController = GifController(vsync: this);
+    playbackController = PlaybackController(
+      vsync: this,
+      baseDuration: duration,
+    );
     controller = TimelapseController(
       cacheService: context.read(),
       databaseService: context.read(),
       duration: duration,
+      playbackController: playbackController,
     );
     super.initState();
     unawaited(controller.loadRecord(widget.recordId));
@@ -43,7 +48,7 @@ class TimelapsePageState extends State<TimelapsePage>
 
   @override
   void dispose() {
-    animationController.dispose();
+    playbackController.dispose();
     controller.dispose();
     super.dispose();
   }
@@ -55,10 +60,14 @@ class TimelapsePageState extends State<TimelapsePage>
       builder: (context, state, _) {
         return Scaffold(
           appBar: _buildAppBar(),
-          body: _buildContent(state),
+          body: AnimatedSwitcher(
+            duration: Duration(milliseconds: 300),
+            child: _buildContent(state),
+          ),
           bottomNavigationBar: state is FinishedState
               ? PlaybackToolBar(
-                  animationController: animationController,
+                  playbackController: playbackController,
+                  controller: controller,
                 )
               : null,
         );
@@ -99,9 +108,9 @@ class TimelapsePageState extends State<TimelapsePage>
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(value: state.progress),
-            SizedBox(height: 8),
+            SizedBox(height: 16),
             Text(
-              "Downloading...",
+              ImgLocalizations.of(context).timelapseDownloading,
               style: h3Style(context),
             ),
             Text(
@@ -121,9 +130,9 @@ class TimelapsePageState extends State<TimelapsePage>
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(value: state.progress),
-            SizedBox(height: 8),
+            SizedBox(height: 16),
             Text(
-              "Rendering...",
+              ImgLocalizations.of(context).timelapseRendering,
               style: h3Style(context),
             ),
             Text(
@@ -148,9 +157,9 @@ class TimelapsePageState extends State<TimelapsePage>
           child: Gif(
             image: MemoryImage(state.data),
             duration: controller.duration,
-            controller: animationController,
+            controller: playbackController,
             onFetchCompleted: () {
-              animationController.repeat(reverse: true);
+              playbackController.play();
             },
           ),
         ),

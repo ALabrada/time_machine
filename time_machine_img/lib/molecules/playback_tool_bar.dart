@@ -1,99 +1,93 @@
 import 'package:flutter/material.dart';
+import 'package:time_machine_img/controllers/playback_controller.dart';
+import 'package:time_machine_img/controllers/timelapse_controller.dart';
+import 'package:time_machine_img/l10n/img_localizations.dart';
 
+import 'settings_button.dart';
 import 'tool_bar.dart';
 
-class PlaybackToolBar extends StatefulWidget {
+class PlaybackToolBar extends StatelessWidget {
   const PlaybackToolBar({
     super.key,
-    required this.animationController,
+    required this.playbackController,
+    required this.controller,
   });
 
-  final AnimationController animationController;
+  static const _trackbarHeight = 24.0;
 
-  @override
-  PlaybackToolBarState createState() => PlaybackToolBarState();
-}
-
-class PlaybackToolBarState extends State<PlaybackToolBar> {
-  bool _repeat = true;
+  final PlaybackController playbackController;
+  final TimelapseController controller;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: widget.animationController,
-      builder: (context, _) {
-        final controller = widget.animationController;
-        final primary = Theme.of(context).colorScheme.primary;
-        final onSecondary = Theme.of(context).colorScheme.onSecondary;
-        return ToolBar(
+    final primary = Theme.of(context).colorScheme.primary;
+    final onSecondary = Theme.of(context).colorScheme.onSecondary;
+    return Stack(
+      children: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ListenableBuilder(
-              listenable: widget.animationController,
-              builder: (context, _) {
-                return IconButton(
-                  onPressed: _togglePlayback,
-                  icon: Icon(
-                    controller.isAnimating ? Icons.pause : Icons.play_arrow,
-                  ),
-                );
-              },
-            ),
-            Expanded(
-              child: SizedBox(
-            height: 24,
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    activeTrackColor: primary,
-                    inactiveTrackColor: onSecondary.withValues(alpha: 0.3),
-                    thumbColor: primary,
-                    overlayColor: primary.withValues(alpha: 0.2),
-                    trackHeight: 2,
-                  ),
-                  child: Slider(
-                    value: controller.value,
-                    onChanged: (value) {
-                      controller.value = value;
-                    },
-                  ),
+            const SizedBox(height: _trackbarHeight / 2),
+            ToolBar(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              children: [
+                IconButton(
+                  tooltip: ImgLocalizations.of(context).timelapseShare,
+                  onPressed: () => controller.shareGif(),
+                  icon: const Icon(Icons.share),
                 ),
-              ),
-            ),
-            IconButton(
-              onPressed: () => _setRepeat(!_repeat),
-              icon: Icon(Icons.repeat),
-              color: _repeat ? primary : null,
+                AnimatedBuilder(
+                  animation: playbackController,
+                  builder: (context, _) {
+                    return IconButton(
+                      onPressed: playbackController.togglePlayback,
+                      icon: Icon(
+                        playbackController.isAnimating
+                            ? Icons.pause
+                            : Icons.play_arrow,
+                      ),
+                    );
+                  },
+                ),
+                SettingsButton(
+                  playbackController: playbackController,
+                  controller: controller,
+                ),
+              ],
             ),
           ],
-        );
-      },
+        ),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: SizedBox(
+            height: _trackbarHeight,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: primary,
+                inactiveTrackColor: onSecondary.withValues(alpha: 0.3),
+                thumbColor: primary,
+                overlayColor: primary.withValues(alpha: 0.2),
+                trackHeight: 2,
+                padding: EdgeInsets.zero,
+              ),
+              child: AnimatedBuilder(
+                animation: playbackController,
+                builder: (context, _) {
+                  return Slider(
+                    value: playbackController.value,
+                    onChanged: (value) {
+                      playbackController.value = value;
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
     );
-  }
-
-  void _togglePlayback() {
-    final controller = widget.animationController;
-    if (controller.isAnimating) {
-      controller.stop();
-    } else if (_repeat) {
-      controller.repeat(reverse: true);
-    } else {
-      if (controller.value >= 1.0) {
-        controller.value = 0.0;
-      }
-      controller.forward();
-    }
-  }
-
-  void _setRepeat(bool repeat) {
-    setState(() => _repeat = repeat);
-    final controller = widget.animationController;
-    if (!controller.isAnimating) {
-      return;
-    }
-    controller.stop();
-    if (repeat) {
-      controller.repeat(reverse: true);
-    } else {
-      controller.forward();
-    }
   }
 }

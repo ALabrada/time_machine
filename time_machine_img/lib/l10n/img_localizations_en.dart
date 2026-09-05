@@ -67,6 +67,44 @@ class ImgLocalizationsEn extends ImgLocalizations {
   String get timelapsePage => 'Timelapse';
 
   @override
+  String get timelapseShare => 'Share GIF';
+
+  @override
+  String get timelapseSettings => 'Settings';
+
+  @override
+  String get timelapseAutoReplay => 'Auto-replay';
+
+  @override
+  String get timelapsePlaybackSpeed => 'Playback speed';
+
+  @override
+  String get timelapseQuality => 'Quality';
+
+  @override
+  String get timelapseResolution => 'Resolution';
+
+  @override
+  String get timelapseFramesPerSecond => 'Frames per second';
+
+  @override
+  String timelapseFps(Object fps) {
+    return '$fps fps';
+  }
+
+  @override
+  String get timelapseCancel => 'Cancel';
+
+  @override
+  String get timelapseApply => 'Apply';
+
+  @override
+  String get timelapseDownloading => 'Downloading...';
+
+  @override
+  String get timelapseRendering => 'Rendering...';
+
+  @override
   String galleryEmptyListBody(
       Object importIcon, Object mapLink, Object nearbyLink) {
     return 'You can start by looking for historical pictures [nearby]($nearbyLink) or in the [map]($mapLink). When you replicate a historic picture, your photo will appear here. You can also press $importIcon to import your pictures from a file, if you previously exported them using the App.';

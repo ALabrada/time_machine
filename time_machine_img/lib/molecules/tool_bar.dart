@@ -5,10 +5,12 @@ class ToolBar extends StatelessWidget {
     super.key,
     required this.children,
     this.decoration,
+    this.padding = EdgeInsets.zero,
   });
 
   final List<Widget> children;
   final BoxDecoration? decoration;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,10 @@ class ToolBar extends StatelessWidget {
         ),
         child: SafeArea(
           top: false,
-          child: _buildContent(context),
+          child: Padding(
+            padding: padding,
+            child: _buildContent(context),
+          ),
         ),
       ),
     );
