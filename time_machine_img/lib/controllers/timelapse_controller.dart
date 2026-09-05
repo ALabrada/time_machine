@@ -13,12 +13,14 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
     required this.cacheService,
     required this.duration,
     this.databaseService,
+    this.frameSize = 256,
   }) : super(UninitializedState());
 
   final _cancelToken = CancelToken();
   final CacheService cacheService;
   final DatabaseService? databaseService;
   final Duration duration;
+  final int frameSize;
   TimelapseService? _service;
 
   @override
@@ -62,17 +64,6 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
     final originalFile = await cacheService.fetch(original.url);
     final ownFile = await cacheService.fetch(picture.url);
 
-    final service = await TimelapseService.download(
-      onReceiveProgress: (cur, tot) {
-        value = RenderingState(
-          progress: clampDouble(cur / tot, 0, 1),
-          record: record,
-        );
-      },
-      cancelToken: _cancelToken,
-    );
-
-    value = RenderingState(progress: 0, record: record);
     final originalViewPort = Record.tryParseViewPort(record.originalViewPort);
     final pictureViewPort = Record.tryParseViewPort(record.pictureViewPort);
     final intersection = originalViewPort == null || pictureViewPort == null
@@ -93,11 +84,28 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
       return null;
     }
 
+    final (width, height) = TimelapseService.computeTargetSize(
+      originalImage,
+      maxDimension: frameSize,
+    );
+    value = DownloadingState(progress: 0, record: record);
+    final service = await TimelapseService.load(
+      width: width,
+      height: height,
+      cancelToken: _cancelToken,
+      onReceiveProgress: (received, total) {
+        if (total <= 0) return;
+        value = DownloadingState(
+          progress: clampDouble(received / total, 0, 1),
+          record: record,
+        );
+      },
+    );
+
+    value = RenderingState(progress: 0, record: record);
     return service.generateVideo(
       firstImage: originalImage,
       secondImage: ownImage,
-      width: 512,
-      height: 512,
       duration: duration,
       fps: 4,
       onReceiveProgress: (cur, tot) {
