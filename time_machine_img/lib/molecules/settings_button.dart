@@ -1,5 +1,6 @@
 import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_img/controllers/playback_controller.dart';
 import 'package:time_machine_img/controllers/timelapse_controller.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';

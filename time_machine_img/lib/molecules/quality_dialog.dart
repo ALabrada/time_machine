@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
 
 class QualityDialog extends StatefulWidget {
@@ -83,12 +84,4 @@ class QualityDialogState extends State<QualityDialog> {
       ],
     );
   }
-}
-
-String resolutionPClass(int frameSize) {
-  return switch (frameSize) {
-    256 => '144p',
-    512 => '288p',
-    _ => '432p',
-  };
 }

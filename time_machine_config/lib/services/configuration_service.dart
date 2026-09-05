@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 final class ConfigurationService extends ChangeNotifier {
   static const defaultCameraPictureOpacity = 0.5;
   static const defaultCameraRatio = '16x9';
+  static const defaultFrameSize = 256;
+  static const defaultFps = 5;
   static const defaultGeocoder = "OSM";
   static const defaultMaxYear = 2000;
   static const defaultMinYear = 1900;
@@ -94,6 +96,24 @@ final class ConfigurationService extends ChangeNotifier {
       preferences()?.remove('settings.volumeButton');
     } else {
       preferences()?.setBool('settings.volumeButton', value);
+    }
+  }
+
+  int? get frameSize => preferences()?.getInt('settings.frameSize');
+  set frameSize(int? value) {
+    if (value == null) {
+      preferences()?.remove('settings.frameSize');
+    } else {
+      preferences()?.setInt('settings.frameSize', value);
+    }
+  }
+
+  int? get fps => preferences()?.getInt('settings.fps');
+  set fps(int? value) {
+    if (value == null) {
+      preferences()?.remove('settings.fps');
+    } else {
+      preferences()?.setInt('settings.fps', value);
     }
   }
 }

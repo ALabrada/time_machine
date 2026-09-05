@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gif/gif.dart';
 import 'package:provider/provider.dart';
+import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_img/controllers/playback_controller.dart';
 import 'package:time_machine_img/controllers/timelapse_controller.dart';
 import 'package:time_machine_img/domain/timelapse_state.dart';
@@ -39,6 +40,7 @@ class TimelapsePageState extends State<TimelapsePage>
     controller = TimelapseController(
       cacheService: context.read(),
       databaseService: context.read(),
+      configurationService: context.read<ConfigurationService>(),
       duration: duration,
       playbackController: playbackController,
     );

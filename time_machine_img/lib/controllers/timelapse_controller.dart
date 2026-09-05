@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/controllers/playback_controller.dart';
 import 'package:time_machine_img/domain/timelapse_state.dart';
@@ -20,15 +21,24 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
     required this.duration,
     this.databaseService,
     this.playbackController,
-    this.frameSize = 256,
-    this.fps = 5,
-  }) : super(UninitializedState());
+    ConfigurationService? configurationService,
+    int? frameSize,
+    int? fps,
+  }) : configurationService = configurationService,
+       frameSize = frameSize ??
+           configurationService?.frameSize ??
+           ConfigurationService.defaultFrameSize,
+       fps = fps ??
+           configurationService?.fps ??
+           ConfigurationService.defaultFps,
+       super(UninitializedState());
 
   final _cancelToken = CancelToken();
   final CacheService cacheService;
   final DatabaseService? databaseService;
   final Duration duration;
   final PlaybackController? playbackController;
+  final ConfigurationService? configurationService;
   int frameSize;
   int fps;
 

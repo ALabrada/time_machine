@@ -69,5 +69,8 @@
   "settingThemeMode": "Theme",
   "settingThemeModeDark": "Dark",
   "settingThemeModeLight": "Light",
-  "settingThemeModeSystem": "System"
+  "settingThemeModeSystem": "System",
+  "sectionTimelapse": "Timelapse",
+  "settingTimelapseFrameSize": "Frame Size",
+  "settingTimelapseFps": "Frames per second"
 }

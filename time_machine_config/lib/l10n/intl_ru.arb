@@ -32,5 +32,8 @@
   "settingThemeMode": "Тема",
   "settingThemeModeDark": "Тёмная",
   "settingThemeModeLight": "Светлая",
-  "settingThemeModeSystem": "Системная"
+  "settingThemeModeSystem": "Системная",
+  "sectionTimelapse": "Таймлапс",
+  "settingTimelapseFrameSize": "Размер Кадра",
+  "settingTimelapseFps": "Кадров в Секунду"
 }

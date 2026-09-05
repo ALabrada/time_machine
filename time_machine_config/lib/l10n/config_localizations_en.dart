@@ -133,4 +133,13 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
 
   @override
   String get settingThemeModeSystem => 'System';
+
+  @override
+  String get sectionTimelapse => 'Timelapse';
+
+  @override
+  String get settingTimelapseFrameSize => 'Frame Size';
+
+  @override
+  String get settingTimelapseFps => 'Frames per second';
 }
