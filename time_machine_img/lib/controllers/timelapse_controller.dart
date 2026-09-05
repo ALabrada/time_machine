@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:math' show Rectangle;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_config/time_machine_config.dart';
@@ -48,6 +51,11 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
   bool _pendingReload = false;
   bool _disposed = false;
 
+  /// Monotonic id of the most recently started render. Stale renders (e.g. the
+  /// previous quality setting while a reload is in flight) check it before
+  /// publishing state, so they can't clobber a newer render's progress.
+  int _requestId = 0;
+
   @override
   void dispose() {
     _disposed = true;
@@ -77,7 +85,11 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
           .getById(originalId);
     }
 
-    final data = await _createTimelapse(record);
+    final requestId = ++_requestId;
+    final data = await _createTimelapse(record, requestId);
+    if (_disposed || requestId != _requestId) {
+      return;
+    }
     if (data == null) {
       value = FailedState();
     } else {
@@ -85,8 +97,17 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
     }
   }
 
-  Future<Uint8List?> _createTimelapse(Record record) async {
-    value = DownloadingState(progress: 0, record: record);
+  Future<Uint8List?> _createTimelapse(
+    Record record,
+    int requestId,
+  ) async {
+    void publish(TimelapseState state) {
+      if (requestId == _requestId) {
+        value = state;
+      }
+    }
+
+    publish(DownloadingState(progress: 0, record: record));
     final picture = record.picture;
     final original = record.original;
     if (picture == null || original == null) {
@@ -101,14 +122,13 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
         ? null
         : originalViewPort.intersection(pictureViewPort);
 
-    final originalImage = await cropImageFile(
-      file: originalFile,
-      viewPort: originalViewPort,
-      intersection: intersection,
-    );
-    final ownImage = await cropImageFile(
-      file: ownFile,
-      viewPort: pictureViewPort,
+    // Decoding and cropping the source photos is image work too, so it runs
+    // off the main isolate (same pattern as ComparisonController).
+    final (originalImage, ownImage) = await _cropSourceImages(
+      originalFile: originalFile,
+      ownFile: ownFile,
+      originalViewPort: originalViewPort,
+      pictureViewPort: pictureViewPort,
       intersection: intersection,
     );
     if (originalImage == null || ownImage == null) {
@@ -119,36 +139,36 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
       originalImage,
       maxDimension: frameSize,
     );
-    value = DownloadingState(progress: 0, record: record);
+    publish(DownloadingState(progress: 0, record: record));
     final service = await TimelapseService.load(
       width: width,
       height: height,
       cancelToken: _cancelToken,
       onReceiveProgress: (received, total) {
         if (total <= 0) return;
-        value = DownloadingState(
+        publish(DownloadingState(
           progress: clampDouble(received / total, 0, 1),
           record: record,
-        );
+        ));
       },
     );
     _service?.dispose();
     _service = service;
 
-    value = RenderingState(progress: 0, record: record);
+    publish(RenderingState(progress: 0, record: record));
     return service.generateVideo(
       firstImage: originalImage,
       secondImage: ownImage,
       duration: duration,
       fps: fps.toDouble(),
       onFrame: (bytes, frameIndex, totalFrames, stepsDone, totalSteps) {
-        value = RenderingState(
+        publish(RenderingState(
           progress: clampDouble(stepsDone / totalSteps, 0, 1),
           record: record,
           frame: bytes,
           frameIndex: frameIndex,
           totalFrames: totalFrames,
-        );
+        ));
       },
     );
   }
@@ -188,15 +208,22 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
   }
 
   Future<void> _reload(Record record) async {
+    final requestId = ++_requestId;
     _loading = true;
     try {
-      final data = await _createTimelapse(record);
+      final data = await _createTimelapse(record, requestId);
+      if (_disposed || requestId != _requestId) {
+        return;
+      }
       if (data == null) {
         value = FailedState();
       } else {
         value = FinishedState(record: record, data: data);
       }
     } catch (e, stackTrace) {
+      if (_disposed || requestId != _requestId) {
+        return;
+      }
       value = FailedState(error: e, stackTrace: stackTrace);
     } finally {
       _loading = false;
@@ -206,4 +233,35 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
       }
     }
   }
+}
+
+// --- background image work --------------------------------------------------
+
+/// Decodes and crops both source photos in a background isolate via
+/// [Isolate.run].
+///
+/// Top-level on purpose: the closure must not capture the [TimelapseController]
+/// (its dio [_cancelToken] is unsendable), so the job lives here where `this`
+/// is not in scope. Anything that must send an isolate message but is written
+/// as an instance-method local closure risks silently capturing the controller.
+Future<(img.Image?, img.Image?)> _cropSourceImages({
+  required XFile originalFile,
+  required XFile ownFile,
+  required Rectangle<num>? originalViewPort,
+  required Rectangle<num>? pictureViewPort,
+  Rectangle<num>? intersection,
+}) {
+  return Isolate.run(() async {
+    final originalImage = await cropImageFile(
+      file: originalFile,
+      viewPort: originalViewPort,
+      intersection: intersection,
+    );
+    final ownImage = await cropImageFile(
+      file: ownFile,
+      viewPort: pictureViewPort,
+      intersection: intersection,
+    );
+    return (originalImage, ownImage);
+  });
 }
