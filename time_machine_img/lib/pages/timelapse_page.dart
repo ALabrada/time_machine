@@ -66,12 +66,17 @@ class TimelapsePageState extends State<TimelapsePage>
             duration: Duration(milliseconds: 300),
             child: _buildContent(state),
           ),
-          bottomNavigationBar: state is FinishedState
-              ? PlaybackToolBar(
-                  playbackController: playbackController,
-                  controller: controller,
-                )
-              : null,
+          bottomNavigationBar: AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+            alignment: Alignment.topCenter,
+            child: state is FinishedState
+                ? PlaybackToolBar(
+                    playbackController: playbackController,
+                    controller: controller,
+                  )
+                : const SizedBox.shrink(),
+          ),
         );
       },
     );
@@ -88,6 +93,7 @@ class TimelapsePageState extends State<TimelapsePage>
   Widget _buildContent(TimelapseState state) {
     if (state is FailedState) {
       return Center(
+        key: ValueKey('failed'),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -106,6 +112,7 @@ class TimelapsePageState extends State<TimelapsePage>
     } else if (state is DownloadingState) {
       final percent = (state.progress * 100).toStringAsFixed(1);
       return Center(
+        key: ValueKey('downloading'),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -128,38 +135,59 @@ class TimelapsePageState extends State<TimelapsePage>
           state.totalFrames != null;
       final percent = (state.progress * 100).toStringAsFixed(1);
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(value: state.progress),
-            SizedBox(height: 16),
-            Text(
-              ImgLocalizations.of(context).timelapseRendering,
-              style: h3Style(context),
-            ),
-            Text(
-              "$percent%",
-              style: bodyStyle(context),
-            ),
-            if (showPreview) ...[
-              SizedBox(height: 24),
-              FrameView(
-                frame: state.frame!,
-                frameIndex: state.frameIndex!,
-                totalFrames: state.totalFrames!,
+        key: ValueKey('rendering'),
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: Alignment.topCenter,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(value: state.progress),
+              SizedBox(height: 16),
+              Text(
+                ImgLocalizations.of(context).timelapseRendering,
+                style: h3Style(context),
               ),
+              Text(
+                "$percent%",
+                style: bodyStyle(context),
+              ),
+              if (showPreview) ...[
+                SizedBox(height: 24),
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                  builder: (context, scale, child) => Transform.scale(
+                    scale: scale,
+                    alignment: Alignment.topCenter,
+                    child: child,
+                  ),
+                  child: FrameView(
+                    frame: state.frame!,
+                    frameIndex: state.frameIndex!,
+                    totalFrames: state.totalFrames!,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       );
     } else if (state is FinishedState) {
       return SizedBox.expand(
+        key: ValueKey('finished'),
         child: FittedBox(
           fit: BoxFit.contain,
           child: Gif(
             image: MemoryImage(state.data),
             duration: controller.duration,
             controller: playbackController,
+            placeholder: state.previewFrame == null
+                ? null
+                : (context) =>
+                    Image.memory(state.previewFrame!, fit: BoxFit.contain),
             onFetchCompleted: () {
               playbackController.play();
             },
@@ -167,7 +195,7 @@ class TimelapsePageState extends State<TimelapsePage>
         ),
       );
     } else {
-      return LoadingView();
+      return LoadingView(key: ValueKey('uninitialized'));
     }
   }
 }

@@ -86,18 +86,17 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
     }
 
     final requestId = ++_requestId;
-    final data = await _createTimelapse(record, requestId);
-    if (_disposed || requestId != _requestId) {
-      return;
-    }
-    if (data == null) {
-      value = FailedState();
-    } else {
-      value = FinishedState(record: record, data: data);
+    try {
+      _createTimelapse(record, requestId);
+    } catch (e, stackTrace) {
+      if (_disposed || requestId != _requestId) {
+        return;
+      }
+      value = FailedState(error: e, stackTrace: stackTrace);
     }
   }
 
-  Future<Uint8List?> _createTimelapse(
+  Future<void> _createTimelapse(
     Record record,
     int requestId,
   ) async {
@@ -111,7 +110,8 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
     final picture = record.picture;
     final original = record.original;
     if (picture == null || original == null) {
-      return null;
+      publish(FailedState());
+      return;
     }
     final originalFile = await cacheService.fetch(original.url);
     final ownFile = await cacheService.fetch(picture.url);
@@ -132,7 +132,8 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
       intersection: intersection,
     );
     if (originalImage == null || ownImage == null) {
-      return null;
+      publish(FailedState());
+      return;
     }
 
     final (width, height) = TimelapseService.computeTargetSize(
@@ -156,7 +157,7 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
     _service = service;
 
     publish(RenderingState(progress: 0, record: record));
-    return service.generateVideo(
+    final data = await service.generateVideo(
       firstImage: originalImage,
       secondImage: ownImage,
       duration: duration,
@@ -171,6 +172,11 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
         ));
       },
     );
+    publish(data == null ? FailedState() : FinishedState(
+      record: record,
+      data: data,
+      previewFrame: img.JpegEncoder().encode(originalImage),
+    ));
   }
 
   Future<void> shareGif() async {
@@ -211,15 +217,7 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
     final requestId = ++_requestId;
     _loading = true;
     try {
-      final data = await _createTimelapse(record, requestId);
-      if (_disposed || requestId != _requestId) {
-        return;
-      }
-      if (data == null) {
-        value = FailedState();
-      } else {
-        value = FinishedState(record: record, data: data);
-      }
+      _createTimelapse(record, requestId);
     } catch (e, stackTrace) {
       if (_disposed || requestId != _requestId) {
         return;

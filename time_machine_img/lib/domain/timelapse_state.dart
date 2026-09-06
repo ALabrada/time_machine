@@ -61,6 +61,11 @@ class RenderingState extends InitializedState {
 
 class FinishedState extends InitializedState {
   final Uint8List data;
+  final Uint8List? previewFrame;
 
-  const FinishedState({required super.record, required this.data});
+  const FinishedState({
+    required super.record,
+    required this.data,
+    this.previewFrame,
+  });
 }
