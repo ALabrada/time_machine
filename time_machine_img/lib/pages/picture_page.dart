@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:extended_text/extended_text.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -119,9 +118,11 @@ class PicturePageState extends State<PicturePage>
       child: ToolBar(
         children: [
           if (picture?.provider != null && picture?.provider != '')
-            IconButton(
-              onPressed: showCreationMenu,
-              icon: Icon(Icons.library_add),
+            Builder(
+              builder: (buttonContext) => IconButton(
+                onPressed: () => showCreationMenu(source: buttonContext),
+                icon: Icon(Icons.library_add),
+              ),
             ),
           if (picture?.site != null)
             IconButton(
@@ -173,9 +174,11 @@ class PicturePageState extends State<PicturePage>
     }
   }
 
-  Future<void> showCreationMenu() async {
+  Future<void> showCreationMenu({BuildContext? source}) async {
     await showAdaptiveActionSheet(
       context: context,
+      source: source,
+      direction: ActionSheetDirection.up,
       title: Text(ImgLocalizations.of(context).creationMenuTitle),
       cancelAction: CancelAction(
           title: Text(ImgLocalizations.of(context).creationMenuActionCancel)),
