@@ -384,14 +384,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.7"
-  dart_tensor_preprocessing:
-    dependency: transitive
-    description:
-      name: dart_tensor_preprocessing
-      sha256: "5da24593f2109ef20f780ce88555fb3852c04758724061eb2e9db8f684986bbc"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.5.1"
   dbus:
     dependency: transitive
     description:

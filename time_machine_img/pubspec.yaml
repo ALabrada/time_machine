@@ -34,7 +34,6 @@ dependencies:
   cached_network_image: ^3.4.1
   collection: any
   cross_file: any
-  dart_tensor_preprocessing: ^0.5.0
   dio: ^5.7.0
   extended_text: ^15.0.2
   file_picker: ^10.1.7
