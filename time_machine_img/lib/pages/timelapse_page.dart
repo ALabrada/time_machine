@@ -9,6 +9,7 @@ import 'package:time_machine_img/controllers/timelapse_controller.dart';
 import 'package:time_machine_img/domain/timelapse_state.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
 import 'package:time_machine_img/molecules/frame_view.dart';
+import 'package:time_machine_img/molecules/full_screen_view.dart';
 import 'package:time_machine_img/molecules/playback_tool_bar.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
@@ -25,14 +26,20 @@ class TimelapsePage extends StatefulWidget {
 }
 
 class TimelapsePageState extends State<TimelapsePage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const duration = Duration(seconds: 2);
+  static const _playbackToolbarHeight = 120.0;
 
   late PlaybackController playbackController;
   late TimelapseController controller;
+  late AnimationController animationController;
 
   @override
   void initState() {
+    animationController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 300),
+    );
     playbackController = PlaybackController(
       vsync: this,
       baseDuration: duration,
@@ -50,6 +57,7 @@ class TimelapsePageState extends State<TimelapsePage>
 
   @override
   void dispose() {
+    animationController.dispose();
     playbackController.dispose();
     controller.dispose();
     super.dispose();
@@ -61,21 +69,28 @@ class TimelapsePageState extends State<TimelapsePage>
       valueListenable: controller,
       builder: (context, state, _) {
         return Scaffold(
-          appBar: _buildAppBar(),
-          body: AnimatedSwitcher(
-            duration: Duration(milliseconds: 300),
-            child: _buildContent(state),
-          ),
-          bottomNavigationBar: AnimatedSize(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-            alignment: Alignment.topCenter,
-            child: state is FinishedState
-                ? PlaybackToolBar(
-                    playbackController: playbackController,
-                    controller: controller,
-                  )
-                : const SizedBox.shrink(),
+          body: FullScreenView(
+            collapsible: state is FinishedState,
+            animationController: animationController,
+            topBar: _buildAppBar(),
+            bottomBar: PreferredSize(
+              preferredSize: const Size.fromHeight(_playbackToolbarHeight),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: state is FinishedState
+                    ? PlaybackToolBar(
+                        playbackController: playbackController,
+                        controller: controller,
+                      )
+                    : const SizedBox.shrink(
+                        key: ValueKey('no-playback-toolbar'),
+                      ),
+              ),
+            ),
+            content: AnimatedSwitcher(
+              duration: Duration(milliseconds: 300),
+              child: _buildContent(state),
+            ),
           ),
         );
       },
