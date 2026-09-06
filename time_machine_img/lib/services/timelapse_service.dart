@@ -444,7 +444,7 @@ img.Image _decodeImage(Float32List data, int width, int height) {
 Uint8List? _encodeGifFromImages(List<img.Image> images, double fps) {
   final encoder = img.GifEncoder();
   for (var image in images) {
-    encoder.addFrame(image, duration: (1000 / fps).toInt());
+    encoder.addFrame(image, duration: (100 / fps).toInt());
   }
   final gifBytes = encoder.finish();
   if (gifBytes == null) return null;
