@@ -130,6 +130,15 @@ class TimeMachineApp extends StatelessWidget {
                             ),
                           ),
                           GoRoute(
+                            path: 'timelapse',
+                            builder: (context, state) => FixedOrientationView(
+                              orientations: DeviceOrientation.values,
+                              child: TimelapsePage(
+                                recordId: int.tryParse(state.pathParameters['recordId'] ?? ''),
+                              ),
+                            ),
+                          ),
+                          GoRoute(
                             path: 'upload',
                             builder: (context, state) => FixedOrientationView(
                               orientations: DeviceOrientation.values,

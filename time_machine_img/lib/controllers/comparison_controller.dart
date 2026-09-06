@@ -1,12 +1,11 @@
 import 'dart:isolate';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
-import 'package:image/image.dart' as img;
 import 'package:image_compare_2/image_compare_2.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/services/database_service.dart';
 import 'package:time_machine_img/services/telegram_service.dart';
+import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
@@ -137,46 +136,18 @@ class ComparisonController with TaskManager {
           ? null
           : originalViewPort.intersection(pictureViewPort);
 
-      var originalImage = kIsWeb
-          ? img.decodeImage(await originalFile.readAsBytes())
-          : await img.decodeImageFile(originalFile.path);
-      if (originalImage == null) {
+      final originalImage = await cropImageFile(
+        file: originalFile,
+        viewPort: originalViewPort,
+        intersection: intersection,
+      );
+      final ownImage = await cropImageFile(
+        file: ownFile,
+        viewPort: pictureViewPort,
+        intersection: intersection,
+      );
+      if (originalImage == null || ownImage == null) {
         return null;
-      }
-      if (intersection != null && originalViewPort != null) {
-        final rect = cropImage(
-          width: originalImage.width,
-          height: originalImage.height,
-          viewPort: originalViewPort,
-          intersection: intersection,
-        );
-        originalImage = img.copyCrop(originalImage,
-          x: rect.left,
-          y: rect.top,
-          width: rect.width,
-          height: rect.height,
-        );
-      }
-
-      var ownImage = kIsWeb
-          ? img.decodeImage(await ownFile.readAsBytes())
-          : await img.decodeImageFile(ownFile.path);
-      if (ownImage == null) {
-        return null;
-      }
-      if (intersection != null && pictureViewPort != null) {
-        final rect = cropImage(
-          width: ownImage.width,
-          height: ownImage.height,
-          viewPort: pictureViewPort,
-          intersection: intersection,
-        );
-        ownImage = img.copyCrop(ownImage,
-          x: rect.left,
-          y: rect.top,
-          width: rect.width,
-          height: rect.height,
-        );
       }
 
       return 1.0 - await compareImages(

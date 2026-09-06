@@ -45,15 +45,6 @@ class ImgLocalizationsRu extends ImgLocalizations {
   String get errorLoadingPage => 'Не удалось подключиться к серверу';
 
   @override
-  String get editDescriptionTitle => 'Изменить описание';
-
-  @override
-  String get editDescriptionHint => 'Описание';
-
-  @override
-  String get editDescriptionSave => 'Сохранить';
-
-  @override
   String get comparisonPage => 'Сравнение';
 
   @override
@@ -70,6 +61,47 @@ class ImgLocalizationsRu extends ImgLocalizations {
 
   @override
   String get comparisonTop => 'Выше';
+
+  @override
+  String get timelapsePage => 'Таймлапс';
+
+  @override
+  String get timelapseShare => 'Поделиться GIF';
+
+  @override
+  String get timelapseSettings => 'Настройки';
+
+  @override
+  String get timelapseAutoReplay => 'Автовоспроизведение';
+
+  @override
+  String get timelapsePlaybackSpeed => 'Скорость воспроизведения';
+
+  @override
+  String get timelapseQuality => 'Качество';
+
+  @override
+  String get timelapseResolution => 'Разрешение';
+
+  @override
+  String get timelapseFramesPerSecond => 'Кадров в секунду';
+
+  @override
+  String timelapseFps(Object fps) {
+    return '$fps кар./с';
+  }
+
+  @override
+  String get timelapseCancel => 'Отменить';
+
+  @override
+  String get timelapseApply => 'Применить';
+
+  @override
+  String get timelapseDownloading => 'Загрузка...';
+
+  @override
+  String get timelapseRendering => 'Рендеринг...';
 
   @override
   String galleryEmptyListBody(
@@ -91,6 +123,15 @@ class ImgLocalizationsRu extends ImgLocalizations {
 
   @override
   String get importSuccessful => 'Файл успешно импортирован';
+
+  @override
+  String get editDescriptionTitle => 'Изменить описание';
+
+  @override
+  String get editDescriptionHint => 'Описание';
+
+  @override
+  String get editDescriptionSave => 'Сохранить';
 
   @override
   String get searchBarHint => 'Поискать...';

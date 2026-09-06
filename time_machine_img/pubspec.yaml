@@ -34,9 +34,12 @@ dependencies:
   cached_network_image: ^3.4.1
   collection: any
   cross_file: any
+  dio: ^5.7.0
   extended_text: ^15.0.2
   file_picker: ^10.1.7
   flutter_cache_manager : ^3.4.1
+  flutter_litert: ^3.8.0
+  gif: ^2.3.0
   go_router: any
   group_grid_view: ^1.0.1
   image: ^4.5.2

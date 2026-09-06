@@ -46,15 +46,6 @@ class ImgLocalizationsEn extends ImgLocalizations {
   String get errorLoadingPage => 'Could not connect to the server';
 
   @override
-  String get editDescriptionTitle => 'Edit description';
-
-  @override
-  String get editDescriptionHint => 'Description';
-
-  @override
-  String get editDescriptionSave => 'Save';
-
-  @override
   String get comparisonPage => 'Comparison';
 
   @override
@@ -71,6 +62,47 @@ class ImgLocalizationsEn extends ImgLocalizations {
 
   @override
   String get comparisonTop => 'Top';
+
+  @override
+  String get timelapsePage => 'Timelapse';
+
+  @override
+  String get timelapseShare => 'Share GIF';
+
+  @override
+  String get timelapseSettings => 'Settings';
+
+  @override
+  String get timelapseAutoReplay => 'Auto-replay';
+
+  @override
+  String get timelapsePlaybackSpeed => 'Playback speed';
+
+  @override
+  String get timelapseQuality => 'Quality';
+
+  @override
+  String get timelapseResolution => 'Resolution';
+
+  @override
+  String get timelapseFramesPerSecond => 'Frames per second';
+
+  @override
+  String timelapseFps(Object fps) {
+    return '$fps fps';
+  }
+
+  @override
+  String get timelapseCancel => 'Cancel';
+
+  @override
+  String get timelapseApply => 'Apply';
+
+  @override
+  String get timelapseDownloading => 'Downloading...';
+
+  @override
+  String get timelapseRendering => 'Rendering...';
 
   @override
   String galleryEmptyListBody(
@@ -92,6 +124,15 @@ class ImgLocalizationsEn extends ImgLocalizations {
 
   @override
   String get importSuccessful => 'File imported successfully';
+
+  @override
+  String get editDescriptionTitle => 'Edit description';
+
+  @override
+  String get editDescriptionHint => 'Description';
+
+  @override
+  String get editDescriptionSave => 'Save';
 
   @override
   String get searchBarHint => 'Search...';

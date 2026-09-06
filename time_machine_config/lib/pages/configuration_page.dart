@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 import '../l10n/config_localizations.dart';
 import '../controllers/selection_controller.dart';
+import '../domain/frame_size.dart';
 
 class ConfigurationPage extends StatefulWidget {
   const ConfigurationPage({
@@ -47,6 +48,7 @@ class ConfigurationPageState extends State<ConfigurationPage> {
               _buildMapSection(),
               _buildProvidersSection(),
               _buildSearchOptions(),
+              _buildTimelapseSection(),
               _buildInfo(),
               _buildFooter(),
             ],
@@ -224,15 +226,49 @@ class ConfigurationPageState extends State<ConfigurationPage> {
     );
   }
 
+  AbstractSettingsSection _buildTimelapseSection() {
+    return SettingsSection(
+      title: Text(ConfigLocalizations.of(context).sectionTimelapse),
+      tiles: [
+        SettingsTile.navigation(
+          title: Text(ConfigLocalizations.of(context).settingTimelapseFrameSize),
+          value: Text(resolutionPClass(controller.frameSize.value)),
+          onPressed: (_) => _showSelectionDialog(
+            label: ConfigLocalizations.of(context).settingTimelapseFrameSize,
+            controller: controller.frameSize,
+            itemBuilder: (context, size, isSelected) => ListTile(
+              title: Text(resolutionPClass(size)),
+              selected: isSelected,
+            ),
+          ),
+        ),
+        SettingsTile.navigation(
+          title: Text(ConfigLocalizations.of(context).settingTimelapseFps),
+          value: Text('${controller.fps.value} fps'),
+          onPressed: (_) => _showSelectionDialog(
+            label: ConfigLocalizations.of(context).settingTimelapseFps,
+            controller: controller.fps,
+            itemBuilder: (context, fps, isSelected) => ListTile(
+              title: Text('$fps fps'),
+              selected: isSelected,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _showSelectionDialog<T>({
     required String label,
     required SelectionController<T> controller,
+    SelectOneItemBuilderType<T>? itemBuilder,
   }) async {
     await SelectDialog.showModal<T>(context,
       showSearchBox: false,
       label: label,
       selectedValue: controller.value,
       items: controller.elements.value,
+      itemBuilder: itemBuilder,
       onChange: (v) => controller.value = v,
     );
   }

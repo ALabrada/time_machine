@@ -135,4 +135,13 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
 
   @override
   String get settingThemeModeSystem => 'Системная';
+
+  @override
+  String get sectionTimelapse => 'Таймлапс';
+
+  @override
+  String get settingTimelapseFrameSize => 'Размер Кадра';
+
+  @override
+  String get settingTimelapseFps => 'Кадров в Секунду';
 }

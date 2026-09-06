@@ -4,10 +4,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 final class ConfigurationService extends ChangeNotifier {
   static const defaultCameraPictureOpacity = 0.5;
   static const defaultCameraRatio = '16x9';
+  static const defaultFrameSize = 256;
+  static const defaultFps = 4;
   static const defaultGeocoder = "OSM";
   static const defaultMaxYear = 2000;
   static const defaultMinYear = 1900;
   static const defaultVolumeButton = true;
+
+  /// The [fps] choices for the timelapse animation. The timeline is split by
+  /// recursive bisection into X intervals, so the frame count (including both
+  /// source frames) is always X + 1, with X = 2 * fps a multiple of 2. These
+  /// values keep X an exact power of two for the fixed 2s animation, so every
+  /// frame lands exactly on a 1/fps boundary.
+  static const fpsOptions = [4, 8, 16];
+
+  /// The [frameSize] choices for the timelapse animation (maximum dimension of
+  /// the rendered frames, capped to multiples of 32 for FILM).
+  static const frameSizeOptions = [256, 512, 768];
 
   ConfigurationService({
     required this.preferences,
@@ -94,6 +107,24 @@ final class ConfigurationService extends ChangeNotifier {
       preferences()?.remove('settings.volumeButton');
     } else {
       preferences()?.setBool('settings.volumeButton', value);
+    }
+  }
+
+  int? get frameSize => preferences()?.getInt('settings.frameSize');
+  set frameSize(int? value) {
+    if (value == null) {
+      preferences()?.remove('settings.frameSize');
+    } else {
+      preferences()?.setInt('settings.frameSize', value);
+    }
+  }
+
+  int? get fps => preferences()?.getInt('settings.fps');
+  set fps(int? value) {
+    if (value == null) {
+      preferences()?.remove('settings.fps');
+    } else {
+      preferences()?.setInt('settings.fps', value);
     }
   }
 }

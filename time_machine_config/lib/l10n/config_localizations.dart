@@ -310,6 +310,24 @@ abstract class ConfigLocalizations {
   /// In en, this message translates to:
   /// **'System'**
   String get settingThemeModeSystem;
+
+  /// No description provided for @sectionTimelapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse'**
+  String get sectionTimelapse;
+
+  /// No description provided for @settingTimelapseFrameSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Frame Size'**
+  String get settingTimelapseFrameSize;
+
+  /// No description provided for @settingTimelapseFps.
+  ///
+  /// In en, this message translates to:
+  /// **'Frames per second'**
+  String get settingTimelapseFps;
 }
 
 class _ConfigLocalizationsDelegate

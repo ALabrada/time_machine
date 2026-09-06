@@ -166,24 +166,6 @@ abstract class ImgLocalizations {
   /// **'Could not connect to the server'**
   String get errorLoadingPage;
 
-  /// No description provided for @editDescriptionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit description'**
-  String get editDescriptionTitle;
-
-  /// No description provided for @editDescriptionHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Description'**
-  String get editDescriptionHint;
-
-  /// No description provided for @editDescriptionSave.
-  ///
-  /// In en, this message translates to:
-  /// **'Save'**
-  String get editDescriptionSave;
-
   /// No description provided for @comparisonPage.
   ///
   /// In en, this message translates to:
@@ -219,6 +201,84 @@ abstract class ImgLocalizations {
   /// In en, this message translates to:
   /// **'Top'**
   String get comparisonTop;
+
+  /// No description provided for @timelapsePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Timelapse'**
+  String get timelapsePage;
+
+  /// No description provided for @timelapseShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share GIF'**
+  String get timelapseShare;
+
+  /// No description provided for @timelapseSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get timelapseSettings;
+
+  /// No description provided for @timelapseAutoReplay.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-replay'**
+  String get timelapseAutoReplay;
+
+  /// No description provided for @timelapsePlaybackSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get timelapsePlaybackSpeed;
+
+  /// No description provided for @timelapseQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality'**
+  String get timelapseQuality;
+
+  /// No description provided for @timelapseResolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution'**
+  String get timelapseResolution;
+
+  /// No description provided for @timelapseFramesPerSecond.
+  ///
+  /// In en, this message translates to:
+  /// **'Frames per second'**
+  String get timelapseFramesPerSecond;
+
+  /// No description provided for @timelapseFps.
+  ///
+  /// In en, this message translates to:
+  /// **'{fps} fps'**
+  String timelapseFps(Object fps);
+
+  /// No description provided for @timelapseCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get timelapseCancel;
+
+  /// No description provided for @timelapseApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get timelapseApply;
+
+  /// No description provided for @timelapseDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading...'**
+  String get timelapseDownloading;
+
+  /// No description provided for @timelapseRendering.
+  ///
+  /// In en, this message translates to:
+  /// **'Rendering...'**
+  String get timelapseRendering;
 
   /// No description provided for @galleryEmptyListBody.
   ///
@@ -256,6 +316,24 @@ abstract class ImgLocalizations {
   /// In en, this message translates to:
   /// **'File imported successfully'**
   String get importSuccessful;
+
+  /// No description provided for @editDescriptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit description'**
+  String get editDescriptionTitle;
+
+  /// No description provided for @editDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get editDescriptionHint;
+
+  /// No description provided for @editDescriptionSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get editDescriptionSave;
 
   /// No description provided for @searchBarHint.
   ///
