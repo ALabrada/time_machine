@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_litert/native.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
+import 'package:time_machine_config/time_machine_config.dart';
 
 /// Monolithic FILM interpolation with every frame rendered off the UI isolate.
 ///
@@ -141,19 +142,27 @@ class TimelapseService {
 
   /// Generates a GIF interpolating from [firstImage] to [secondImage].
   ///
-  /// Frames are produced by recursive bisection at t=0.5 — the only way FILM
-  /// yields accurate full-range frames. Each intermediate is computed and
+  /// The timeline is split by recursive bisection at t=0.5 — the only way FILM
+  /// yields accurate full-range frames. Depth `d` produces 2^d intervals and
+  /// 2^d + 1 frames INCLUDING both source frames (X + 1 with X = 2^d even),
+  /// all exactly equidistant in time. Depth is chosen so 2^depth == frames
+  /// needed for [duration] at [fps]; the app only exposes the combination that
+  /// satisfies it exactly (2s at 4/8/16 fps → 2^depth = 2 * fps). Each frame is
   /// reported through [onFrame] the moment it is ready (out of playback order),
-  /// so the first frame appears almost immediately for onscreen preview. Depth
-  /// is chosen so 2^depth + 1 >= frames needed for [duration] at [fps].
+  /// so the first frame appears almost immediately for onscreen preview.
+  /// When omitted, [fps] defaults to [ConfigurationService.defaultFps].
   Future<Uint8List?> generateVideo({
     required img.Image firstImage,
     required img.Image secondImage,
-    Duration duration = const Duration(seconds: 5),
-    double fps = 24,
+    Duration duration = const Duration(seconds: 2),
+    double? fps,
     FrameCallback? onFrame,
   }) async {
-    final neededFrames = (duration.inMilliseconds * fps / 1000).ceil();
+    final effectiveFps =
+        fps ?? ConfigurationService.defaultFps.toDouble();
+    // frames to show at `fps` over `duration` = intervals to subdivide =
+    // smallest power of two X = 2^depth such that 2^depth >= duration*fps.
+    final neededFrames = (duration.inMilliseconds * effectiveFps / 1000).ceil();
     var depth = 0;
     while ((1 << depth) < neededFrames) {
       depth++;
@@ -163,7 +172,7 @@ class TimelapseService {
       firstImage: firstImage,
       secondImage: secondImage,
       depth: depth,
-      fps: fps,
+      fps: effectiveFps,
       onFrame: onFrame,
       encodeGif: true,
     );

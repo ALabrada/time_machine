@@ -26,7 +26,7 @@ class TimelapsePage extends StatefulWidget {
 
 class TimelapsePageState extends State<TimelapsePage>
     with SingleTickerProviderStateMixin {
-  static const duration = Duration(seconds: 3);
+  static const duration = Duration(seconds: 2);
 
   late PlaybackController playbackController;
   late TimelapseController controller;

@@ -5,11 +5,22 @@ final class ConfigurationService extends ChangeNotifier {
   static const defaultCameraPictureOpacity = 0.5;
   static const defaultCameraRatio = '16x9';
   static const defaultFrameSize = 256;
-  static const defaultFps = 5;
+  static const defaultFps = 4;
   static const defaultGeocoder = "OSM";
   static const defaultMaxYear = 2000;
   static const defaultMinYear = 1900;
   static const defaultVolumeButton = true;
+
+  /// The [fps] choices for the timelapse animation. The timeline is split by
+  /// recursive bisection into X intervals, so the frame count (including both
+  /// source frames) is always X + 1, with X = 2 * fps a multiple of 2. These
+  /// values keep X an exact power of two for the fixed 2s animation, so every
+  /// frame lands exactly on a 1/fps boundary.
+  static const fpsOptions = [4, 8, 16];
+
+  /// The [frameSize] choices for the timelapse animation (maximum dimension of
+  /// the rendered frames, capped to multiples of 32 for FILM).
+  static const frameSizeOptions = [256, 512, 768];
 
   ConfigurationService({
     required this.preferences,

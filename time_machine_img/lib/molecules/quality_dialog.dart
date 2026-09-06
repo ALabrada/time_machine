@@ -17,8 +17,8 @@ class QualityDialog extends StatefulWidget {
 }
 
 class QualityDialogState extends State<QualityDialog> {
-  static const _frameSizes = [256, 512, 768];
-  static const _fpsValues = [5, 10, 15];
+  static const _frameSizes = ConfigurationService.frameSizeOptions;
+  static const _fpsValues = ConfigurationService.fpsOptions;
 
   late int _frameSize = widget.frameSize;
   late int _fps = widget.fps;

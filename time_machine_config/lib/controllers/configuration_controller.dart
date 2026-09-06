@@ -16,11 +16,11 @@ final class ConfigurationController extends ChangeNotifier {
         ),
         fps = SelectionController<int>(
           value: configurationService.fps ?? ConfigurationService.defaultFps,
-          elements: const [5, 10, 15],
+          elements: ConfigurationService.fpsOptions,
         ),
         frameSize = SelectionController<int>(
           value: configurationService.frameSize ?? ConfigurationService.defaultFrameSize,
-          elements: const [256, 512, 768],
+          elements: ConfigurationService.frameSizeOptions,
         ),
         geocoder = _createGeocoders(
           configurationService: configurationService,
