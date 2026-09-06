@@ -125,6 +125,10 @@ class ImgLocalizationsRu extends ImgLocalizations {
   String get importSuccessful => 'Файл успешно импортирован';
 
   @override
+  String get deleteError =>
+      'Не удалось удалить некоторые изображения. Они будут удалены при следующем запуске.';
+
+  @override
   String get editDescriptionTitle => 'Изменить описание';
 
   @override

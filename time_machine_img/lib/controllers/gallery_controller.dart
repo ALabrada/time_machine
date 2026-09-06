@@ -75,12 +75,21 @@ class GalleryController with TaskManager {
     await _reloadElements();
   }
 
-  Future<void> removeRecords() async {
+  Future<int> removeRecords() async {
+    var failures = 0;
     for (final record in selection.value) {
-      final dbRecord = await loadRecord(record.localId);
-      await databaseService?.removeRecord(dbRecord ?? record);
+      try {
+        final dbRecord = await loadRecord(record.localId);
+        final removed = await databaseService?.removeRecord(dbRecord ?? record) ?? false;
+        if (!removed) {
+          failures++;
+        }
+      } catch (_) {
+        failures++;
+      }
     }
     await _reloadElements();
+    return failures;
   }
 
   Future<void> export({String? dialogTitle}) async {

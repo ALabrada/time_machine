@@ -126,6 +126,10 @@ class ImgLocalizationsEs extends ImgLocalizations {
   String get importSuccessful => 'Archivo importado correctamente';
 
   @override
+  String get deleteError =>
+      'No se pudieron eliminar algunas imágenes. Se eliminarán al reiniciar la aplicación.';
+
+  @override
   String get editDescriptionTitle => 'Editar descripción';
 
   @override

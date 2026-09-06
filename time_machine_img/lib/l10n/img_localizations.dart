@@ -317,6 +317,12 @@ abstract class ImgLocalizations {
   /// **'File imported successfully'**
   String get importSuccessful;
 
+  /// No description provided for @deleteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete some pictures. They will be removed on the next relaunch.'**
+  String get deleteError;
+
   /// No description provided for @editDescriptionTitle.
   ///
   /// In en, this message translates to:

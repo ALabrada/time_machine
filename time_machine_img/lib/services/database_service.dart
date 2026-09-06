@@ -14,6 +14,14 @@ extension DatabaseExtensions on DatabaseService {
     return Uri.decodeFull(path).replaceAll(DatabaseService.filePathPlaceholder, filePath);
   }
 
+  static String _stripImageExtension(String id) {
+    return id.replaceFirst(
+      RegExp(r'\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|tiff?)$',
+          caseSensitive: false),
+      '',
+    );
+  }
+
   Future<Picture?> loadPicture(int id) async {
     final repo = createRepository<Picture>();
     final picture = await repo.getById(id);
@@ -219,15 +227,22 @@ extension DatabaseExtensions on DatabaseService {
     if (recordJson == null) return null;
     var record = Record.fromJson(recordJson);
 
-    final nowPicture = await _upsertPicture(
+    final (nowPicture, nowExisted) = await _upsertPicture(
       pictureJson: data['nowPicture'] as Map<String, dynamic>?,
       imageBytes: data['nowImage'] as Uint8List?,
     );
     if (nowPicture == null) return null;
+
+    // A "now" picture uniquely identifies a record. If it already exists in
+    // the DB, this archive (or a copy of it) was imported before, so skip the
+    // record to avoid duplicating it (with its file getting overwritten).
+    if (nowExisted) {
+      return null;
+    }
     record.picture = nowPicture;
     record.pictureId = nowPicture.localId!;
 
-    final thenPicture = await _upsertPicture(
+    final (thenPicture, _) = await _upsertPicture(
       pictureJson: data['thenPicture'] as Map<String, dynamic>?,
       imageBytes: data['thenImage'] as Uint8List?,
     );
@@ -238,27 +253,52 @@ extension DatabaseExtensions on DatabaseService {
     return record;
   }
 
-  Future<Picture?> _upsertPicture({
+  /// Returns the resolved picture and whether an existing record was reused
+  /// (true when the picture was already present in the DB, so no new file or
+  /// row is created).
+  Future<(Picture?, bool)> _upsertPicture({
     required Map<String, dynamic>? pictureJson,
     required Uint8List? imageBytes,
   }) async {
-    if (pictureJson == null) return null;
-    final picture = Picture.fromJson(pictureJson);
+    if (pictureJson == null) return (null, false);
+    // Normalize a missing provider to the app's convention (''), so that the
+    // id+provider duplicate lookup matches consistently on re-import.
+    final picture = Picture.fromJson(pictureJson)..provider ??= '';
+    final provider = picture.provider ?? '';
+
+    final picRepo = createRepository<Picture>();
+    final existing = await picRepo.findPictureByIdAndProvider(picture.id, provider) ??
+        await picRepo.findPictureByIdAndProvider(
+          _stripImageExtension(picture.id),
+          provider,
+        );
+    if (existing != null && await _pictureFileExists(existing)) {
+      return (existing, true);
+    }
 
     if (imageBytes != null) {
       final dirPath = filePath;
       if (dirPath == null || dirPath.isEmpty || kIsWeb) {
         picture.url = Uri.dataFromBytes(imageBytes, mimeType: 'image/jpg').toString();
       } else {
-        final localPath = '$dirPath/pictures/${picture.id}.jpg';
+        final fileStem = _stripImageExtension(picture.id);
+        final localPath = '$dirPath/pictures/$fileStem.jpg';
         final file = File(localPath);
         await file.create(recursive: true);
         await file.writeAsBytes(imageBytes);
-        picture.url = Uri.file('${DatabaseService.filePathPlaceholder}/pictures/${picture.id}.jpg').toString();
+        picture.url = Uri.file('${DatabaseService.filePathPlaceholder}/pictures/$fileStem.jpg').toString();
       }
     }
 
-    return await createRepository<Picture>().upsert(picture);
+    return (await createRepository<Picture>().upsert(picture), false);
+  }
+
+  Future<bool> _pictureFileExists(Picture picture) async {
+    final url = Uri.tryParse(picture.url);
+    if (url == null || !url.isScheme('file')) {
+      return true;
+    }
+    return await File(expandPath(url.path)).exists();
   }
 
   Future<bool> removeRecord(Record record) async {
@@ -273,8 +313,14 @@ extension DatabaseExtensions on DatabaseService {
 
     final url = Uri.tryParse(record.picture?.url ?? '');
     if (url != null && url.isScheme('file')) {
-
-      await File(expandPath(url.path)).delete();
+      try {
+        final file = File(expandPath(url.path));
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (e) {
+        debugPrint('removeRecord: could not delete picture file: $e');
+      }
     }
     return true;
   }

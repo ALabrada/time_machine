@@ -35,6 +35,7 @@
   "galleryRecentPictures": "Viewed recently",
   "importError": "Could not import the provided file",
   "importSuccessful": "File imported successfully",
+  "deleteError": "Could not delete some pictures. They will be removed on the next relaunch.",
   "editDescriptionTitle": "Edit description",
   "editDescriptionHint": "Description",
   "editDescriptionSave": "Save",

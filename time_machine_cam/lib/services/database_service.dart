@@ -36,7 +36,7 @@ extension CamDatabaseService on DatabaseService {
       final data = img.encodeJpg(image);
       url = Uri.dataFromBytes(data, mimeType: 'image/jpg').toString();
     } else if (p.isWithin(dirPath, file.path)) {
-      id = p.basename(file.path);
+      id = p.basenameWithoutExtension(file.path);
       url = Uri.file( file.path.replaceAll(dirPath, DatabaseService.filePathPlaceholder)).toString();
     } else {
       final localPath = '$dirPath/pictures/$id.jpg';

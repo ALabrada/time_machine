@@ -300,7 +300,12 @@ class GalleryPageState extends State<GalleryPage> {
       return;
     }
 
-    await galleryController.removeRecords();
+    final failures = await galleryController.removeRecords();
+    if (failures > 0 && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ImgLocalizations.of(context).deleteError),
+      ));
+    }
   }
 
   void _selectRecord(Record element) {

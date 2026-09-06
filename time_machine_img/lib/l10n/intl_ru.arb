@@ -35,6 +35,7 @@
   "galleryRecentPictures": "Просмотрено недавно",
   "importError": "Не удалось импортировать файл",
   "importSuccessful": "Файл успешно импортирован",
+  "deleteError": "Не удалось удалить некоторые изображения. Они будут удалены при следующем запуске.",
   "editDescriptionTitle": "Изменить описание",
   "editDescriptionHint": "Описание",
   "editDescriptionSave": "Сохранить",

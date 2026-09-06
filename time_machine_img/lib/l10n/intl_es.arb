@@ -35,6 +35,7 @@
   "galleryRecentPictures": "Vistas recientemente",
   "importError": "No se pudo importar el archivo",
   "importSuccessful": "Archivo importado correctamente",
+  "deleteError": "No se pudieron eliminar algunas imágenes. Se eliminarán al reiniciar la aplicación.",
   "editDescriptionTitle": "Editar descripción",
   "editDescriptionHint": "Descripción",
   "editDescriptionSave": "Guardar",

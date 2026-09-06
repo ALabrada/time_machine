@@ -353,7 +353,7 @@ void main() {
             cacheService: cacheService,
           );
 
-          expect(record.picture!.id, 'within_test.jpg');
+          expect(record.picture!.id, 'within_test');
           expect(record.picture!.url, contains('within_test.jpg'));
         } finally {
           await localDb.close();
