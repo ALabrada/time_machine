@@ -27,6 +27,53 @@ class QualityDialogState extends State<QualityDialog> {
     Navigator.of(context).pop((frameSize: _frameSize, fps: _fps));
   }
 
+  Widget _buildResolutionSection(TextStyle? labelStyle, ImgLocalizations l10n) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.timelapseResolution, style: labelStyle),
+        RadioGroup<int>(
+          groupValue: _frameSize,
+          onChanged: (value) =>
+              setState(() => _frameSize = value ?? _frameSize),
+          child: Column(
+            children: [
+              for (final size in _frameSizes)
+                RadioListTile<int>(
+                  value: size,
+                  title: Text(resolutionPClass(size)),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFpsSection(TextStyle? labelStyle, ImgLocalizations l10n) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.timelapseFramesPerSecond, style: labelStyle),
+        RadioGroup<int>(
+          groupValue: _fps,
+          onChanged: (value) => setState(() => _fps = value ?? _fps),
+          child: Column(
+            children: [
+              for (final fps in _fpsValues)
+                RadioListTile<int>(
+                  value: fps,
+                  title: Text(l10n.timelapseFps(fps)),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = ImgLocalizations.of(context);
@@ -36,41 +83,24 @@ class QualityDialogState extends State<QualityDialog> {
     return AlertDialog(
       title: Text(l10n.timelapseQuality),
       content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.timelapseResolution, style: labelStyle),
-            RadioGroup<int>(
-              groupValue: _frameSize,
-              onChanged: (value) =>
-                  setState(() => _frameSize = value ?? _frameSize),
-              child: Column(
+        child: MediaQuery.of(context).orientation == Orientation.portrait
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final size in _frameSizes)
-                    RadioListTile<int>(
-                      value: size,
-                      title: Text(resolutionPClass(size)),
-                    ),
+                  _buildResolutionSection(labelStyle, l10n),
+                  _buildFpsSection(labelStyle, l10n),
+                ],
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildResolutionSection(labelStyle, l10n)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildFpsSection(labelStyle, l10n)),
                 ],
               ),
-            ),
-            Text(l10n.timelapseFramesPerSecond, style: labelStyle),
-            RadioGroup<int>(
-              groupValue: _fps,
-              onChanged: (value) => setState(() => _fps = value ?? _fps),
-              child: Column(
-                children: [
-                  for (final fps in _fpsValues)
-                    RadioListTile<int>(
-                      value: fps,
-                      title: Text(l10n.timelapseFps(fps)),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
       actions: [
         TextButton(

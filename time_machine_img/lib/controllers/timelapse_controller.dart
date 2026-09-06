@@ -124,14 +124,14 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
 
     // Decoding and cropping the source photos is image work too, so it runs
     // off the main isolate (same pattern as ComparisonController).
-    final (originalImage, ownImage) = await _cropSourceImages(
+    final (originalImage, ownImage, preview) = await _cropSourceImages(
       originalFile: originalFile,
       ownFile: ownFile,
       originalViewPort: originalViewPort,
       pictureViewPort: pictureViewPort,
       intersection: intersection,
     );
-    if (originalImage == null || ownImage == null) {
+    if (originalImage == null || ownImage == null || preview == null) {
       publish(FailedState());
       return;
     }
@@ -175,7 +175,7 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
     publish(data == null ? FailedState() : FinishedState(
       record: record,
       data: data,
-      previewFrame: img.JpegEncoder().encode(originalImage),
+      previewFrame: preview,
     ));
   }
 
@@ -242,7 +242,7 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
 /// (its dio [_cancelToken] is unsendable), so the job lives here where `this`
 /// is not in scope. Anything that must send an isolate message but is written
 /// as an instance-method local closure risks silently capturing the controller.
-Future<(img.Image?, img.Image?)> _cropSourceImages({
+Future<(img.Image?, img.Image?, Uint8List?)> _cropSourceImages({
   required XFile originalFile,
   required XFile ownFile,
   required Rectangle<num>? originalViewPort,
@@ -260,6 +260,7 @@ Future<(img.Image?, img.Image?)> _cropSourceImages({
       viewPort: pictureViewPort,
       intersection: intersection,
     );
-    return (originalImage, ownImage);
+    final preview = originalImage == null ? null : img.JpegEncoder().encode(originalImage);
+    return (originalImage, ownImage, preview);
   });
 }
