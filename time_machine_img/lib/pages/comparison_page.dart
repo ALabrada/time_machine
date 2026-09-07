@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:adaptive_action_sheet/adaptive_action_sheet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -211,6 +210,10 @@ class ComparisonPageState extends State<ComparisonPage> with SingleTickerProvide
               icon: Icon(Icons.rotate_right),
             ),
             IconButton(
+              onPressed: widget.recordId == null ? null : openTimelapse,
+              icon: Icon(Icons.timelapse),
+            ),
+            IconButton(
               onPressed: openMap,
               icon: Icon(Icons.location_pin),
             ),
@@ -220,11 +223,16 @@ class ComparisonPageState extends State<ComparisonPage> with SingleTickerProvide
                 height: 24,
                 child: CircularProgressIndicator(),
               )
-            else IconButton(
-              onPressed: widget.recordId == null ? null : () {
-                unawaited(showSharingMenu());
-              },
-              icon: Icon(Icons.share),
+            else Builder(
+              builder: (buttonContext) => IconButton(
+                onPressed: widget.recordId == null
+                    ? null
+                    : () {
+                        unawaited(
+                            showSharingMenu(source: buttonContext));
+                      },
+                icon: Icon(Icons.share),
+              ),
             ),
             IconButton(
               onPressed: widget.recordId == null ? null : () {
@@ -300,6 +308,10 @@ class ComparisonPageState extends State<ComparisonPage> with SingleTickerProvide
     context.go('/?tab=map&pictureId=$pictureId');
   }
 
+  void openTimelapse() {
+    context.go('/gallery/${widget.recordId}/timelapse');
+  }
+
   Future<void> publishToTelegram() async {
     if (!await comparisonController.publishToTelegram()) {
       return;
@@ -312,9 +324,11 @@ class ComparisonPageState extends State<ComparisonPage> with SingleTickerProvide
     }
   }
 
-  Future<void> showSharingMenu() async {
+  Future<void> showSharingMenu({BuildContext? source}) async {
     await showAdaptiveActionSheet(
       context: context,
+      source: source,
+      direction: ActionSheetDirection.up,
       title: Text( ImgLocalizations.of(context).shareMenu),
       cancelAction: CancelAction(title: Text(ImgLocalizations.of(context).shareMenuCancel)),
       actions: [

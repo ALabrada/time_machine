@@ -283,7 +283,11 @@ void main() {
 
         final exportBytes = await service.export(record: record);
         final xfile = XFile.fromData(exportBytes!);
-        final results = await service.importFile(file: xfile);
+
+        final db2 = await databaseFactoryMemory.openDatabase('test_import_roundtrip_${DateTime.now().millisecondsSinceEpoch}.db');
+        final importService = DatabaseService(db: db2);
+        final results = await importService.importFile(file: xfile);
+        await db2.close();
 
         expect(results.length, 1);
         expect(results[0].picture, isNotNull);
@@ -306,7 +310,11 @@ void main() {
 
         final exportBytes = await service.export(record: record);
         final xfile = XFile.fromData(exportBytes!);
-        final results = await service.importFile(file: xfile);
+
+        final db2 = await databaseFactoryMemory.openDatabase('test_import_dataurl_${DateTime.now().millisecondsSinceEpoch}.db');
+        final importService = DatabaseService(db: db2);
+        final results = await importService.importFile(file: xfile);
+        await db2.close();
 
         expect(results.length, 1);
         expect(results[0].picture, isNotNull);
@@ -333,7 +341,11 @@ void main() {
 
         final exportBytes = await service.export(record: record);
         final xfile = XFile.fromData(exportBytes!);
-        final results = await service.importFile(file: xfile);
+
+        final db2 = await databaseFactoryMemory.openDatabase('test_import_orig_${DateTime.now().millisecondsSinceEpoch}.db');
+        final importService = DatabaseService(db: db2);
+        final results = await importService.importFile(file: xfile);
+        await db2.close();
 
         expect(results.length, 1);
         expect(results[0].picture!.id, 'now_pic');
@@ -382,11 +394,12 @@ void main() {
         expect(imported.picture!.url, original.picture!.url);
         expect(imported.picture!.latitude, original.picture!.latitude);
         expect(imported.picture!.longitude, original.picture!.longitude);
-        expect(imported.picture!.provider, original.picture!.provider);
+        expect(imported.picture!.provider, original.picture!.provider ?? '');
 
         expect(imported.original, isNotNull);
         expect(imported.original!.id, original.original!.id);
         expect(imported.original!.url, original.original!.url);
+        expect(imported.original!.provider, original.original!.provider ?? '');
 
         expect(imported.createdAt, original.createdAt);
         expect(imported.updateAt, original.updateAt);
@@ -397,6 +410,48 @@ void main() {
         expect(imported.pictureViewPort, original.pictureViewPort);
 
         await db2.close();
+      });
+
+      test('does not append the image extension twice when picture id already has one', () async {
+        final dir = Directory(
+          '/tmp/opencode/img_ext_${DateTime.now().millisecondsSinceEpoch}',
+        );
+        await dir.create(recursive: true);
+        final localDb = await databaseFactoryMemory.openDatabase(
+          'repro_ext_${DateTime.now().millisecondsSinceEpoch}.db',
+        );
+        final localService = DatabaseService(db: localDb, dataPath: dir.path);
+        try {
+          final imageBytes = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0]);
+          final archive = Archive();
+          archive.add(ArchiveFile.string('meta.json', jsonEncode({
+            'pictureId': 1,
+            'createdAt': DateTime(2024).millisecondsSinceEpoch,
+            'updateAt': DateTime(2024).millisecondsSinceEpoch,
+          })));
+          archive.add(ArchiveFile.string('now.json', jsonEncode({
+            'id': 'within_test.jpg',
+            'url': 'file://${DatabaseService.filePathPlaceholder}/within_test.jpg',
+            'latitude': 0.0,
+            'longitude': 0.0,
+          })));
+          archive.add(ArchiveFile('now.jpg', imageBytes.length, imageBytes));
+          final zip = ZipEncoder().encodeBytes(archive);
+
+          final results = await localService.importFile(file: XFile.fromData(zip));
+          final imported = results.single;
+
+          final expanded = localService.expandPath(
+            Uri.parse(imported.picture!.url).path,
+          );
+          expect(expanded.endsWith('.jpg.jpg'), isFalse,
+              reason: 'picture id already carries an extension; it must not be appended twice');
+          expect(expanded, endsWith('pictures/within_test.jpg'));
+          expect(File(expanded).existsSync(), isTrue);
+        } finally {
+          await localDb.close();
+          await dir.delete(recursive: true);
+        }
       });
 
       test('imports multi-record archive with directories', () async {
@@ -425,6 +480,161 @@ void main() {
         expect(results[1].picture, isNotNull);
         expect(results[0].picture!.id, 'multi_pic_0');
         expect(results[1].picture!.id, 'multi_pic_1');
+      });
+
+      test('re-importing the same archive skips records already in the DB', () async {
+        final archive = Archive();
+        archive.add(ArchiveFile.string('meta.json', jsonEncode({
+          'pictureId': 42,
+          'createdAt': DateTime(2024).millisecondsSinceEpoch,
+          'updateAt': DateTime(2024).millisecondsSinceEpoch,
+        })));
+        archive.add(ArchiveFile.string('now.json', jsonEncode({
+          'id': 'dedup_pic',
+          'url': 'https://example.com/dedup.jpg',
+          'provider': 'pastvu',
+          'latitude': 10.0,
+          'longitude': 20.0,
+        })));
+        final zipBytes = ZipEncoder().encodeBytes(archive);
+        final xfile = XFile.fromData(zipBytes);
+
+        final first = await service.importFile(file: xfile);
+        final second = await service.importFile(file: xfile);
+
+        expect(first.length, 1);
+        expect(first[0].picture!.id, 'dedup_pic');
+        expect(second, isEmpty,
+            reason: 'a second import must not duplicate the record');
+
+        final picRepo = service.createRepository<Picture>();
+        final recordRepo = service.createRepository<Record>();
+        expect((await picRepo.list()).length, 1, reason: 'picture must not be duplicated');
+        expect((await recordRepo.list()).length, 1, reason: 'record must not be duplicated');
+      });
+
+      test('re-importing skips when the now picture id differs only by extension', () async {
+        final archive = Archive();
+        archive.add(ArchiveFile.string('meta.json', jsonEncode({
+          'pictureId': 1,
+          'createdAt': DateTime(2024).millisecondsSinceEpoch,
+          'updateAt': DateTime(2024).millisecondsSinceEpoch,
+        })));
+        archive.add(ArchiveFile.string('now.json', jsonEncode({
+          'id': 'dedup_ext',
+          'url': 'https://example.com/dedup_ext.jpg',
+          'provider': 'pastvu',
+          'latitude': 10.0,
+          'longitude': 20.0,
+        })));
+        final zipBytes = ZipEncoder().encodeBytes(archive);
+        final xfile = XFile.fromData(zipBytes);
+
+        final first = await service.importFile(file: xfile);
+        expect(first.length, 1);
+
+        final extendedArchive = Archive();
+        extendedArchive.add(ArchiveFile.string('meta.json', jsonEncode({
+          'pictureId': 1,
+          'createdAt': DateTime(2024).millisecondsSinceEpoch,
+          'updateAt': DateTime(2024).millisecondsSinceEpoch,
+        })));
+        extendedArchive.add(ArchiveFile.string('now.json', jsonEncode({
+          'id': 'dedup_ext.jpg',
+          'url': 'https://example.com/dedup_ext.jpg',
+          'provider': 'pastvu',
+          'latitude': 10.0,
+          'longitude': 20.0,
+        })));
+        final second = await service.importFile(
+          file: XFile.fromData(ZipEncoder().encodeBytes(extendedArchive)!),
+        );
+
+        expect(second, isEmpty,
+            reason: 'id with extension must match the stored id without extension');
+        expect((await service.createRepository<Picture>().list()).length, 1);
+      });
+
+      test('does not conflate equal ids from different providers on import', () async {
+        const nowJson = '{"id":"shared_id","url":"https://example.com/pic.jpg","provider":"pastvu","latitude":10.0,"longitude":20.0}';
+
+        final archiveA = Archive();
+        archiveA.add(ArchiveFile.string('meta.json', jsonEncode({
+          'pictureId': 1,
+          'createdAt': DateTime(2024).millisecondsSinceEpoch,
+          'updateAt': DateTime(2024).millisecondsSinceEpoch,
+        })));
+        archiveA.add(ArchiveFile.string('now.json', nowJson));
+        final xfileA = XFile.fromData(ZipEncoder().encodeBytes(archiveA)!);
+
+        final archiveB = Archive();
+        archiveB.add(ArchiveFile.string('meta.json', jsonEncode({
+          'pictureId': 1,
+          'createdAt': DateTime(2024).millisecondsSinceEpoch,
+          'updateAt': DateTime(2024).millisecondsSinceEpoch,
+        })));
+        archiveB.add(ArchiveFile.string('now.json', jsonEncode({
+          'id': 'shared_id',
+          'url': 'https://example.com/other.jpg',
+          'provider': 'retro',
+          'latitude': 30.0,
+          'longitude': 40.0,
+        })));
+        final xfileB = XFile.fromData(ZipEncoder().encodeBytes(archiveB)!);
+
+        final a = await service.importFile(file: xfileA);
+        final b = await service.importFile(file: xfileB);
+
+        expect(a.length, 1);
+        expect(b.length, 1,
+            reason: 'same id with a different provider is a different picture');
+        expect((await service.createRepository<Picture>().list()).length, 2);
+      });
+
+      test('re-importing with existing picture file does not overwrite it', () async {
+        final dir = Directory(
+          '/tmp/opencode/img_dedup_${DateTime.now().millisecondsSinceEpoch}',
+        );
+        await dir.create(recursive: true);
+        final localDb = await databaseFactoryMemory.openDatabase(
+          'dedup_file_${DateTime.now().millisecondsSinceEpoch}.db',
+        );
+        final localService = DatabaseService(db: localDb, dataPath: dir.path);
+        try {
+          final imageBytes = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0]);
+          final archive = Archive();
+          archive.add(ArchiveFile.string('meta.json', jsonEncode({
+            'pictureId': 1,
+            'createdAt': DateTime(2024).millisecondsSinceEpoch,
+            'updateAt': DateTime(2024).millisecondsSinceEpoch,
+          })));
+          archive.add(ArchiveFile.string('now.json', jsonEncode({
+            'id': 'dedup_file',
+            'url': 'file://${DatabaseService.filePathPlaceholder}/dedup_file.jpg',
+            'latitude': 0.0,
+            'longitude': 0.0,
+          })));
+          archive.add(ArchiveFile('now.jpg', imageBytes.length, imageBytes));
+          final zip = ZipEncoder().encodeBytes(archive);
+
+          final first = await localService.importFile(file: XFile.fromData(zip));
+          final expanded = localService.expandPath(
+            Uri.parse(first[0].picture!.url).path,
+          );
+          await File(expanded).writeAsBytes([0x01, 0x02, 0x03, 0x04]);
+
+          final second = await localService.importFile(
+            file: XFile.fromData(zip),
+          );
+
+          expect(second, isEmpty);
+          final bytes = await File(expanded).readAsBytes();
+          expect(bytes, [0x01, 0x02, 0x03, 0x04],
+              reason: 're-import must reuse the existing picture file');
+        } finally {
+          await localDb.close();
+          await dir.delete(recursive: true);
+        }
       });
     });
   });

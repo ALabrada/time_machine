@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sembast/sembast_memory.dart';
-import 'package:sembast/sembast.dart';
 
 import 'package:time_machine_db/time_machine_db.dart';
 

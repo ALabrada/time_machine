@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 export 'controllers/configuration_controller.dart';
 export 'controllers/selection_controller.dart';
+export 'domain/frame_size.dart';
 export 'domain/map_tile_server.dart';
 export 'domain/selectable_item.dart';
 export 'l10n/config_localizations.dart';

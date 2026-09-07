@@ -18,6 +18,14 @@ final class ConfigurationController extends ChangeNotifier {
           configurationService: configurationService,
           networkService: networkService,
         ),
+        fps = SelectionController<int>(
+          value: configurationService.fps ?? ConfigurationService.defaultFps,
+          elements: ConfigurationService.fpsOptions,
+        ),
+        frameSize = SelectionController<int>(
+          value: configurationService.frameSize ?? ConfigurationService.defaultFrameSize,
+          elements: ConfigurationService.frameSizeOptions,
+        ),
         geocoder = _createGeocoders(
           configurationService: configurationService,
           networkService: networkService,
@@ -74,6 +82,14 @@ final class ConfigurationController extends ChangeNotifier {
       configurationService.themeMode = themeMode.value;
       notifyListeners();
     });
+    frameSize.addListener(() {
+      configurationService.frameSize = frameSize.value;
+      notifyListeners();
+    });
+    fps.addListener(() {
+      configurationService.fps = fps.value;
+      notifyListeners();
+    });
     for (final provider in providers) {
       provider.addListener(() {
         updateProvider(provider.item, provider.value);
@@ -88,6 +104,8 @@ final class ConfigurationController extends ChangeNotifier {
   final SelectionController<String> cameraRatio;
   final SelectionController<String> cloud;
   final SelectionController<String> geocoder;
+  final SelectionController<int> frameSize;
+  final SelectionController<int> fps;
   final SelectionController<int> maxYear;
   final SelectionController<int> minYear;
   final List<SelectableItem<String>> providers;
