@@ -230,7 +230,7 @@ void main() {
       await cloud.pollChanges();
 
       final path = '/TimeMachine/models/records/${first.id}';
-      adapter.files[path] = _encodeBody({'v': 2});
+      adapter.files[path] = _encodeBody({'v': 2}, id: first.id);
       adapter.touch(path);
 
       final events =
@@ -295,11 +295,11 @@ void main() {
   });
 }
 
-Uint8List _encodeBody(Map<String, dynamic> data) {
+Uint8List _encodeBody(Map<String, dynamic> data, {String id = 'remote'}) {
   final model = {
     'data': data,
     'metadata': CloudMetadata(
-      id: 'remote',
+      id: id,
       createdAt: DateTime.utc(2024),
       updatedAt: DateTime.utc(2024),
     ).toJson(),

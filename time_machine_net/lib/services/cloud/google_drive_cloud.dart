@@ -176,7 +176,7 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   
       for (final change in result.changes ?? const []) {
 
-        _handleChange(change);
+        await _handleChange(change);
       }
       _nextChangeToken = result.nextPageToken ?? token;
     } catch (_) {
@@ -186,7 +186,7 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     }
   }
 
-  void _handleChange(drive.Change change) {
+  Future<void> _handleChange(drive.Change change) async {
     final file = change.file;
     final collection = _collectionFromParents(file?.parents);
     if (collection == null) return;
@@ -202,9 +202,9 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     final metadataJson = file?.appProperties?[FileCloudBase.metadataKey];
 
     if (change.removed == true) {
-      publishFileDeleted(path: path, metadata: metadataJson);
+      await publishFileDeleted(path: path, metadata: metadataJson);
     } else {
-      publishFileInserted(path: path, metadata: metadataJson);
+      await publishFileInserted(path: path, metadata: metadataJson);
     }
   }
 

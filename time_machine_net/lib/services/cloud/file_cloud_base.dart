@@ -60,11 +60,11 @@ abstract class FileCloudBase extends CloudBase {
         final body = await _load(p.join(dirPath, entry.name));
         final stored = body[metadataKey];
         if (stored is Map<String, dynamic>) {
-          metadataJson = jsonEncode(stored);
+          result.add(CloudMetadata.fromJson(stored));
         }
+      } else {
+        result.add(CloudMetadata.fromJson(jsonDecode(metadataJson)));
       }
-      if (metadataJson == null) continue;
-      result.add(CloudMetadata.fromJson(jsonDecode(metadataJson)));
     }
     return result;
   }
@@ -224,7 +224,14 @@ mixin EventfulFileCloud on FileCloudBase {
     return deleted ? result.copy(deletedAt: result.deletedAt ?? now) : result;
   }
 
-  void publishFileDeleted({required String path, String? metadata}) {
+  Future<(CloudMetadata, Map<String, dynamic>?)> _loadFileForEvent(String path) async {
+    final body = await _load(path);
+    final metadata = CloudMetadata.fromJson(body[FileCloudBase.metadataKey]);
+    final data = body[FileCloudBase.dataKey];
+    return (metadata, data is Map<String, dynamic> ? data : null);
+  }
+
+  Future<void> publishFileDeleted({required String path, String? metadata}) async {
     final collection = _findCollection(path);
     if (collection == null) {
       return;
@@ -236,27 +243,47 @@ mixin EventfulFileCloud on FileCloudBase {
     publishEvent(event);
   }
 
-  void publishFileInserted({required String path, String? metadata}) {
+  Future<void> publishFileInserted({required String path, String? metadata}) async {
     final collection = _findCollection(path);
     if (collection == null) {
       return;
     }
-    final event = CloudInsertedEvent(
-      metadata: _loadMetadata(path: path, metadata: metadata),
-      collection: collection,
-    );
+    CloudInsertedEvent event;
+    if (metadata == null) {
+      final (cloudMeta, data) = await _loadFileForEvent(path);
+      event = CloudInsertedEvent(
+        metadata: cloudMeta,
+        data: data,
+        collection: collection,
+      );
+    } else {
+      event = CloudInsertedEvent(
+        metadata: _loadMetadata(path: path, metadata: metadata),
+        collection: collection,
+      );
+    }
     publishEvent(event);
   }
 
-  void publishFileUpdated({required String path, String? metadata}) {
+  Future<void> publishFileUpdated({required String path, String? metadata}) async {
     final collection = _findCollection(path);
     if (collection == null) {
       return;
     }
-    final event = CloudUpdatedEvent(
-      metadata: _loadMetadata(path: path, metadata: metadata),
-      collection: collection,
-    );
+    CloudUpdatedEvent event;
+    if (metadata == null) {
+      final (cloudMeta, data) = await _loadFileForEvent(path);
+      event = CloudUpdatedEvent(
+        metadata: cloudMeta,
+        data: data,
+        collection: collection,
+      );
+    } else {
+      event = CloudUpdatedEvent(
+        metadata: _loadMetadata(path: path, metadata: metadata),
+        collection: collection,
+      );
+    }
     publishEvent(event);
   }
 

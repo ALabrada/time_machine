@@ -296,13 +296,13 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
           final oldRev = previous[name];
           final recordPath = _recordPath(collection, name);
           if (oldRev == null) {
-            publishFileInserted(path: recordPath);
+            await publishFileInserted(path: recordPath);
           } else if (oldRev != current[name]) {
-            publishFileUpdated(path: recordPath);
+            await publishFileUpdated(path: recordPath);
           }
         }
         for (final name in previous.keys.where((n) => !current.containsKey(n))) {
-          publishFileDeleted(path: _recordPath(collection, name));
+          await publishFileDeleted(path: _recordPath(collection, name));
         }
         _snapshots[collection] = current;
       }
