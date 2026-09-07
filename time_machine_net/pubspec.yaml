@@ -34,15 +34,16 @@ dependencies:
   path: any
   supabase: ^2.6.0
   meta: any
+  nextcloud: ^9.0.0
   uuid: any
-  pointycastle: ^4.0.0
+  pointycastle: ^3.7.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
   fake_cloud_firestore: ^3.0.0
-  firebase_auth_mocks: ^0.14.2
+  firebase_auth_mocks: ^0.14.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
