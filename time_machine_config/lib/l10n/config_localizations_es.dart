@@ -150,6 +150,12 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
   String get cloudPageAuthSection => 'Autenticación';
 
   @override
+  String get cloudPageAuthSignedIn => 'Con sesión iniciada';
+
+  @override
+  String get cloudPageAuthSignedOut => 'Sin sesión';
+
+  @override
   String get cloudPageAuthSuccess => 'Sesión iniciada.';
 
   @override
@@ -188,6 +194,23 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
 
   @override
   String get cloudPageDeactivationFailed => 'No se pudo desactivar.';
+
+  @override
+  String get cloudPageServerUrl => 'URL del servidor';
+
+  @override
+  String get cloudPageLoginName => 'Usuario';
+
+  @override
+  String get cloudPagePasswordHint =>
+      'Usa una contraseña de aplicación (recomendado) o la contraseña de tu cuenta. La contraseña de aplicación se crea en Ajustes personales → Seguridad → Contraseñas de aplicación.';
+
+  @override
+  String get cloudPageServerUrlInvalid =>
+      'Introduce una URL de servidor válida.';
+
+  @override
+  String get cloudPageFieldRequired => 'Obligatorio.';
 
   @override
   String get settingThemeMode => 'Tema';

@@ -197,6 +197,7 @@ class TimeMachineApp extends StatelessWidget {
                 clientId: secrets.DROPBOX_APP_KEY,
                 redirectUri: secrets.DROPBOX_REDIRECT_URI,
               ),
+              'nextcloud': NextCloudCloud(),
             },
             userAgent: userAgent,
             geocoders: {

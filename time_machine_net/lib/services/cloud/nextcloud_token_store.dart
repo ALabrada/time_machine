@@ -8,7 +8,7 @@ class NextcloudSession {
   const NextcloudSession({
     required this.serverUrl,
     required this.loginName,
-    required this.appPassword,
+    required this.password,
     this.userId,
   });
 
@@ -16,7 +16,7 @@ class NextcloudSession {
     return NextcloudSession(
       serverUrl: json['serverUrl']! as String,
       loginName: json['loginName']! as String,
-      appPassword: json['appPassword']! as String,
+      password: json['password']! as String,
       userId: json['userId'] as String?,
     );
   }
@@ -27,10 +27,10 @@ class NextcloudSession {
   /// The user's login name used to authenticate with the instance.
   final String loginName;
 
-  /// The app password (Bearer token) issued by the Nextcloud web UI. Unlike a
-  /// plain user password an app password is scoped, revocable and works with
-  /// the HTTP Bearer auth that every supported endpoint accepts.
-  final String appPassword;
+  /// The credential sent to the server: either an app password (Bearer) or
+  /// the account password (Basic). The cloud tries the app-password (Bearer)
+  /// request first and only retries with HTTP Basic if the server returns 401.
+  final String password;
 
   /// The signed-in user's id, once known. Usually equals [loginName].
   final String? userId;
@@ -38,20 +38,20 @@ class NextcloudSession {
   NextcloudSession copy({
     String? serverUrl,
     String? loginName,
-    String? appPassword,
+    String? password,
     String? userId,
   }) =>
       NextcloudSession(
         serverUrl: serverUrl ?? this.serverUrl,
         loginName: loginName ?? this.loginName,
-        appPassword: appPassword ?? this.appPassword,
+        password: password ?? this.password,
         userId: userId ?? this.userId,
       );
 
   Map<String, Object?> toJson() => {
         'serverUrl': serverUrl,
         'loginName': loginName,
-        'appPassword': appPassword,
+        'password': password,
         'userId': userId,
       };
 }

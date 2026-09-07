@@ -151,6 +151,12 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
   String get cloudPageAuthSection => 'Аутентификация';
 
   @override
+  String get cloudPageAuthSignedIn => 'Выполнен вход';
+
+  @override
+  String get cloudPageAuthSignedOut => 'Вход не выполнен';
+
+  @override
   String get cloudPageAuthSuccess => 'Вход выполнен.';
 
   @override
@@ -189,6 +195,22 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
 
   @override
   String get cloudPageDeactivationFailed => 'Не удалось деактивировать.';
+
+  @override
+  String get cloudPageServerUrl => 'URL сервера';
+
+  @override
+  String get cloudPageLoginName => 'Имя пользователя';
+
+  @override
+  String get cloudPagePasswordHint =>
+      'Используйте пароль приложения (рекомендуется) или пароль учётной записи. Пароль приложения создаётся в разделе Личные настройки → Безопасность → Пароли приложений.';
+
+  @override
+  String get cloudPageServerUrlInvalid => 'Введите корректный URL сервера.';
+
+  @override
+  String get cloudPageFieldRequired => 'Обязательно.';
 
   @override
   String get settingThemeMode => 'Тема';

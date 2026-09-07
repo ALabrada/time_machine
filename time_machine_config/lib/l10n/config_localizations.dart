@@ -335,6 +335,18 @@ abstract class ConfigLocalizations {
   /// **'Authentication'**
   String get cloudPageAuthSection;
 
+  /// No description provided for @cloudPageAuthSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in'**
+  String get cloudPageAuthSignedIn;
+
+  /// No description provided for @cloudPageAuthSignedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Not signed in'**
+  String get cloudPageAuthSignedOut;
+
   /// No description provided for @cloudPageAuthSuccess.
   ///
   /// In en, this message translates to:
@@ -412,6 +424,36 @@ abstract class ConfigLocalizations {
   /// In en, this message translates to:
   /// **'Deactivation failed.'**
   String get cloudPageDeactivationFailed;
+
+  /// No description provided for @cloudPageServerUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Server URL'**
+  String get cloudPageServerUrl;
+
+  /// No description provided for @cloudPageLoginName.
+  ///
+  /// In en, this message translates to:
+  /// **'Login name'**
+  String get cloudPageLoginName;
+
+  /// No description provided for @cloudPagePasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use an app password (recommended) or your account password. An app password is created in Personal settings → Security → App passwords.'**
+  String get cloudPagePasswordHint;
+
+  /// No description provided for @cloudPageServerUrlInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid server URL.'**
+  String get cloudPageServerUrlInvalid;
+
+  /// No description provided for @cloudPageFieldRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required.'**
+  String get cloudPageFieldRequired;
 
   /// No description provided for @settingThemeMode.
   ///

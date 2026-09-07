@@ -14,6 +14,22 @@ class FakeNextcloudServer extends http.BaseClient {
   final Map<String, Uint8List> files = {};
   final Set<String> folders = {'TimeMachine'};
 
+  /// The login the server answers to. When either credential field is set,
+  /// requested requests must carry a matching `Authorization` header.
+  String loginName = 'user';
+
+  /// Valid Bearer token (app password). When non-null, requests are only
+  /// accepted if they carry this token as `Authorization: Bearer ...`, or
+  /// match [accountPassword] via HTTP Basic.
+  String? appPassword;
+
+  /// Valid account password. When non-null, `Authorization: Basic` requests
+  /// are only accepted if they decode to `loginName:[accountPassword]`.
+  String? accountPassword;
+
+  /// The `Authorization` header of every received request, in order.
+  final List<String> requestedAuthorizations = [];
+
   final Map<String, String> _etags = {};
   int _etagCounter = 0;
 
@@ -49,6 +65,10 @@ class FakeNextcloudServer extends http.BaseClient {
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    requestedAuthorizations.add(request.headers['Authorization'] ?? '');
+    if (!_authorized(request)) {
+      return _response(401);
+    }
     final url = request.url;
     final segments = url.pathSegments;
     final prefix = segments.indexOf('remote.php');
@@ -178,6 +198,32 @@ class FakeNextcloudServer extends http.BaseClient {
       return _response(404);
     }
     return _response(200, bytes: data);
+  }
+
+  bool _authorized(http.BaseRequest request) {
+    final validToken = appPassword;
+    final validPassword = accountPassword;
+    if (validToken == null && validPassword == null) {
+      return true;
+    }
+    final auth = request.headers['Authorization'];
+    if (auth == null) {
+      return false;
+    }
+    if (auth.startsWith('Bearer ')) {
+      return validToken != null && auth.substring('Bearer '.length) == validToken;
+    }
+    if (auth.startsWith('Basic ')) {
+      if (validPassword == null) {
+        return false;
+      }
+      final decoded = utf8.decode(base64Decode(auth.substring('Basic '.length)));
+      final separator = decoded.indexOf(':');
+      return separator != -1 &&
+          decoded.substring(0, separator) == loginName &&
+          decoded.substring(separator + 1) == validPassword;
+    }
+    return false;
   }
 
   static Future<Uint8List> _bodyBytes(http.BaseRequest request) async {

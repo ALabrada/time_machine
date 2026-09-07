@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nextcloud/nextcloud.dart';
+import 'package:nextcloud/webdav.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/services/cloud/nextcloud_cloud.dart';
 import 'package:time_machine_net/services/cloud/nextcloud_token_store.dart';
@@ -28,7 +29,7 @@ void main() {
       ..session = const NextcloudSession(
         serverUrl: 'http://localhost:8080/nextcloud',
         loginName: 'user',
-        appPassword: 'app-password',
+        password: 'app-password',
       );
     cloud = NextCloudCloud(
       tokenStore: store,
@@ -267,7 +268,7 @@ void main() {
       store.session = const NextcloudSession(
         serverUrl: 'http://localhost:8080/nextcloud',
         loginName: 'user',
-        appPassword: 'app-password-2',
+        password: 'app-password-2',
       );
 
       final cloudId = await cloud.initialize();
@@ -275,6 +276,90 @@ void main() {
       expect(cloudId, 'nextcloud/user');
       final metadata = await cloud.saveRecord('records', null, {'v': 1});
       expect(await cloud.getRecord('records', metadata.id), {'v': 1});
+    });
+  });
+
+  group('app-password → account-password fallback', () {
+    test('retries with HTTP Basic when the Bearer token is rejected',
+        () async {
+      server
+        ..appPassword = 'valid-app-password'
+        ..accountPassword = 'account-password';
+      final wrapper = NextcloudAuthFallbackClient(
+        inner: server,
+        loginName: 'user',
+        password: 'account-password',
+      );
+      final client = NextcloudClient(
+        Uri.parse('http://localhost:8080/nextcloud'),
+        loginName: 'user',
+        appPassword: 'rejected-bearer-token',
+        httpClient: wrapper,
+      );
+
+      final result = await client.webdav.propfind(
+        PathUri.parse('TimeMachine'),
+        depth: WebDavDepth.zero,
+      );
+
+      expect(result, isNotNull);
+      expect(server.requestedAuthorizations, hasLength(2));
+      expect(server.requestedAuthorizations.first, 'Bearer rejected-bearer-token');
+      expect(server.requestedAuthorizations.last, startsWith('Basic '));
+    });
+
+    test('fails when both the Bearer token and Basic credentials are rejected',
+        () async {
+      server
+        ..appPassword = 'valid-app-password'
+        ..accountPassword = 'account-password';
+      final wrapper = NextcloudAuthFallbackClient(
+        inner: server,
+        loginName: 'user',
+        password: 'wrong-account-password',
+      );
+      final client = NextcloudClient(
+        Uri.parse('http://localhost:8080/nextcloud'),
+        loginName: 'user',
+        appPassword: 'rejected-bearer-token',
+        httpClient: wrapper,
+      );
+
+      await expectLater(
+        client.webdav.propfind(
+          PathUri.parse('TimeMachine'),
+          depth: WebDavDepth.zero,
+        ),
+        throwsA(isA<DynamiteStatusCodeException>()),
+      );
+    });
+
+    test('retried PUT re-sends the original body', () async {
+      server
+        ..appPassword = 'valid-app-password'
+        ..accountPassword = 'account-password';
+      final wrapper = NextcloudAuthFallbackClient(
+        inner: server,
+        loginName: 'user',
+        password: 'account-password',
+      );
+      final client = NextcloudClient(
+        Uri.parse('http://localhost:8080/nextcloud'),
+        loginName: 'user',
+        appPassword: 'rejected-bearer-token',
+        httpClient: wrapper,
+      );
+
+      final bytes = Uint8List.fromList(utf8.encode('content-body'));
+      await client.webdav.put(
+        bytes,
+        PathUri.parse('TimeMachine/file.txt'),
+      );
+
+      expect(server.files['TimeMachine/file.txt'], bytes);
+      expect(server.requestedAuthorizations, hasLength(2));
+      expect(server.requestedAuthorizations.first, 'Bearer rejected-bearer-token');
+      expect(server.requestedAuthorizations.last, startsWith('Basic '));
     });
   });
 }

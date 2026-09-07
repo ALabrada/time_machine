@@ -39,3 +39,23 @@ class DropBoxState extends CloudState {
 
   const DropBoxState({this.accountEmail, required this.isActive});
 }
+
+class NextCloudState extends CloudState {
+  /// Whether the user is currently authenticated with the provider. This is
+  /// only true while the cloud is actually connected, i.e. after a sign-in has
+  /// been validated. The mere presence of stored/or remembered [serverUrl] and
+  /// [loginName] does NOT mark the user as signed in: those fields instead
+  /// carry the credentials of the last attempt (or stored session) so the
+  /// sign-in form can be repopulated after a change of state.
+  final bool signedIn;
+  final String? serverUrl;
+  final String? loginName;
+  final bool isActive;
+
+  const NextCloudState({
+    this.signedIn = false,
+    this.serverUrl,
+    this.loginName,
+    required this.isActive,
+  });
+}

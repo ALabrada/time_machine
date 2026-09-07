@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:nextcloud/nextcloud.dart';
 import 'package:nextcloud/webdav.dart';
 import 'package:path/path.dart' as p;
@@ -82,7 +84,12 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
     final client = NextcloudClient(
       Uri.parse(session!.serverUrl),
       loginName: session.loginName,
-      appPassword: session.appPassword,
+      appPassword: session.password,
+      httpClient: NextcloudAuthFallbackClient(
+        inner: http.Client(),
+        loginName: session.loginName,
+        password: session.password,
+      ),
     );
     _client = client;
     _webDav = client.webdav;
@@ -95,14 +102,16 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
     _webDav = null;
   }
 
-  /// Runs no OAuth consent flow: Nextcloud is authenticated with an app
-  /// password that the user generates in their Nextcloud web UI
-  /// (Personal settings → Security → App passwords). The resulting
-  /// [NextcloudSession] is handed to [NextcloudTokenStore.write].
+  /// Runs no interactive login flow: the user enters either an app password or
+  /// the account password into a single field. An app password is created in
+  /// the Nextcloud web UI (Personal settings → Security → App passwords) and
+  /// is the recommended choice; the account password only authenticates via
+  /// HTTP Basic and fails on accounts with two-factor authentication enabled.
+  /// The resulting [NextcloudSession] is handed to [NextcloudTokenStore.write].
   static Future<NextcloudSession> authorize({
     required String serverUrl,
     required String loginName,
-    required String appPassword,
+    required String password,
   }) async {
     if (Uri.tryParse(serverUrl) == null || serverUrl.isEmpty) {
       throw ArgumentError('serverUrl must be a valid URL');
@@ -110,15 +119,26 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
     return NextcloudSession(
       serverUrl: serverUrl,
       loginName: loginName,
-      appPassword: appPassword,
+      password: password,
     );
   }
+
+  /// Restores the persisted session (without speaking to the server) so the
+  /// UI can tell whether the user has already signed in before [initialize]
+  /// runs.
+  @override
+  Future<void> connect() async {
+    _session = await tokenStore.read();
+  }
+
+  /// Base URL of the Nextcloud instance, once a session has been restored.
+  String? get serverUrl => _session?.serverUrl;
 
   @override
   Future<String> initialize() async {
     final session = await tokenStore.read();
     if (session == null ||
-        session.appPassword.isEmpty ||
+        session.password.isEmpty ||
         session.loginName.isEmpty) {
       throw Exception('No Nextcloud session available');
     }
@@ -304,9 +324,10 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
   Future<void> _ensureRootFolder() async {
     if (_ensuredFolders.contains('')) return;
     try {
-      await _requireWebDav().mkcol(_path(appRootFolderName));
+      await _requireWebDav().mkcol(_path(''));
     } on DynamiteStatusCodeException catch (error) {
-      // The root folder already exists from a previous session.
+      // Creating an existing collection yields a 405; treat it as already
+      // there from a previous session.
       if (error.statusCode != 405) {
         rethrow;
       }
@@ -316,10 +337,61 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
 
   /// Turns a package-relative [FileCloudBase] path into a WebDAV [PathUri]
   /// below the app root folder (relative to the user's home, which is where
-  /// `/remote.php/webdav` is rooted).
+  /// `/remote.php/webdav` is rooted). Pass an empty string to address the
+  /// root folder itself.
   PathUri _path(String relativePath) =>
       PathUri.parse('$appRootFolderName/$relativePath');
 
   String _recordPath(String collection, String encodedId) =>
       p.join(FileCloudBase.modelsDir, collection, encodedId);
+}
+
+/// Retries a failed (401) request once with HTTP Basic credentials, switching
+/// from the Bearer token sent by the `nextcloud` package when the credential
+/// is an app password to the account password variant.
+///
+/// The WebDAV client only ever attaches the first configured authentication
+/// (a Bearer token), but Nextcloud accepts the account password exclusively
+/// through HTTP Basic. This wrapper implements the fallback: the credential
+/// entered by the user is first tried as an app password (Bearer) and, if the
+/// server rejects it, again as the account password (Basic). The request
+/// fails only when both attempts are rejected.
+class NextcloudAuthFallbackClient extends http.BaseClient {
+  NextcloudAuthFallbackClient({
+    required this.inner,
+    required this.loginName,
+    required this.password,
+  });
+
+  /// The underlying client that performs the actual requests.
+  final http.Client inner;
+
+  final String loginName;
+  final String password;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    if (request is! http.Request) {
+      return inner.send(request);
+    }
+    // Capture the body before the first send: the underlying client consumes
+    // (finalizes) the request, so it cannot be reused afterwards.
+    final body = request.bodyBytes;
+    final headers = Map<String, String>.from(request.headers);
+    final response = await inner.send(request);
+    if (response.statusCode != 401) {
+      return response;
+    }
+    // The bearer attempt failed; drain it so the connection can be reused.
+    await response.stream.drain();
+    final retry = http.Request(request.method, request.url)
+      ..headers.addAll(headers)
+      ..bodyBytes = body;
+    retry.headers['Authorization'] =
+        'Basic ${base64Encode(utf8.encode('$loginName:$password'))}';
+    return inner.send(retry);
+  }
+
+  @override
+  void close() => inner.close();
 }

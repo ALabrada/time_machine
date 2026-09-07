@@ -26,6 +26,12 @@ final class CloudController extends ValueNotifier<CloudState> {
   /// [GoogleDriveCloud]. When null, Google Drive cannot be activated.
   final GoogleDriveSignIn? googleDriveSignIn;
 
+  /// The Nextcloud server URL and login name from the last sign-in attempt
+  /// (successful or not), kept so the form can be repopulated after a change
+  /// of state instead of wiping what the user typed.
+  String? _nextcloudServerUrl;
+  String? _nextcloudLoginName;
+
   String? get cloudName => configurationService.cloud;
 
   CloudBase? get cloud {
@@ -52,6 +58,19 @@ final class CloudController extends ValueNotifier<CloudState> {
 
   Future<void> handleEvent(CloudEvent event) async {
     switch (event) {
+      // Must be matched before CloudActivateEvent because it extends it.
+      case NextCloudSignInEvent(
+          :final serverUrl,
+          :final loginName,
+          :final password
+        ):
+        _nextcloudServerUrl = serverUrl;
+        _nextcloudLoginName = loginName;
+        await _activate(
+          serverUrl: serverUrl,
+          loginName: loginName,
+          password: password,
+        );
       case CloudActivateEvent():
         await _activate();
       case CloudDeactivateEvent():
@@ -74,7 +93,11 @@ final class CloudController extends ValueNotifier<CloudState> {
     }
   }
 
-  Future<void> _activate() async {
+  Future<void> _activate({
+    String? serverUrl,
+    String? loginName,
+    String? password,
+  }) async {
     final previous = value;
     final cloud = this.cloud;
     if (cloud == null) {
@@ -82,18 +105,45 @@ final class CloudController extends ValueNotifier<CloudState> {
     }
     value = const LoadingState();
     try {
-      final active = await _authenticate(cloud);
+      final active = await _authenticate(
+        cloud,
+        serverUrl: serverUrl,
+        loginName: loginName,
+        password: password,
+      );
       if (!cloudSyncService.isActive) {
+        // CloudSyncService.setProvider swallows initialize() errors (it only
+        // logs them), so a Nextcloud session may have been stored without
+        // ever being validated against the server. Clear it, otherwise the
+        // stored server URL and login name could later be mistaken for a
+        // valid sign-in.
+        if (cloud is NextCloudCloud) {
+          await cloud.tokenStore.clear();
+        }
         throw Exception('Cloud activation failed');
       }
       value = _stateFor(active);
     } catch (error) {
-      value = previous;
+      // A failed Nextcloud sign-in restores a non-authenticated state that
+      // still carries the remembered credentials, so the form is refilled
+      // with the server URL and login name the user just entered.
+      value = cloud is NextCloudCloud
+          ? NextCloudState(
+              serverUrl: _nextcloudServerUrl,
+              loginName: _nextcloudLoginName,
+              isActive: false,
+            )
+          : previous;
       rethrow;
     }
   }
 
-  Future<CloudBase> _authenticate(CloudBase cloud) async {
+  Future<CloudBase> _authenticate(
+    CloudBase cloud, {
+    String? serverUrl,
+    String? loginName,
+    String? password,
+  }) async {
     if (cloud is GoogleDriveCloud) {
       final signIn = googleDriveSignIn;
       if (signIn == null) {
@@ -111,7 +161,32 @@ final class CloudController extends ValueNotifier<CloudState> {
       );
       await cloud.tokenStore.write(session);
     }
-    await cloudSyncService.setProvider(cloud);
+    var storedSession = false;
+    if (cloud is NextCloudCloud) {
+      final url = serverUrl;
+      final user = loginName;
+      final pwd = password;
+      if (url != null && user != null && pwd != null) {
+        final session = await NextCloudCloud.authorize(
+          serverUrl: url,
+          loginName: user,
+          password: pwd,
+        );
+        await cloud.tokenStore.write(session);
+        storedSession = true;
+      }
+    }
+    try {
+      await cloudSyncService.setProvider(cloud);
+    } catch (error) {
+      // A freshly stored Nextcloud session was not validated yet; if the
+      // server rejects it, drop it so the user can re-enter their data
+      // instead of being locked to a broken session.
+      if (storedSession && cloud is NextCloudCloud) {
+        await cloud.tokenStore.clear();
+      }
+      rethrow;
+    }
     return cloud;
   }
 
@@ -140,6 +215,13 @@ final class CloudController extends ValueNotifier<CloudState> {
       } else if (cloud is DropBoxCloud) {
         await cloud.logout();
         value = const DropBoxState(isActive: false);
+      } else if (cloud is NextCloudCloud) {
+        await cloud.logout();
+        value = NextCloudState(
+          serverUrl: _nextcloudServerUrl,
+          loginName: _nextcloudLoginName,
+          isActive: false,
+        );
       } else {
         value = const NotSelectedState();
       }
@@ -159,6 +241,18 @@ final class CloudController extends ValueNotifier<CloudState> {
     }
     if (cloud is DropBoxCloud) {
       return DropBoxState(accountEmail: cloud.userEmail, isActive: isActive);
+    }
+    if (cloud is NextCloudCloud) {
+      return NextCloudState(
+        // Only a validated, connected session counts as signed in; the
+        // presence of a stored session alone does not authenticate the user.
+        signedIn: isActive,
+        // A restored session wins; otherwise fall back to the credentials of
+        // the last sign-in attempt so the form keeps them.
+        serverUrl: cloud.serverUrl ?? _nextcloudServerUrl,
+        loginName: cloud.userEmail ?? _nextcloudLoginName,
+        isActive: isActive,
+      );
     }
     return const NotSelectedState();
   }
