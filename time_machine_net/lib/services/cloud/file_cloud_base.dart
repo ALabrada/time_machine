@@ -72,7 +72,7 @@ abstract class FileCloudBase extends CloudBase {
   @override
   Future<CloudMetadata> saveRecord(String collection, CloudMetadata? metadata, Map<String, dynamic> data) async {
     final id = metadata?.id ?? Uuid().v4();
-    final now = DateTime.now();
+    final now = DateTime.fromMillisecondsSinceEpoch(DateTime.now().millisecondsSinceEpoch);
     final path = p.join(modelsDir, collection, Uri.encodeComponent(id));
     final actualMetadata = metadata ?? CloudMetadata(id: id, createdAt: now, updatedAt: now);
     final model = {
@@ -220,7 +220,7 @@ mixin EventfulFileCloud on FileCloudBase {
 
   CloudMetadata _loadMetadata({required String path, String? metadata, bool deleted=false}) {
     final id = p.basename(path);
-    final now = DateTime.now();
+    final now = DateTime.fromMillisecondsSinceEpoch(DateTime.now().millisecondsSinceEpoch);
     if (metadata == null) {
       return CloudMetadata(id: id, createdAt: now, updatedAt: now, deletedAt: deleted ? now : null);
     }

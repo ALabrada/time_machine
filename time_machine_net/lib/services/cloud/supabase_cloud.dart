@@ -161,11 +161,12 @@ class SupabaseCloud extends CloudBase with EventfulCloud {
     CloudMetadata? metadata,
     Map<String, dynamic> data,
   ) async {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
+    final createdAt = (metadata?.createdAt ?? now).toUtc();
     final row = <String, dynamic>{
-      'createdAt': metadata?.createdAt.toIso8601String() ?? now.toIso8601String(),
+      'createdAt': createdAt.toIso8601String(),
       'updatedAt': now.toIso8601String(),
-      'deletedAt': metadata?.deletedAt?.toIso8601String(),
+      'deletedAt': metadata?.deletedAt?.toUtc().toIso8601String(),
       'data': jsonEncode(data),
     };
 
@@ -174,9 +175,9 @@ class SupabaseCloud extends CloudBase with EventfulCloud {
       await _client.from(collection).upsert(row);
       return CloudMetadata(
         id: metadata.id,
-        createdAt: metadata.createdAt,
+        createdAt: createdAt,
         updatedAt: now,
-        deletedAt: metadata.deletedAt,
+        deletedAt: metadata.deletedAt?.toUtc(),
       );
     }
 
@@ -203,7 +204,7 @@ class SupabaseCloud extends CloudBase with EventfulCloud {
   Future<List<CloudMetadata>> listRecords(String collection, {DateTime? since}) async {
     var query = _client.from(collection).select();
     if (since != null) {
-      query = query.gte('updatedAt', since.toIso8601String());
+      query = query.gte('updatedAt', since.toUtc().toIso8601String());
     }
     final results = await query;
     return [

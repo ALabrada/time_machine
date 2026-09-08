@@ -6,16 +6,16 @@ import 'package:time_machine_db/time_machine_db.dart';
 abstract class CloudBase implements CloudSyncProvider {
   static DateTime? _parseDate(Object? value) {
     if (value is int) {
-      return DateTime.fromMillisecondsSinceEpoch(value);
+      return DateTime.fromMillisecondsSinceEpoch(value).toUtc();
     }
     if (value is String) {
-      return DateTime.tryParse(value);
+      return DateTime.tryParse(value)?.toUtc();
     }
     return null;
   }
 
   CloudMetadata metadataFromData(String id, Map<String, dynamic> data) {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final createdAt = _parseDate(data['createdAt']) ?? now;
     final updatedAt = _parseDate(data['updatedAt']) ?? createdAt;
     final deletedAt = _parseDate(data['deletedAt']);

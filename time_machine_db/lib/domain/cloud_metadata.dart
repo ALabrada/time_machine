@@ -1,12 +1,17 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'date_time_converter.dart';
+
 part 'cloud_metadata.g.dart';
 
 @JsonSerializable()
 class CloudMetadata {
   final String id;
+  @DateTimeConverter()
   final DateTime createdAt;
+  @DateTimeConverter()
   final DateTime updatedAt;
+  @DateTimeConverter()
   final DateTime? deletedAt;
 
   DateTime get lastDate => deletedAt ?? updatedAt;

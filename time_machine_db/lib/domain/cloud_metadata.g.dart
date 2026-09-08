@@ -9,17 +9,31 @@ part of 'cloud_metadata.dart';
 CloudMetadata _$CloudMetadataFromJson(Map<String, dynamic> json) =>
     CloudMetadata(
       id: json['id'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
-      deletedAt: json['deletedAt'] == null
-          ? null
-          : DateTime.parse(json['deletedAt'] as String),
+      createdAt:
+          const DateTimeConverter().fromJson(json['createdAt'] as Object),
+      updatedAt:
+          const DateTimeConverter().fromJson(json['updatedAt'] as Object),
+      deletedAt: _$JsonConverterFromJson<Object, DateTime>(
+          json['deletedAt'], const DateTimeConverter().fromJson),
     );
 
 Map<String, dynamic> _$CloudMetadataToJson(CloudMetadata instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'createdAt': instance.createdAt.toIso8601String(),
-      'updatedAt': instance.updatedAt.toIso8601String(),
-      'deletedAt': instance.deletedAt?.toIso8601String(),
+      'createdAt': const DateTimeConverter().toJson(instance.createdAt),
+      'updatedAt': const DateTimeConverter().toJson(instance.updatedAt),
+      'deletedAt': _$JsonConverterToJson<Object, DateTime>(
+          instance.deletedAt, const DateTimeConverter().toJson),
     };
+
+Value? _$JsonConverterFromJson<Json, Value>(
+  Object? json,
+  Value? Function(Json json) fromJson,
+) =>
+    json == null ? null : fromJson(json as Json);
+
+Json? _$JsonConverterToJson<Json, Value>(
+  Value? value,
+  Json? Function(Value value) toJson,
+) =>
+    value == null ? null : toJson(value);

@@ -194,6 +194,32 @@ void main() {
       expect(reloaded.deletedAt, isNull);
     });
 
+    test('dates are serialized as epoch milliseconds, not strings', () async {
+      final createdAt = DateTime(2024, 1, 1);
+      final updatedAt = DateTime(2024, 2, 2);
+      await cloud.saveRecord(
+        'records',
+        CloudMetadata(
+          id: 'epoch-meta',
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+        ),
+        {'id': 'src-epoch'},
+      );
+
+      final model = storedModel('models/records/epoch-meta');
+      final serialized =
+          model[FileCloudBase.metadataKey] as Map<String, dynamic>;
+      expect(serialized['createdAt'], createdAt.millisecondsSinceEpoch);
+      expect(serialized['updatedAt'], updatedAt.millisecondsSinceEpoch);
+      expect(serialized['deletedAt'], isNull);
+
+      final reloaded = (await cloud.listRecords('records')).single;
+      expect(reloaded.id, 'epoch-meta');
+      expect(reloaded.createdAt, createdAt);
+      expect(reloaded.updatedAt, updatedAt);
+    });
+
     test('record id is url-encoded in the storage path', () async {
       const id = 'a/b c?d';
 

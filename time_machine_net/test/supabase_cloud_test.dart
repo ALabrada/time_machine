@@ -231,8 +231,8 @@ void main() {
           final body = json.decode(utf8.decode(request.bodyBytes))
               as Map<String, dynamic>;
           expect(body['id'], 'my-existing-id');
-          expect(body['createdAt'], createdAt.toIso8601String());
-          expect(body['deletedAt'], deletedAt.toIso8601String());
+          expect(body['createdAt'], createdAt.toUtc().toIso8601String());
+          expect(body['deletedAt'], deletedAt.toUtc().toIso8601String());
           expect(json.decode(body['data'] as String), {
             'id': 'source-789',
             'name': 'Updated Picture',
@@ -253,8 +253,8 @@ void main() {
         );
 
         expect(metadata.id, 'my-existing-id');
-        expect(metadata.createdAt, createdAt);
-        expect(metadata.deletedAt, deletedAt);
+        expect(metadata.createdAt.isAtSameMomentAs(createdAt), isTrue);
+        expect(metadata.deletedAt!.isAtSameMomentAs(deletedAt), isTrue);
       });
 
       test('upsert returns metadata with fresh updatedAt', () async {
@@ -273,7 +273,7 @@ void main() {
 
         final after = DateTime.now();
         expect(metadata.id, 'any-id');
-        expect(metadata.createdAt, DateTime(2024, 1, 1));
+        expect(metadata.createdAt.isAtSameMomentAs(DateTime(2024, 1, 1)), isTrue);
         expect(metadata.updatedAt.millisecondsSinceEpoch,
             greaterThanOrEqualTo(before.millisecondsSinceEpoch));
         expect(metadata.updatedAt.millisecondsSinceEpoch,
@@ -408,13 +408,13 @@ void main() {
         expect(results.length, 2);
         expect(results[0].id, 'a');
         expect(results[0].createdAt,
-            DateTime.parse('2024-01-01T00:00:00.000'));
+            DateTime.parse('2024-01-01T00:00:00.000').toUtc());
         expect(results[0].updatedAt,
-            DateTime.parse('2024-01-02T00:00:00.000'));
+            DateTime.parse('2024-01-02T00:00:00.000').toUtc());
         expect(results[0].deletedAt, isNull);
         expect(results[1].id, 'b');
         expect(results[1].deletedAt,
-            DateTime.parse('2024-03-01T00:00:00.000'));
+            DateTime.parse('2024-03-01T00:00:00.000').toUtc());
       });
     });
 
@@ -702,7 +702,7 @@ void main() {
         final event = events.first as CloudInsertedEvent;
         expect(event.metadata.id, 'db-1');
         expect(event.metadata.createdAt,
-            DateTime.parse('2024-01-01T00:00:00.000'));
+            DateTime.parse('2024-01-01T00:00:00.000').toUtc());
         expect(event.collection, 'pictures');
         expect(event.data!['id'], 'src-1');
         expect(event.data!['name'], 'Inserted');
@@ -809,7 +809,7 @@ void main() {
         final event = events.first as CloudDeletedEvent;
         expect(event.metadata.id, 'db-4');
         expect(event.metadata.deletedAt,
-            DateTime.parse('2024-01-05T00:00:00.000'));
+            DateTime.parse('2024-01-05T00:00:00.000').toUtc());
         expect(event.collection, 'pictures');
         expect(event.data!['name'], 'Deleted');
       });
