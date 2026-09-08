@@ -772,5 +772,343 @@ void main() {
       providerB.dispose();
       await db.close();
     });
+
+    test('syncWithCloud pushes a standalone picture to the cloud', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_standalone_pic_push.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = createProvider();
+
+      final now = DateTime.now();
+      final picture = Picture(
+        id: 'solo1',
+        provider: 'pastvu',
+        url: 'data:image/jpg;base64,AA==',
+        latitude: 48.0,
+        longitude: 2.0,
+        visitedAt: now,
+      );
+      await dbService.createRepository<Picture>().insert(picture);
+
+      final syncService = CloudSyncService(databaseService: dbService);
+      await syncService.setProvider(mockProvider);
+
+      expect(mockProvider.hasRecord('pictures', 'pastvu/solo1'), true);
+      expect(mockProvider.hasRecord('records', 'pastvu/solo1'), false);
+      final mirror = await dbService.createRepository<PictureMirror>()
+          .findByPictureAndCloud(picture.localId!, 'mock');
+      expect(mirror, isNotNull);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('syncWithCloud pulls a standalone picture from the cloud', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_standalone_pic_pull.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = createProvider();
+
+      mockProvider.addRecord('pictures', 'pastvu/c1', cloudPictureJson(id: 'c1', provider: 'pastvu'));
+
+      final syncService = CloudSyncService(databaseService: dbService);
+      await syncService.setProvider(mockProvider);
+
+      final pictures = await dbService.createRepository<Picture>().list();
+      expect(pictures, hasLength(1));
+      expect(pictures.first.id, 'c1');
+      expect(pictures.first.provider, 'pastvu');
+      expect(await dbService.createRepository<PictureMirror>()
+          .findByIdAndCloud('pastvu/c1', 'mock'), isNotNull);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('syncWithCloud re-pushes a re-visited standalone picture', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_standalone_pic_revisit.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = createProvider();
+
+      final synced = DateTime.now().subtract(const Duration(hours: 1));
+      final picture = Picture(
+        id: 'solo2',
+        provider: 'pastvu',
+        url: 'data:image/jpg;base64,AA==',
+        latitude: 48.0,
+        longitude: 2.0,
+        visitedAt: synced,
+      );
+      await dbService.createRepository<Picture>().insert(picture);
+
+      final syncService = CloudSyncService(databaseService: dbService);
+      await syncService.setProvider(mockProvider);
+      expect(mockProvider.hasRecord('pictures', 'pastvu/solo2'), true);
+
+      final revisited = DateTime.now().add(const Duration(minutes: 1));
+      picture.visitedAt = revisited;
+      await dbService.createRepository<Picture>().update(picture);
+
+      await syncService.syncWithCloud();
+
+      final cloudData = mockProvider.getRecordData('pictures', 'pastvu/solo2');
+      expect(cloudData?['visitedAt'], revisited.millisecondsSinceEpoch);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('syncWithCloud does not duplicate a picture that belongs to a record', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_standalone_pic_record.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = createProvider();
+
+      final now = DateTime.now();
+      final picture = await insertPicture(dbService, id: 'p2', provider: 'pastvu');
+      picture.visitedAt = now;
+      await dbService.createRepository<Picture>().update(picture);
+      await insertRecord(dbService, picture, updateAt: now);
+
+      final syncService = CloudSyncService(databaseService: dbService);
+      await syncService.setProvider(mockProvider);
+
+      expect(mockProvider.getCollectionSize('pictures'), 1);
+      expect(mockProvider.hasRecord('pictures', 'pastvu/p2'), true);
+      expect(mockProvider.hasRecord('records', 'pastvu/p2'), true);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('syncWithCloud does not pull a picture that belongs to a live cloud record', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_standalone_pic_live_record.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = createProvider();
+
+      final now = DateTime.now();
+      mockProvider.addRecord('pictures', 'pastvu/p3', cloudPictureJson(id: 'p3', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/p3', cloudRecordJson(
+        pictureKey: 'pastvu/p3',
+        updateAt: now,
+      ));
+
+      final syncService = CloudSyncService(databaseService: dbService);
+      await syncService.setProvider(mockProvider);
+
+      final pictures = await dbService.createRepository<Picture>().list();
+      expect(pictures, hasLength(1));
+      expect(pictures.first.id, 'p3');
+      expect(await dbService.createRepository<Record>().list(), hasLength(1));
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('CloudInsertedEvent on pictures collection pulls a standalone picture', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_pic_cloud_inserted.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+        id: 'mock',
+        supportsEvents: true,
+      );
+      final syncService = CloudSyncService(databaseService: dbService);
+      await syncService.setProvider(mockProvider);
+
+      final now = DateTime.now();
+      mockProvider.addRecord('pictures', 'pastvu/ev_ins', cloudPictureJson(id: 'ev_ins', provider: 'pastvu'));
+      mockProvider.emitChange(CloudInsertedEvent(
+        metadata: cloudMetadata(id: 'pastvu/ev_ins', updatedAt: now),
+        collection: 'pictures',
+      ));
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final pictures = await dbService.createRepository<Picture>().list();
+      expect(pictures, hasLength(1));
+      expect(pictures.first.id, 'ev_ins');
+      expect(await dbService.createRepository<PictureMirror>()
+          .findByIdAndCloud('pastvu/ev_ins', 'mock'), isNotNull);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('CloudUpdatedEvent on pictures collection updates a local standalone picture', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_pic_cloud_updated.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+        id: 'mock',
+        supportsEvents: true,
+      );
+      final syncService = CloudSyncService(databaseService: dbService);
+      await syncService.setProvider(mockProvider);
+
+      final picture = Picture(
+        id: 'ev_upd',
+        provider: 'pastvu',
+        url: 'data:image/jpg;base64,AA==',
+        latitude: 48.0,
+        longitude: 2.0,
+        description: 'old',
+      );
+      await dbService.createRepository<Picture>().insert(picture);
+
+      final now = DateTime.now();
+      mockProvider.addRecord('pictures', 'pastvu/ev_upd', {
+        ...cloudPictureJson(id: 'ev_upd', provider: 'pastvu'),
+        'description': 'new',
+      });
+      mockProvider.emitChange(CloudUpdatedEvent(
+        metadata: cloudMetadata(id: 'pastvu/ev_upd', updatedAt: now),
+        collection: 'pictures',
+      ));
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final pictures = await dbService.createRepository<Picture>().list();
+      expect(pictures, hasLength(1));
+      expect(pictures.first.id, 'ev_upd');
+      expect(pictures.first.description, 'new');
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('CloudDeletedEvent on pictures collection removes a local standalone picture', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_pic_cloud_deleted.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+        id: 'mock',
+        supportsEvents: true,
+      );
+      final syncService = CloudSyncService(databaseService: dbService);
+      await syncService.setProvider(mockProvider);
+
+      final now = DateTime.now();
+      final picture = Picture(
+        id: 'ev_del',
+        provider: 'pastvu',
+        url: 'data:image/jpg;base64,AA==',
+        latitude: 48.0,
+        longitude: 2.0,
+        visitedAt: now,
+      );
+      await dbService.createRepository<Picture>().insert(picture);
+
+      await syncService.syncWithCloud();
+      final mirror = await dbService.createRepository<PictureMirror>()
+          .findByPictureAndCloud(picture.localId!, 'mock');
+      expect(mirror, isNotNull);
+
+      mockProvider.emitChange(CloudDeletedEvent(
+        metadata: cloudMetadata(
+          id: 'pastvu/ev_del',
+          updatedAt: now.add(const Duration(minutes: 1)),
+          deletedAt: now.add(const Duration(minutes: 1)),
+        ),
+        collection: 'pictures',
+      ));
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      expect(await dbService.createRepository<Picture>().getById(picture.localId!), isNull);
+      final deletedMirror = await dbService.createRepository<PictureMirror>()
+          .findByPictureAndCloud(picture.localId!, 'mock');
+      expect(deletedMirror, isNotNull);
+      expect(deletedMirror!.deletedAt, isNotNull);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('CloudInsertedEvent on pictures collection does not duplicate a record picture', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_pic_cloud_inserted_record.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+        id: 'mock',
+        supportsEvents: true,
+      );
+
+      final now = DateTime.now();
+      mockProvider.addRecord('pictures', 'pastvu/ev_rcd', cloudPictureJson(id: 'ev_rcd', provider: 'pastvu'));
+      mockProvider.addRecord('records', 'pastvu/ev_rcd', cloudRecordJson(
+        pictureKey: 'pastvu/ev_rcd',
+        updateAt: now,
+      ));
+
+      final syncService = CloudSyncService(databaseService: dbService);
+      await syncService.setProvider(mockProvider);
+
+      mockProvider.emitChange(CloudInsertedEvent(
+        metadata: cloudMetadata(
+          id: 'pastvu/ev_rcd',
+          updatedAt: now.add(const Duration(hours: 1)),
+        ),
+        collection: 'pictures',
+      ));
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final pictures = await dbService.createRepository<Picture>().list();
+      expect(pictures, hasLength(1));
+      expect(await dbService.createRepository<Record>().list(), hasLength(1));
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('first sync with existing mirrors resumes incrementally from the oldest mirror', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_oldest_mirror_seed.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = createProvider();
+
+      final now = DateTime.now();
+      mockProvider.addRecord('records', 'pastvu/r1', cloudRecordJson(
+        pictureKey: 'pastvu/r1',
+        updateAt: now.subtract(const Duration(hours: 1)),
+      ));
+      mockProvider.addRecord('pictures', 'pastvu/r1', cloudPictureJson(id: 'r1', provider: 'pastvu'));
+
+      final firstSync = CloudSyncService(databaseService: dbService);
+      await firstSync.setProvider(mockProvider);
+      expect(await dbService.createRepository<Record>().list(), hasLength(1));
+      expect(await dbService.createRepository<Picture>().list(), hasLength(1));
+      await firstSync.dispose();
+
+      final twoHoursAgo = now.subtract(const Duration(hours: 2));
+      mockProvider.addRecord('records', 'pastvu/r_old', cloudRecordJson(
+        pictureKey: 'pastvu/r_old',
+        updateAt: twoHoursAgo,
+      ));
+      mockProvider.addRecord('pictures', 'pastvu/r_old', {
+        ...cloudPictureJson(id: 'r_old', provider: 'pastvu'),
+        'updateAt': twoHoursAgo.millisecondsSinceEpoch,
+      });
+
+      final secondSync = CloudSyncService(databaseService: dbService);
+      await secondSync.setProvider(mockProvider);
+
+      final records = await dbService.createRepository<Record>().list();
+      expect(records, hasLength(1));
+      final r1 = await dbService.createRepository<Picture>().findPictureByIdAndProvider('r1', 'pastvu');
+      expect(r1, isNotNull);
+      expect(records.first.pictureId, r1!.localId);
+      expect(await dbService.createRepository<Picture>().list(), hasLength(1));
+
+      await secondSync.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
   });
 }

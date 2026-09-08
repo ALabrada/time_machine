@@ -70,6 +70,12 @@ extension PictureMirrorRepository on Repository<PictureMirror> {
     return result;
   }
 
+  Future<List<PictureMirror>> findByCloud(String cloudId) async {
+    final finder = Finder(filter: Filter.equals('cloudId', cloudId));
+    final result = await find(finder);
+    return result;
+  }
+
   Future<PictureMirror?> findByPictureAndCloud(int pictureId, String cloudId) async {
     final finder = Finder(filter: Filter.and([
       Filter.equals('pictureId', pictureId),

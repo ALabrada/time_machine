@@ -80,67 +80,11 @@ class CloudSyncService {
       return;
     }
 
-    final pictures = _pictures!;
-    final records = _records!;
-
     try {
-      final dt = _lastChange;
-      final incomingRecords = await _fetchRecords(since: dt);
-      for (final record in incomingRecords) {
-        await records.pullRecord(record);
-
-        final date = record.lastDate;
-        if (_lastChange == null || date.isAfter(_lastChange!)) {
-          _lastChange = date;
-        }
-      }
-
-      final outgoingRecords = await _createRepository<Record>().findUpdatedRecords(since: dt);
-      for (final record in outgoingRecords) {
-        final picture = record.picture ?? await _createRepository<Picture>().getById(record.pictureId);
-        final localMirror = await _createRepository<RecordMirror>().findByRecordAndCloud(record.localId!, cloudId);
-        if (picture == null) {
-          continue;
-        }
-
-        final key = localMirror?.id ?? pictures.pictureKey(picture);
-        final incomingRecord = incomingRecords
-            .where((e) => e.id == key)
-            .firstOrNull;
-        if (localMirror == null || incomingRecord == null ||
-            record.updateAt.isAfter(incomingRecord.lastDate) ||
-            record.updateAt.isAfter(localMirror.updatedAt)) {
-          final mirror = await records.pushRecord(record);
-          if (mirror != null && (_lastChange == null || mirror.lastDate.isAfter(_lastChange!))) {
-            _lastChange = mirror.lastDate;
-          }
-        }
-      }
-
-      final deletedPictures = await _createRepository<PictureMirror>().findDeletedRecordsSince(since: dt);
-      for (final mirror in deletedPictures) {
-        final date = mirror.deletedAt;
-        if (date == null || dt != null && !date.isAfter(dt)) {
-          continue;
-        }
-        await pictures.deleteFromDB(mirror.pictureId, date);
-        await pictures.deleteFromCloud(mirror.pictureId);
-        if (_lastChange == null || date.isAfter(_lastChange!)) {
-          _lastChange = date;
-        }
-      }
-
-      final deletedRecords = await _createRepository<RecordMirror>().findDeletedRecordsSince(since: dt);
-      for (final mirror in deletedRecords) {
-        final date = mirror.deletedAt;
-        if (date == null || dt != null && !date.isAfter(dt)) {
-          continue;
-        }
-        await records.deleteFromCloud(mirror.recordId);
-        if (_lastChange == null || date.isAfter(_lastChange!)) {
-          _lastChange = date;
-        }
-      }
+      final dt = _lastChange ?? await _oldestMirrorDate(cloudId);
+      _lastChange = dt;
+      await _syncRecords(dt);
+      await _syncPictures(dt);
 
       _lastChange ??= DateTime.fromMillisecondsSinceEpoch(0);
     } catch (error, stack) {
@@ -160,6 +104,123 @@ class CloudSyncService {
     if (provider != null && provider.supportsEvents) {
       _cloudSubscription = provider.changes.listen(_onCloudEvent);
     }
+  }
+
+  Future<void> _syncRecords(DateTime? dt) async {
+    final cloudId = _cloudId!;
+    final pictures = _pictures!;
+    final records = _records!;
+
+    final incomingRecords = await _fetchRecords(since: dt);
+    for (final record in incomingRecords) {
+      await records.pullRecord(record);
+
+      final date = record.lastDate;
+      if (_lastChange == null || date.isAfter(_lastChange!)) {
+        _lastChange = date;
+      }
+    }
+
+    final outgoingRecords = await _createRepository<Record>().findUpdatedRecords(since: dt);
+    for (final record in outgoingRecords) {
+      final picture = record.picture ?? await _createRepository<Picture>().getById(record.pictureId);
+      final localMirror = await _createRepository<RecordMirror>().findByRecordAndCloud(record.localId!, cloudId);
+      if (picture == null) {
+        continue;
+      }
+
+      final key = localMirror?.id ?? pictures.pictureKey(picture);
+      final incomingRecord = incomingRecords
+          .where((e) => e.id == key)
+          .firstOrNull;
+      if (localMirror == null || incomingRecord == null ||
+          record.updateAt.isAfter(incomingRecord.lastDate) ||
+          record.updateAt.isAfter(localMirror.updatedAt)) {
+        final mirror = await records.pushRecord(record);
+        if (mirror != null && (_lastChange == null || mirror.lastDate.isAfter(_lastChange!))) {
+          _lastChange = mirror.lastDate;
+        }
+      }
+    }
+
+    final deletedRecords = await _createRepository<RecordMirror>().findDeletedRecordsSince(since: dt);
+    for (final mirror in deletedRecords) {
+      final date = mirror.deletedAt;
+      if (date == null || dt != null && !date.isAfter(dt)) {
+        continue;
+      }
+      await records.deleteFromCloud(mirror.recordId);
+      if (_lastChange == null || date.isAfter(_lastChange!)) {
+        _lastChange = date;
+      }
+    }
+  }
+
+  Future<void> _syncPictures(DateTime? dt) async {
+    final cloudId = _cloudId!;
+    final pictures = _pictures!;
+
+    final incomingPictures = await _fetchPictures(since: dt);
+    for (final metadata in incomingPictures) {
+      final mirror = await pictures.pullPicture(
+        metadata.id,
+        date: metadata.lastDate,
+        deleted: metadata.deletedAt != null,
+      );
+      final date = mirror?.lastDate ?? metadata.lastDate;
+      if (_lastChange == null || date.isAfter(_lastChange!)) {
+        _lastChange = date;
+      }
+    }
+
+    final outgoingPictures = await _createRepository<Picture>().findUpdatedPictures(since: dt);
+    for (final picture in outgoingPictures) {
+      final localId = picture.localId;
+      final visitedAt = picture.visitedAt;
+      if (visitedAt != null && localId != null) {
+        final localMirror = await _createRepository<PictureMirror>()
+            .findByPictureAndCloud(localId, cloudId);
+        if (localMirror != null && !visitedAt.isAfter(localMirror.updatedAt)) {
+          continue;
+        }
+      }
+      final mirror = await pictures.pushPicture(picture);
+      if (mirror != null && (_lastChange == null || mirror.lastDate.isAfter(_lastChange!))) {
+        _lastChange = mirror.lastDate;
+      }
+    }
+
+    final deletedPictures = await _createRepository<PictureMirror>().findDeletedRecordsSince(since: dt);
+    for (final mirror in deletedPictures) {
+      final date = mirror.deletedAt;
+      if (date == null || dt != null && !date.isAfter(dt)) {
+        continue;
+      }
+      await pictures.deleteFromDB(mirror.pictureId, date);
+      await pictures.deleteFromCloud(mirror.pictureId);
+      if (_lastChange == null || date.isAfter(_lastChange!)) {
+        _lastChange = date;
+      }
+    }
+  }
+
+  Future<List<CloudMetadata>> _fetchPictures({DateTime? since}) async {
+    final provider = _provider;
+    final collection = _provider?.collectionNames[Picture];
+    if (provider == null || collection == null) {
+      return [];
+    }
+
+    final completeList = await provider.listRecords(collection, since: since);
+    if (since == null) {
+      return completeList;
+    }
+
+    return [
+      for (final item in completeList)
+        if (!since.isAfter(item.deletedAt ?? item.updatedAt))
+          item,
+    ];
   }
 
   Future<List<CloudMetadata>> _fetchRecords({DateTime? since}) async {
@@ -213,7 +274,9 @@ class CloudSyncService {
       final cloudId = _cloudId!;
 
       final recordCollection = _provider?.collectionNames[Record];
+      final pictureCollection = _provider?.collectionNames[Picture];
       final mirrorRepo = _createRepository<RecordMirror>();
+      final pictureMirrorRepo = _createRepository<PictureMirror>();
       try {
         if (event is EntityInserted<Record> && await mirrorRepo.findByRecordAndCloud(event.entity.localId!, cloudId) == null && lastChange != null && event.timestamp.isAfter(lastChange)) {
           final ts = event.entity.updateAt;
@@ -252,6 +315,32 @@ class CloudSyncService {
             continue;
           }
           await records.deleteFromDB(mirror.recordId);
+        } else if (event is CloudInsertedEvent && event.collection == pictureCollection && lastChange != null && pictureCollection != null) {
+          final mirror = await pictures.pullPicture(
+            event.metadata.id,
+            date: event.metadata.lastDate,
+            deleted: event.metadata.deletedAt != null,
+          );
+          final date = mirror?.lastDate;
+          if (date != null && date.isAfter(lastChange)) {
+            _lastChange = date;
+          }
+        } else if (event is CloudUpdatedEvent && event.collection == pictureCollection && lastChange != null && pictureCollection != null) {
+          final mirror = await pictures.pullPicture(
+            event.metadata.id,
+            date: event.metadata.lastDate,
+            deleted: event.metadata.deletedAt != null,
+          );
+          final date = mirror?.lastDate;
+          if (date != null && date.isAfter(lastChange)) {
+            _lastChange = date;
+          }
+        } else if (event is CloudDeletedEvent && event.collection == pictureCollection && lastChange != null && pictureCollection != null) {
+          final mirror = await pictureMirrorRepo.findByIdAndCloud(event.metadata.id, cloudId);
+          if (mirror == null) {
+            continue;
+          }
+          await pictures.deleteFromDB(mirror.pictureId);
         }
       } catch (_) {
         _lastChange = null;
@@ -275,6 +364,23 @@ class CloudSyncService {
       mirror.deletedAt = dt;
       await repository.update(mirror);
     }
+  }
+
+  Future<DateTime?> _oldestMirrorDate(String cloudId) async {
+    final recordMirrors = await _createRepository<RecordMirror>().findByCloud(cloudId);
+    final pictureMirrors = await _createRepository<PictureMirror>().findByCloud(cloudId);
+    DateTime? oldest;
+    for (final mirror in recordMirrors) {
+      if (oldest == null || mirror.updatedAt.isBefore(oldest)) {
+        oldest = mirror.updatedAt;
+      }
+    }
+    for (final mirror in pictureMirrors) {
+      if (oldest == null || mirror.updatedAt.isBefore(oldest)) {
+        oldest = mirror.updatedAt;
+      }
+    }
+    return oldest;
   }
 
   Future<void> deleteRecord(Record item, [DateTime? date]) async {

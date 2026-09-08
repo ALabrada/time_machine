@@ -109,6 +109,24 @@ extension PictureRepository on Repository<Picture> {
     return result;
   }
 
+  Future<List<Picture>> findUpdatedPictures({
+    DateTime? since,
+  }) async {
+    final finder = Finder(
+      filter: since == null
+          ? Filter.notNull('visitedAt')
+          : Filter.and([
+              Filter.notNull('visitedAt'),
+              Filter.greaterThan('visitedAt', DateTimeConverter().toJson(since)),
+            ]),
+      sortOrders: [
+        SortOrder('visitedAt', false),
+      ],
+    );
+    final result = await find(finder);
+    return result;
+  }
+
   Future<List<Picture>> findPicturesWithText(List<String> keywords, {
     int limit = 20,
     List<String> providers = const[],

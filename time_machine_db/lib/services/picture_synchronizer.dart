@@ -104,6 +104,8 @@ class PictureSynchronizer {
 
     if (localCopy != null && deleted) {
       return await deleteFromDB(localCopy.localId!);
+    } else if (deleted) {
+      return null;
     }
 
     final json = await provider.getRecord(collection, id);

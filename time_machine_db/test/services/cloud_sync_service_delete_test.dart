@@ -184,7 +184,10 @@ void main() {
         cloudId: 'mock',
       ));
 
-      mockProvider.addRecord('pictures', 'pastvu/sd1', cloudPictureJson(id: 'sd1', provider: 'pastvu'));
+      mockProvider.addRecord('pictures', 'pastvu/sd1', {
+        ...cloudPictureJson(id: 'sd1', provider: 'pastvu'),
+        'deletedAt': deletedAt.millisecondsSinceEpoch,
+      });
       mockProvider.addRecord('records', 'pastvu/sd1', cloudRecordJson(
         pictureKey: 'pastvu/sd1',
         updateAt: earlier,
@@ -211,7 +214,10 @@ void main() {
       );
 
       final now = DateTime.now();
-      mockProvider.addRecord('pictures', 'pastvu/fd1', cloudPictureJson(id: 'fd1', provider: 'pastvu'));
+      mockProvider.addRecord('pictures', 'pastvu/fd1', {
+        ...cloudPictureJson(id: 'fd1', provider: 'pastvu'),
+        'deletedAt': now.subtract(const Duration(days: 1)).millisecondsSinceEpoch,
+      });
       mockProvider.addRecord('records', 'pastvu/fd1', cloudRecordJson(
         pictureKey: 'pastvu/fd1',
         updateAt: now.subtract(const Duration(days: 2)),

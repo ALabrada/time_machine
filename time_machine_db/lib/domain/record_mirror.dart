@@ -70,6 +70,12 @@ extension RecordMirrorRepository on Repository<RecordMirror> {
     return result;
   }
 
+  Future<List<RecordMirror>> findByCloud(String cloudId) async {
+    final finder = Finder(filter: Filter.equals('cloudId', cloudId));
+    final result = await find(finder);
+    return result;
+  }
+
   Future<RecordMirror?> findByRecordAndCloud(int recordId, String cloudId) async {
     final finder = Finder(filter: Filter.and([
       Filter.equals('recordId', recordId),

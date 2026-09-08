@@ -87,9 +87,14 @@ class MockCloudSyncProvider implements CloudSyncProvider {
     _collections[collection]![recordId] = Map<String, dynamic>.from(data);
     final saved = CloudMetadata(
       id: recordId,
-      createdAt: metadata?.createdAt ?? DateTime.now(),
-      updatedAt: DateTime.now(),
-      deletedAt: metadata?.deletedAt,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(
+          (metadata?.createdAt ?? DateTime.now()).millisecondsSinceEpoch),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(
+          DateTime.now().millisecondsSinceEpoch),
+      deletedAt: metadata?.deletedAt == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(
+              metadata!.deletedAt!.millisecondsSinceEpoch),
     );
     _metadata[collection]![recordId] = saved;
     return saved;
