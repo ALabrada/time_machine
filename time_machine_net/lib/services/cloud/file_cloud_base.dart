@@ -51,10 +51,10 @@ abstract class FileCloudBase extends CloudBase {
   }
 
   @override
-  Future<List<CloudMetadata>> listRecords(String collection) async {
+  Future<List<CloudMetadata>> listRecords(String collection, {DateTime? since}) async {
     final dirPath = p.join(modelsDir, collection);
     final result = <CloudMetadata>[];
-    await for (final entry in onList(dirPath)) {
+    await for (final entry in onList(dirPath, since: since)) {
       var metadataJson = entry.metadata;
       if (metadataJson == null) {
         final body = await _load(p.join(dirPath, entry.name));
@@ -91,6 +91,8 @@ abstract class FileCloudBase extends CloudBase {
       fileData: binaryData,
       mimeType: 'application/zlib',
       metadata: jsonEncode(actualMetadata.toJson()),
+      createdAt: actualMetadata.createdAt,
+      updatedAt: actualMetadata.updatedAt,
     );
     return actualMetadata;
   }
@@ -134,13 +136,15 @@ abstract class FileCloudBase extends CloudBase {
     await onDelete(path);
   }
 
-  Stream<CloudFileEntry> onList(String path);
+  Stream<CloudFileEntry> onList(String path, {DateTime? since});
 
   Future<void> onPush({
     required String path,
     required Uint8List fileData,
     String? mimeType,
     String? metadata,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   });
 
   Future<String> onDelete(String path);

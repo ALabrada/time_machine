@@ -11,7 +11,7 @@ abstract class CloudSyncProvider {
 
   Future<CloudMetadata> saveRecord(String collection, CloudMetadata? metadata, Map<String, dynamic> data);
   Future<Map<String, dynamic>?> getRecord(String collection, String id);
-  Future<List<CloudMetadata>> listRecords(String collection);
+  Future<List<CloudMetadata>> listRecords(String collection, {DateTime? since});
   Future<void> deleteRecord(String collection, String id);
 
   Future<String> uploadFile({

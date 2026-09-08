@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -33,6 +34,13 @@ class FakeNextcloudServer extends http.BaseClient {
   final Map<String, String> _etags = {};
   int _etagCounter = 0;
 
+  /// Server-side modification (dav:getlastmodified) and creation
+  /// (oc:creation-time) times per file. Tests set these to model remote
+  /// changes; PUT requests with `X-OC-Mtime`/`X-OC-CTime` headers populate
+  /// them as a real Nextcloud instance would.
+  final Map<String, DateTime> lastModifiedTimes = {};
+  final Map<String, DateTime> createdTimes = {};
+
   String etagOf(String path) {
     final etag = _etags[path];
     return etag ?? '';
@@ -54,6 +62,8 @@ class FakeNextcloudServer extends http.BaseClient {
     }
     files.remove(path);
     _etags.remove(path);
+    lastModifiedTimes.remove(path);
+    createdTimes.remove(path);
   }
 
   String _nextEtag() => '"etag-${++_etagCounter}"';
@@ -83,7 +93,7 @@ class FakeNextcloudServer extends http.BaseClient {
         return _mkcol(appPath);
       case 'PUT':
         final body = await _bodyBytes(request);
-        return _put(appPath, body);
+        return _put(appPath, body, request);
       case 'DELETE':
         return _delete(appPath);
       case 'GET':
@@ -118,7 +128,9 @@ class FakeNextcloudServer extends http.BaseClient {
     }
 
     final xml = '<?xml version="1.0"?>'
-        '<d:multistatus xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">'
+        '<d:multistatus xmlns:d="DAV:" '
+        'xmlns:oc="http://owncloud.org/ns" '
+        'xmlns:nc="http://nextcloud.org/ns">'
         '${responses.join()}</d:multistatus>';
     return _response(207, body: xml);
   }
@@ -140,14 +152,18 @@ class FakeNextcloudServer extends http.BaseClient {
   String _fileXml(String path) {
     final href = Uri.encodeComponent(path);
     final data = files[path];
+    final lastModified = lastModifiedTimes[path];
+    final created = createdTimes[path];
     return '<d:response>'
         '<d:href>/remote.php/webdav/$href</d:href>'
         '<d:propstat>'
         '<d:prop>'
         '<d:getcontentlength>${data?.length ?? 0}</d:getcontentlength>'
         '<d:getcontenttype>application/octet-stream</d:getcontenttype>'
-        '<d:resourcetype/>'
         '<d:getetag>${_etags[path] ?? ''}</d:getetag>'
+        '${lastModified == null ? '' : '<d:getlastmodified>${HttpDate.format(lastModified)}</d:getlastmodified>'}'
+        '${created == null ? '' : '<nc:creation-time>${created.millisecondsSinceEpoch ~/ 1000}</nc:creation-time>'}'
+        '<d:resourcetype/>'
         '</d:prop>'
         '<d:status>HTTP/1.1 200 OK</d:status>'
         '</d:propstat>'
@@ -164,9 +180,19 @@ class FakeNextcloudServer extends http.BaseClient {
     return _response(201);
   }
 
-  Future<http.StreamedResponse> _put(String path, Uint8List body) async {
+  Future<http.StreamedResponse> _put(String path, Uint8List body, http.BaseRequest request) async {
     files[path] = body;
     _etags[path] = _nextEtag();
+    final mtime = request.headers['X-OC-Mtime'];
+    if (mtime != null) {
+      lastModifiedTimes[path] =
+          DateTime.fromMillisecondsSinceEpoch(int.parse(mtime) * 1000, isUtc: true);
+    }
+    final ctime = request.headers['X-OC-CTime'];
+    if (ctime != null) {
+      createdTimes[path] =
+          DateTime.fromMillisecondsSinceEpoch(int.parse(ctime) * 1000, isUtc: true);
+    }
     return _response(201);
   }
 
@@ -182,9 +208,13 @@ class FakeNextcloudServer extends http.BaseClient {
       folders.removeWhere((f) => f.startsWith(prefix));
       for (final f in files.keys.where((f) => f.startsWith(prefix)).toList()) {
         files.remove(f);
+        lastModifiedTimes.remove(f);
+        createdTimes.remove(f);
       }
     } else {
       files.remove(path);
+      lastModifiedTimes.remove(path);
+      createdTimes.remove(path);
     }
     for (final f in _etags.keys.where((f) => f == path || f.startsWith('$path/')).toList()) {
       _etags.remove(f);

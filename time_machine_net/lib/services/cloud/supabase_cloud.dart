@@ -200,8 +200,12 @@ class SupabaseCloud extends CloudBase with EventfulCloud {
   }
 
   @override
-  Future<List<CloudMetadata>> listRecords(String collection) async {
-    final results = await _client.from(collection).select();
+  Future<List<CloudMetadata>> listRecords(String collection, {DateTime? since}) async {
+    var query = _client.from(collection).select();
+    if (since != null) {
+      query = query.gte('updatedAt', since.toIso8601String());
+    }
+    final results = await query;
     return [
       for (final result in results)
         metadataFromData(result[idColumn] as String, result),

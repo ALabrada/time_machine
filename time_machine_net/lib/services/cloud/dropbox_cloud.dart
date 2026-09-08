@@ -230,7 +230,7 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
   String? get userEmail => _session?.accountEmail;
 
   @override
-  Stream<CloudFileEntry> onList(String path) async* {
+  Stream<CloudFileEntry> onList(String path, {DateTime? since}) async* {
     for (final entry in await _listAll(path)) {
       if (!entry.isFile) continue;
       yield CloudFileEntry(name: entry.name);
@@ -243,6 +243,8 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     required Uint8List fileData,
     String? mimeType,
     String? metadata,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) async {
     await _ensureFolderPath(p.dirname(path));
     await _requireApi().upload(

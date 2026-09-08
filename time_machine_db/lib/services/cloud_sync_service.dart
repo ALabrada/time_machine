@@ -169,7 +169,7 @@ class CloudSyncService {
       return [];
     }
 
-    final completeList = await provider.listRecords(collection);
+    final completeList = await provider.listRecords(collection, since: since);
     if (since == null) {
       return completeList;
     }

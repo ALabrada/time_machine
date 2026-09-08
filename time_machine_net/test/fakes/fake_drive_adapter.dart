@@ -17,13 +17,16 @@ class DriveFile {
     required this.createdTime,
     Uint8List? data,
     this.appProperties,
-  }) : data = data ?? Uint8List(0);
+    DateTime? modifiedTime,
+  })  : data = data ?? Uint8List(0),
+        modifiedTime = modifiedTime ?? createdTime;
 
   final String id;
   final String name;
   final String parentId;
   final String? mimeType;
   final DateTime createdTime;
+  DateTime modifiedTime;
   Map<String, String>? appProperties;
   Uint8List data;
 }
@@ -73,7 +76,7 @@ class FakeDriveAdapter {
           'mimeType': file.mimeType,
           'parents': [file.parentId],
           'createdTime': file.createdTime.toIso8601String(),
-          'modifiedTime': file.createdTime.toIso8601String(),
+          'modifiedTime': file.modifiedTime.toIso8601String(),
           if (file.appProperties != null) 'appProperties': file.appProperties,
         },
     });
@@ -171,6 +174,8 @@ class FakeDriveAdapter {
             meta['parents'] as List,
             folderMimeType,
             appProperties: _appPropertiesOf(meta),
+            createdTime: _dateOf(meta['createdTime']),
+            modifiedTime: _dateOf(meta['modifiedTime']),
           );
         default:
           return http.Response('Method not allowed', 405);
@@ -201,6 +206,7 @@ class FakeDriveAdapter {
             'mimeType': file.mimeType,
             'parents': [file.parentId],
             'createdTime': file.createdTime.toIso8601String(),
+            'modifiedTime': file.modifiedTime.toIso8601String(),
             if (file.appProperties != null) 'appProperties': file.appProperties,
           };
           return _json(r);
@@ -241,6 +247,7 @@ class FakeDriveAdapter {
             'mimeType': f.mimeType,
             'parents': [f.parentId],
             'createdTime': f.createdTime.toIso8601String(),
+            'modifiedTime': f.modifiedTime.toIso8601String(),
             if (f.appProperties != null) 'appProperties': f.appProperties,
           },
       ],
@@ -251,6 +258,11 @@ class FakeDriveAdapter {
     final appProperties = meta['appProperties'];
     if (appProperties is! Map) return null;
     return appProperties.map((k, v) => MapEntry(k.toString(), v.toString()));
+  }
+
+  static DateTime? _dateOf(Object? value) {
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 
   Future<http.Response> _handleUpload(
@@ -272,7 +284,10 @@ class FakeDriveAdapter {
 
     if (method == 'POST') {
       return _create(name, parents, content.contentType,
-          data: content.data, appProperties: appProperties);
+          data: content.data,
+          appProperties: appProperties,
+          createdTime: _dateOf(metadata['createdTime']),
+          modifiedTime: _dateOf(metadata['modifiedTime']));
     }
 
     if (method == 'PATCH' && segments.length == 5) {
@@ -283,6 +298,7 @@ class FakeDriveAdapter {
       if (file.appProperties != null || appProperties != null) {
         file.appProperties = appProperties;
       }
+      file.modifiedTime = _dateOf(metadata['modifiedTime']) ?? file.modifiedTime;
       return _json({'id': file.id, 'name': file.name});
     }
 
@@ -295,16 +311,20 @@ class FakeDriveAdapter {
     String? mimeType, {
     List<int> data = const [],
     Map<String, String>? appProperties,
+    DateTime? createdTime,
+    DateTime? modifiedTime,
   }) {
     final id = 'file_${_nextId++}';
+    final now = DateTime.now();
     files[id] = DriveFile(
       id: id,
       name: name,
       parentId: parents.first as String,
       mimeType: mimeType,
-      createdTime: DateTime.utc(2024, 1, 1),
+      createdTime: createdTime ?? now,
       data: Uint8List.fromList(data),
       appProperties: appProperties,
+      modifiedTime: modifiedTime ?? createdTime ?? now,
     );
     return _json({'id': id, 'name': name, 'parents': parents});
   }

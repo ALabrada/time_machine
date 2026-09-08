@@ -13,6 +13,7 @@ class InMemoryFileCloud extends FileCloudBase with EventlessCloud {
 
   final Map<String, Uint8List> store = {};
   final Map<String, String?> storeMetadata = {};
+  final Map<String, DateTime> storeUpdates = {};
   final List<String> pushedPaths = [];
   final List<String> deletedPaths = [];
   final List<String?> pushedMimeTypes = [];
@@ -26,11 +27,14 @@ class InMemoryFileCloud extends FileCloudBase with EventlessCloud {
     required Uint8List fileData,
     String? mimeType,
     String? metadata,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) async {
     pushedPaths.add(path);
     pushedMimeTypes.add(mimeType);
     store[path] = fileData;
     storeMetadata[path] = metadata;
+    storeUpdates[path] = updatedAt ?? createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
   }
 
   @override
@@ -38,6 +42,7 @@ class InMemoryFileCloud extends FileCloudBase with EventlessCloud {
     deletedPaths.add(path);
     store.remove(path);
     storeMetadata.remove(path);
+    storeUpdates.remove(path);
     return path;
   }
 
@@ -51,7 +56,7 @@ class InMemoryFileCloud extends FileCloudBase with EventlessCloud {
   }
 
   @override
-  Stream<CloudFileEntry> onList(String path) async* {
+  Stream<CloudFileEntry> onList(String path, {DateTime? since}) async* {
     final prefix = path.endsWith('/') ? path : '$path/';
     final names = store.keys
         .where((key) => key.startsWith(prefix))
@@ -60,6 +65,10 @@ class InMemoryFileCloud extends FileCloudBase with EventlessCloud {
         .toList()
       ..sort();
     for (final name in names) {
+      if (since != null) {
+        final updated = storeUpdates['$prefix$name'];
+        if (updated != null && since.isAfter(updated)) continue;
+      }
       yield CloudFileEntry(name: name, metadata: storeMetadata['$prefix$name']);
     }
   }
@@ -313,6 +322,30 @@ void main() {
       expect(results.single.createdAt, createdAt);
       expect(results.single.updatedAt, updatedAt);
       expect(results.single.deletedAt, isNull);
+    });
+
+    test('listRecords with since skips records updated before since', () async {
+      await cloud.saveRecord(
+        'pictures',
+        CloudMetadata(
+          id: 'old-rec',
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 1),
+        ),
+        {'id': 'src-old'},
+      );
+      final fresh = await cloud.saveRecord('pictures', null, {'id': 'src-new'});
+
+      final results = await cloud.listRecords(
+        'pictures',
+        since: DateTime(2024, 6, 1),
+      );
+
+      expect(results.single.id, fresh.id);
+      expect(
+        await cloud.listRecords('pictures', since: DateTime(2050, 1, 1)),
+        isEmpty,
+      );
     });
   });
 

@@ -105,7 +105,7 @@ class MockCloudSyncProvider implements CloudSyncProvider {
   }
 
   @override
-  Future<List<CloudMetadata>> listRecords(String collection) async {
+  Future<List<CloudMetadata>> listRecords(String collection, {DateTime? since}) async {
     final col = _collections[collection];
     if (col == null) return [];
     return [

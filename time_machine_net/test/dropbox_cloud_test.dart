@@ -114,6 +114,27 @@ void main() {
         throwsException,
       );
     });
+
+    test('listRecords ignores since because dropbox cannot align server dates',
+        () async {
+      final old = await cloud.saveRecord(
+        'pictures',
+        CloudMetadata(
+          id: 'old-rec',
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 1),
+        ),
+        {'id': 'src-old'},
+      );
+      final fresh = await cloud.saveRecord('pictures', null, {'id': 'src-new'});
+
+      final results = await cloud.listRecords(
+        'pictures',
+        since: DateTime(2050, 1, 1),
+      );
+
+      expect(results.map((e) => e.id).toSet(), {old.id, fresh.id});
+    });
   });
 
   group('files', () {

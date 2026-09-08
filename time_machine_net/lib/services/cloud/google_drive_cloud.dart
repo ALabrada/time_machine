@@ -218,17 +218,20 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   }
 
   @override
-  Stream<CloudFileEntry> onList(String path) async* {
+  Stream<CloudFileEntry> onList(String path, {DateTime? since}) async* {
     final folderId = await _resolveFolder(path);
     if (folderId == null) return;
     await for (final file in _listFolder(folderId)) {
       final fileName = file.name;
-      if (fileName != null) {
-        yield CloudFileEntry(
-          name: fileName,
-          metadata: file.appProperties?[FileCloudBase.metadataKey],
-        );
+      if (fileName == null) continue;
+      if (since != null) {
+        final modified = file.modifiedTime ?? file.createdTime;
+        if (modified != null && since.isAfter(modified)) continue;
       }
+      yield CloudFileEntry(
+        name: fileName,
+        metadata: file.appProperties?[FileCloudBase.metadataKey],
+      );
     }
   }
 
@@ -238,6 +241,8 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     required Uint8List fileData,
     String? mimeType,
     String? metadata,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) async {
     final parentDir = p.dirname(path);
     final name = p.basename(path);
@@ -247,9 +252,11 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
         metadata == null ? null : {FileCloudBase.metadataKey: metadata};
     if (existing != null) {
       final driveFileId = existing.id!;
-      await _updateFile(driveFileId, fileData, mimeType, appProperties);
+      await _updateFile(driveFileId, fileData, mimeType, appProperties,
+          updatedAt: updatedAt);
     } else {
-      await _createFile(parentId, name, fileData, mimeType, appProperties);
+      await _createFile(parentId, name, fileData, mimeType, appProperties,
+          createdAt: createdAt, updatedAt: updatedAt);
     }
   }
 
@@ -352,7 +359,8 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
         pageSize: 1000,
         orderBy: 'name',
         pageToken: pageToken,
-        $fields: 'nextPageToken,files(id,name,mimeType)',
+        $fields: 'nextPageToken,files(id,name,mimeType,'
+            'createdTime,modifiedTime,appProperties)',
       );
       for (final file in result.files ?? <drive.File>[]) {
         yield file;
@@ -374,13 +382,17 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     String name,
     Uint8List fileData,
     String? mimeType,
-    Map<String, String>? appProperties,
-  ) async {
+    Map<String, String>? appProperties, {
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) async {
     final file = await _drive.files.create(
       drive.File(
         name: name,
         parents: [parentId],
         appProperties: appProperties,
+        createdTime: createdAt,
+        modifiedTime: updatedAt ?? createdAt,
       ),
       uploadMedia: drive.Media(
         Stream.value(fileData),
@@ -401,10 +413,11 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     String fileId,
     Uint8List fileData,
     String? mimeType,
-    Map<String, String>? appProperties,
-  ) async {
+    Map<String, String>? appProperties, {
+    DateTime? updatedAt,
+  }) async {
     await _drive.files.update(
-      drive.File(appProperties: appProperties),
+      drive.File(appProperties: appProperties, modifiedTime: updatedAt),
       fileId,
       uploadMedia: drive.Media(
         Stream.value(fileData),

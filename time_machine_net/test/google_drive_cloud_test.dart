@@ -154,6 +154,46 @@ void main() {
         throwsException,
       );
     });
+
+    test('onPush sets server dates from the CloudMetadata', () async {
+      final metadata = await cloud.saveRecord(
+        'pictures',
+        CloudMetadata(
+          id: 'dated',
+          createdAt: DateTime.utc(2024, 1, 1),
+          updatedAt: DateTime.utc(2024, 2, 2),
+        ),
+        {'id': 'src-dated'},
+      );
+
+      final file = adapter.files.values.singleWhere((f) => f.name == metadata.id);
+      expect(file.createdTime, DateTime.utc(2024, 1, 1));
+      expect(file.modifiedTime, DateTime.utc(2024, 2, 2));
+    });
+
+    test('listRecords respects since and skips untouched files', () async {
+      await cloud.saveRecord(
+        'pictures',
+        CloudMetadata(
+          id: 'old-rec',
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 1),
+        ),
+        {'id': 'src-old'},
+      );
+      final fresh = await cloud.saveRecord('pictures', null, {'id': 'src-new'});
+
+      final oldResults = await cloud.listRecords(
+        'pictures',
+        since: DateTime(2024, 1, 15),
+      );
+      expect(oldResults.single.id, fresh.id);
+
+      expect(
+        await cloud.listRecords('pictures', since: DateTime(2050, 1, 1)),
+        isEmpty,
+      );
+    });
   });
 
   group('files', () {
