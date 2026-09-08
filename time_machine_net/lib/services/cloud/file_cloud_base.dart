@@ -75,6 +75,10 @@ abstract class FileCloudBase extends CloudBase {
     final now = DateTime.fromMillisecondsSinceEpoch(DateTime.now().millisecondsSinceEpoch);
     final path = p.join(modelsDir, collection, Uri.encodeComponent(id));
     final actualMetadata = metadata ?? CloudMetadata(id: id, createdAt: now, updatedAt: now);
+    final updateDate = actualMetadata.deletedAt != null &&
+            actualMetadata.deletedAt!.isAfter(actualMetadata.updatedAt)
+        ? actualMetadata.deletedAt!
+        : actualMetadata.updatedAt;
     final model = {
       dataKey: data,
       metadataKey: actualMetadata.toJson(),
@@ -92,7 +96,7 @@ abstract class FileCloudBase extends CloudBase {
       mimeType: 'application/zlib',
       metadata: jsonEncode(actualMetadata.toJson()),
       createdAt: actualMetadata.createdAt,
-      updatedAt: actualMetadata.updatedAt,
+      updatedAt: updateDate,
     );
     return actualMetadata;
   }

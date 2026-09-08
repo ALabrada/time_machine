@@ -174,6 +174,44 @@ void main() {
       expect(metadata.deletedAt, deletedAt);
     });
 
+    test('pushes updatedAt matching deletedAt when the tombstone is newer',
+        () async {
+      final updatedAt = DateTime(2024, 1, 1);
+      final deletedAt = DateTime(2024, 2, 2);
+
+      final metadata = await cloud.saveRecord(
+        'records',
+        CloudMetadata(
+          id: 'tombstone',
+          createdAt: DateTime(2023, 1, 1),
+          updatedAt: updatedAt,
+          deletedAt: deletedAt,
+        ),
+        {},
+      );
+
+      expect(cloud.storeUpdates['models/records/tombstone'], metadata.lastDate);
+      expect(cloud.storeUpdates['models/records/tombstone'], isNot(updatedAt));
+    });
+
+    test('pushes updatedAt as-is when deletedAt is not newer', () async {
+      final updatedAt = DateTime(2024, 2, 2);
+      final deletedAt = DateTime(2024, 1, 1);
+
+      final metadata = await cloud.saveRecord(
+        'records',
+        CloudMetadata(
+          id: 'old-tombstone',
+          createdAt: DateTime(2023, 1, 1),
+          updatedAt: updatedAt,
+          deletedAt: deletedAt,
+        ),
+        {},
+      );
+
+      expect(cloud.storeUpdates['models/records/old-tombstone'], metadata.updatedAt);
+    });
+
     test('provided metadata is persisted and survives a listRecords round trip',
         () async {
       final createdAt = DateTime(2024, 1, 1);
