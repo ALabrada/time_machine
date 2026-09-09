@@ -191,4 +191,10 @@ class ImgLocalizationsEs extends ImgLocalizations {
   String uploadPage(Object site) {
     return 'Subir a $site';
   }
+
+  @override
+  String get syncInProgress => 'Sincronización en progreso...';
+
+  @override
+  String get syncError => 'Error de sincronización';
 }

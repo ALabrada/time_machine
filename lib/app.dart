@@ -185,19 +185,20 @@ class TimeMachineApp extends StatelessWidget {
         Provider<NetworkService>(
           create: (_) => NetworkService(
             clouds: {
-              'supabase': SupabaseCloud(
-                supabaseUrl: secrets.SUPABASE_URL,
-                supabaseKey: secrets.SUPABASE_ANON_KEY,
-              ),
               // No Google Play Services involved: OAuth runs through the
               // system browser and a custom URL scheme delivered to the app
               // as a deep link, so the cloud only needs the token store.
-              'gdrive': GoogleDriveCloud(),
+              'gdrive': GoogleDriveCloud(
+                appRootFolderName: 'HistoryLens',
+              ),
               'dropbox': DropBoxCloud(
+                appRootFolderName: 'HistoryLens',
                 clientId: secrets.DROPBOX_APP_KEY,
                 redirectUri: secrets.DROPBOX_REDIRECT_URI,
               ),
-              'nextcloud': NextCloudCloud(),
+              'nextcloud': NextCloudCloud(
+                appRootFolderName: 'HistoryLens',
+              ),
             },
             userAgent: userAgent,
             geocoders: {
@@ -259,9 +260,7 @@ class TimeMachineApp extends StatelessWidget {
           lazy: false,
         ),
         Provider<CloudSyncService>(
-          create: (context) => CloudSyncService(
-            databaseService: context.read(),
-          ),
+          create: (_) => CloudSyncService(),
         ),
         Provider<CacheService>(
           create: (context) => CacheService(

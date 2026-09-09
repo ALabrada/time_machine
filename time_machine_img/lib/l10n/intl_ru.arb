@@ -54,5 +54,7 @@
   "uploadMenuOriginalAligned": "Давнюю фотографию (Выравнять)",
   "uploadMenuPicture": "Свою фотографию",
   "uploadMenuPictureAligned": "Свою фотографию (Выравнять)",
-  "uploadPage": "Загрузить на {site}"
+  "uploadPage": "Загрузить на {site}",
+  "syncInProgress": "Синхронизация...",
+  "syncError": "Ошибка синхронизации"
 }

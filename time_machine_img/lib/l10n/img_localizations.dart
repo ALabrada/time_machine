@@ -436,6 +436,18 @@ abstract class ImgLocalizations {
   /// In en, this message translates to:
   /// **'Upload to {site}'**
   String uploadPage(Object site);
+
+  /// No description provided for @syncInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronization in progress...'**
+  String get syncInProgress;
+
+  /// No description provided for @syncError.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronization failed'**
+  String get syncError;
 }
 
 class _ImgLocalizationsDelegate

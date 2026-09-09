@@ -93,7 +93,8 @@ void main() {
     test('isActive returns false when no provider is set', () async {
       final db = await databaseFactoryMemory.openDatabase('test_no_provider.db');
       final localService = DatabaseService(db: db);
-      final service = CloudSyncService(databaseService: localService);
+      final service = CloudSyncService();
+      await service.init(databaseService: localService);
 
       expect(service.isActive, false);
 
@@ -105,8 +106,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_active.db');
       final dbService = DatabaseService(db: db);
       final mockProvider = createProvider();
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       expect(syncService.isActive, true);
 
@@ -120,9 +121,8 @@ void main() {
       final dbService = DatabaseService(db: db);
       final mockProvider = createProvider();
       mockProvider.failInitialize = true;
-      final syncService = CloudSyncService(databaseService: dbService);
-
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       expect(syncService.isActive, false);
       expect(syncService.pictures, isNull);
@@ -143,8 +143,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_empty_sync.db');
       final dbService = DatabaseService(db: db);
       final mockProvider = createProvider();
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       await syncService.syncWithCloud();
 
@@ -160,7 +160,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_push_local.db');
       final dbService = DatabaseService(db: db);
       final mockProvider = createProvider();
-      final syncService = CloudSyncService(databaseService: dbService);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService);
 
       final picture = await insertPicture(dbService, id: 'pic1', provider: 'pastvu');
       final record = await insertRecord(dbService, picture);
@@ -186,8 +187,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_push_no_picture.db');
       final dbService = DatabaseService(db: db);
       final mockProvider = createProvider();
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final now = DateTime.now();
       final record = Record(
@@ -222,8 +223,8 @@ void main() {
       mockProvider.addRecord('pictures', 'pastvu/c1', cloudPictureJson(id: 'c1', provider: 'pastvu'));
       mockProvider.addRecord('records', 'pastvu/c1', cloudRecordJson(pictureKey: 'pastvu/c1', updateAt: now, width: 200));
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final localRepo = dbService.createRepository<Record>();
       final localRecords = await localRepo.list();
@@ -243,8 +244,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_newer_incoming.db');
       final dbService = DatabaseService(db: db);
       final mockProvider = createProvider();
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final recordRepo = dbService.createRepository<Record>();
       final earlier = DateTime(2024, 1, 1);
@@ -273,8 +274,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_older_incoming.db');
       final dbService = DatabaseService(db: db);
       final mockProvider = createProvider();
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final recordRepo = dbService.createRepository<Record>();
       final earlier = DateTime(2024, 1, 1);
@@ -303,8 +304,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_push_record_cloudid.db');
       final dbService = DatabaseService(db: db);
       final mockProvider = createProvider();
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final recordRepo = dbService.createRepository<Record>();
       final picture = await insertPicture(dbService, id: 'pic3', provider: 'pastvu');
@@ -340,8 +341,8 @@ void main() {
         mockProvider.addRecord('records', key, cloudRecordJson(pictureKey: key, updateAt: now.add(Duration(hours: i)), height: 100.0 + i, width: 200.0 + i));
       }
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final records = await dbService.createRepository<Record>().list();
       expect(records, hasLength(3));
@@ -355,8 +356,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_delete_record.db');
       final dbService = DatabaseService(db: db);
       final mockProvider = createProvider();
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final picture = await insertPicture(dbService, id: 'del_pic', provider: 'pastvu');
       final record = await insertRecord(dbService, picture);
@@ -383,8 +384,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_sync_update.db');
       final dbService = DatabaseService(db: db);
       final mockProvider = createProvider();
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final recordRepo = dbService.createRepository<Record>();
       final now = DateTime.now();
@@ -418,8 +419,8 @@ void main() {
         id: 'mock',
         supportsEvents: true,
       );
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final picture = await insertPicture(dbService, id: 'ev_pic', provider: 'pastvu');
       final record = await insertRecord(dbService, picture);
@@ -465,8 +466,8 @@ void main() {
       mockProvider.addRecord('pictures', 'pastvu/conf', cloudPictureJson(id: 'conf', provider: 'pastvu'));
       mockProvider.addRecord('records', 'pastvu/conf', cloudRecordJson(pictureKey: 'pastvu/conf', updateAt: older, height: 100, width: 200));
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final cloudData = mockProvider.getRecordData('records', 'pastvu/conf');
       expect(cloudData, isNotNull);
@@ -492,8 +493,8 @@ void main() {
       mockProvider.addRecord('pictures', 'pastvu/newer', cloudPictureJson(id: 'newer', provider: 'pastvu'));
       mockProvider.addRecord('records', 'pastvu/newer', cloudRecordJson(pictureKey: 'pastvu/newer', updateAt: now, height: 100, width: 200));
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final cloudData = mockProvider.getRecordData('records', 'pastvu/newer');
       expect(cloudData, isNotNull);
@@ -516,8 +517,8 @@ void main() {
         id: 'mock',
         supportsEvents: true,
       );
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final now = DateTime.now();
       mockProvider.addRecord('pictures', 'pastvu/c_ins', cloudPictureJson(id: 'c_ins', provider: 'pastvu'));
@@ -552,8 +553,8 @@ void main() {
       final picture = await insertPicture(dbService, id: 'upd_evt', provider: 'pastvu');
       await insertRecord(dbService, picture, updateAt: now, height: 10, width: 20);
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       await Future.delayed(const Duration(milliseconds: 200));
 
@@ -585,8 +586,8 @@ void main() {
         id: 'mock',
         supportsEvents: true,
       );
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final picture = await insertPicture(dbService, id: 'del_evt', provider: 'pastvu');
       final record = await insertRecord(dbService, picture, height: 10, width: 20);
@@ -623,8 +624,8 @@ void main() {
         id: 'mock',
         supportsEvents: true,
       );
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final now = DateTime.now();
       mockProvider.addRecord('pictures', 'pastvu/rec_1', cloudPictureJson(id: 'rec_1', provider: 'pastvu'));
@@ -651,8 +652,8 @@ void main() {
         id: 'mock',
         supportsEvents: true,
       );
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final now = DateTime.now();
       mockProvider.addRecord('pictures', 'pastvu/unk_1', cloudPictureJson(id: 'unk_1', provider: 'pastvu'));
@@ -675,8 +676,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_entity_updated.db');
       final dbService = DatabaseService(db: db);
       final mockProvider = createProvider();
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final recordRepo = dbService.createRepository<Record>();
       final now = DateTime.now();
@@ -707,8 +708,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_entity_removed.db');
       final dbService = DatabaseService(db: db);
       final mockProvider = createProvider();
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final now = DateTime.now();
       final picture = await insertPicture(dbService, id: 'ent_rem', provider: 'pastvu');
@@ -736,7 +737,8 @@ void main() {
       final picture = await insertPicture(dbService, id: 'p1', provider: 'pastvu');
       final record = await insertRecord(dbService, picture, updateAt: now);
 
-      final syncService = CloudSyncService(databaseService: dbService);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService);
 
       final providerA = MockCloudSyncProvider(
         collectionNames: {Record: 'records', Picture: 'pictures'},
@@ -789,8 +791,8 @@ void main() {
       );
       await dbService.createRepository<Picture>().insert(picture);
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       expect(mockProvider.hasRecord('pictures', 'pastvu/solo1'), true);
       expect(mockProvider.hasRecord('records', 'pastvu/solo1'), false);
@@ -810,8 +812,8 @@ void main() {
 
       mockProvider.addRecord('pictures', 'pastvu/c1', cloudPictureJson(id: 'c1', provider: 'pastvu'));
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final pictures = await dbService.createRepository<Picture>().list();
       expect(pictures, hasLength(1));
@@ -841,8 +843,8 @@ void main() {
       );
       await dbService.createRepository<Picture>().insert(picture);
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
       expect(mockProvider.hasRecord('pictures', 'pastvu/solo2'), true);
 
       final revisited = DateTime.now().add(const Duration(minutes: 1));
@@ -870,8 +872,8 @@ void main() {
       await dbService.createRepository<Picture>().update(picture);
       await insertRecord(dbService, picture, updateAt: now);
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       expect(mockProvider.getCollectionSize('pictures'), 1);
       expect(mockProvider.hasRecord('pictures', 'pastvu/p2'), true);
@@ -894,8 +896,8 @@ void main() {
         updateAt: now,
       ));
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final pictures = await dbService.createRepository<Picture>().list();
       expect(pictures, hasLength(1));
@@ -915,8 +917,8 @@ void main() {
         id: 'mock',
         supportsEvents: true,
       );
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final now = DateTime.now();
       mockProvider.addRecord('pictures', 'pastvu/ev_ins', cloudPictureJson(id: 'ev_ins', provider: 'pastvu'));
@@ -946,8 +948,8 @@ void main() {
         id: 'mock',
         supportsEvents: true,
       );
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final picture = Picture(
         id: 'ev_upd',
@@ -989,8 +991,8 @@ void main() {
         id: 'mock',
         supportsEvents: true,
       );
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final now = DateTime.now();
       final picture = Picture(
@@ -1046,8 +1048,8 @@ void main() {
         updateAt: now,
       ));
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       mockProvider.emitChange(CloudInsertedEvent(
         metadata: cloudMetadata(
@@ -1080,8 +1082,8 @@ void main() {
       ));
       mockProvider.addRecord('pictures', 'pastvu/r1', cloudPictureJson(id: 'r1', provider: 'pastvu'));
 
-      final firstSync = CloudSyncService(databaseService: dbService);
-      await firstSync.setProvider(mockProvider);
+      final firstSync = CloudSyncService();
+      await firstSync.init(databaseService: dbService, provider: mockProvider);
       expect(await dbService.createRepository<Record>().list(), hasLength(1));
       expect(await dbService.createRepository<Picture>().list(), hasLength(1));
       await firstSync.dispose();
@@ -1096,8 +1098,8 @@ void main() {
         'updateAt': twoHoursAgo.millisecondsSinceEpoch,
       });
 
-      final secondSync = CloudSyncService(databaseService: dbService);
-      await secondSync.setProvider(mockProvider);
+      final secondSync = CloudSyncService();
+      await secondSync.init(databaseService: dbService, provider: mockProvider);
 
       final records = await dbService.createRepository<Record>().list();
       expect(records, hasLength(1));

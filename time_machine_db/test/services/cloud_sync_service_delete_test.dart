@@ -69,8 +69,8 @@ void main() {
         collectionNames: {Record: 'records', Picture: 'pictures'},
         id: 'mock',
       );
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final picture = await insertPicture(dbService, id: 'od1', provider: 'pastvu');
       final record = await insertRecord(dbService, picture);
@@ -120,8 +120,8 @@ void main() {
         collectionNames: {Record: 'records', Picture: 'pictures'},
         id: 'mock',
       );
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final picture = await insertPicture(dbService, id: 'od1', provider: 'pastvu');
       final record = await insertRecord(dbService, picture);
@@ -194,8 +194,8 @@ void main() {
         deletedAt: deletedAt,
       ));
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       expect(await dbService.createRepository<Record>().list(), isEmpty);
       expect(await dbService.createRepository<Picture>().list(), isEmpty);
@@ -224,8 +224,8 @@ void main() {
         deletedAt: now.subtract(const Duration(days: 1)),
       ));
 
-      final syncService = CloudSyncService(databaseService: dbService);
-      await syncService.setProvider(mockProvider);
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
 
       final recordRepo = dbService.createRepository<Record>();
       expect(await recordRepo.list(), isEmpty);

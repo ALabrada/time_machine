@@ -4,19 +4,29 @@ import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/domain/gallery_section.dart';
 import 'package:time_machine_img/services/database_service.dart';
 import 'package:time_machine_img/services/sharing_service.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/controllers/task_manager.dart';
 
 class GalleryController with TaskManager {
-  GalleryController({this.sharingService}) {
+  GalleryController({
+    this.configurationService,
+    this.cloudSyncService,
+    this.networkService,
+    this.sharingService,
+  }) {
     searchController.addListener(() {
       _searchCriteria.value = searchController.text;
     });
   }
 
+  final ConfigurationService? configurationService;
+  final CloudSyncService? cloudSyncService;
+  final NetworkService? networkService;
   final SharingService? sharingService;
   final searchController = TextEditingController();
   final _searchCriteria = BehaviorSubject.seeded('');
@@ -25,6 +35,9 @@ class GalleryController with TaskManager {
   final BehaviorSubject<List<GallerySection>> sections = BehaviorSubject();
   final BehaviorSubject<Set<Record>> selection = BehaviorSubject.seeded({});
   DatabaseService? databaseService;
+
+  Stream<bool> get syncInProgress => cloudSyncService?.syncInProgress ?? Stream.empty(broadcast: true);
+  Stream<void> get syncFailed => cloudSyncService?.syncFailed.map((e) {}) ?? Stream.empty(broadcast: true);
 
   StreamSubscription? _searchSubscription, _importSubscription;
 
@@ -117,6 +130,13 @@ class GalleryController with TaskManager {
     DatabaseService? databaseService,
   }) async* {
     await sharingService?.init(databaseService: databaseService);
+
+    final configProvider = configurationService?.cloud;
+    final cloudProvider = networkService?.clouds[configProvider ?? ''];
+    final cloudSyncService = this.cloudSyncService;
+    if (databaseService != null && cloudSyncService != null && cloudProvider != null && !cloudSyncService.isActive) {
+      unawaited(cloudSyncService.init(databaseService: databaseService, provider: cloudProvider));
+    }
 
     _searchSubscription?.cancel();
     _searchSubscription = _searchCriteria.throttleTime(Duration(milliseconds: 200)).distinct()

@@ -3,9 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 
 class CloudSyncService {
-  final DatabaseService databaseService;
+  final _errorStreamController = StreamController<(Object, StackTrace)>.broadcast();
+  final _busyStreamController = StreamController<bool>.broadcast();
   final _eventQueue = <Object>[];
 
+  DatabaseService? _databaseService;
   CloudSyncProvider? _provider;
   String? _cloudId;
   StreamSubscription? _cloudSubscription;
@@ -17,17 +19,28 @@ class CloudSyncService {
   PictureSynchronizer? _pictures;
   RecordSynchronizer? _records;
 
-  bool get isActive => _provider != null;
+  bool get isActive =>  isInitialized && _provider != null;
+  bool get isInitialized => _databaseService != null;
   PictureSynchronizer? get pictures => _pictures;
   RecordSynchronizer? get records => _records;
+  Stream<(Object, StackTrace)> get syncFailed => _errorStreamController.stream;
+  Stream<bool> get syncInProgress => _busyStreamController.stream;
 
-  CloudSyncService({required this.databaseService}) {
+  Future<void> init({
+    required DatabaseService databaseService,
+    CloudSyncProvider? provider,
+  }) async {
+    _databaseService = databaseService;
+    _eventSubscription?.cancel();
     _eventSubscription = databaseService.events.listen(_onDBEvent);
+    await setProvider(provider);
   }
 
-  Repository<T> _createRepository<T>() => Repository<T>.create(db: databaseService.db);
+  Repository<T> _createRepository<T>() => Repository<T>.create(db: _databaseService!.db);
 
   Future<void> dispose() async {
+    _errorStreamController.close();
+    _busyStreamController.close();
     _eventSubscription?.cancel();
     _cloudSubscription?.cancel();
     _eventQueue.clear();
@@ -45,6 +58,10 @@ class CloudSyncService {
       _records = null;
       _provider = null;
     } else {
+      final databaseService = _databaseService;
+      if (databaseService == null) {
+        return;
+      }
       final String cloudId;
       try {
         cloudId = await provider.initialize();
@@ -71,14 +88,16 @@ class CloudSyncService {
       _onCloudEvent(UnknownEvent());
       return;
     }
-    _syncInProgress = true;
-    _cloudSubscription?.cancel();
-    _cloudSubscription = null;
 
     final cloudId = _cloudId;
     if (cloudId == null) {
       return;
     }
+
+    _syncInProgress = true;
+    _cloudSubscription?.cancel();
+    _cloudSubscription = null;
+    _busyStreamController.sink.add(true);
 
     try {
       final dt = _lastChange ?? await _oldestMirrorDate(cloudId);
@@ -91,8 +110,10 @@ class CloudSyncService {
       debugPrint("Failed to sync: $error\n$stack");
       _lastChange = null;
       _eventQueue.clear();
+      _errorStreamController.sink.add((error, stack));
     } finally {
       _syncInProgress = false;
+      _busyStreamController.sink.add(false);
     }
 
     if (_eventQueue.isNotEmpty && _lastChange != null) {
