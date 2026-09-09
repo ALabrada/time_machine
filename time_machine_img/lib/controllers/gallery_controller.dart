@@ -136,7 +136,7 @@ class GalleryController with TaskManager {
     final configProvider = configurationService?.cloud;
     final cloudProvider = networkService?.clouds[configProvider ?? ''];
     final cloudSyncService = this.cloudSyncService;
-    if (databaseService != null && cloudSyncService != null && cloudProvider != null && !cloudSyncService.isActive) {
+    if (databaseService != null && cloudSyncService != null && !cloudSyncService.isActive) {
       unawaited(cloudSyncService.init(databaseService: databaseService, provider: cloudProvider));
     }
 

@@ -168,7 +168,7 @@ class PictureSynchronizer {
   Future<Picture> _downloadPictureFile(Picture picture) async {
     var data = await _loadData(picture);
 
-    if (provider.supportsFiles && data == null) {
+    if (provider.supportsFiles && data == null && (picture.provider?.isEmpty ?? true)) {
       data = await provider.downloadFile(picture.url);
     }
 
