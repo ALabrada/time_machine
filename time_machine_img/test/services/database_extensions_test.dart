@@ -431,7 +431,7 @@ void main() {
           })));
           archive.add(ArchiveFile.string('now.json', jsonEncode({
             'id': 'within_test.jpg',
-            'url': 'file://${DatabaseService.filePathPlaceholder}/within_test.jpg',
+            'url': 'file://$filePathPlaceholder/within_test.jpg',
             'latitude': 0.0,
             'longitude': 0.0,
           })));
@@ -610,7 +610,7 @@ void main() {
           })));
           archive.add(ArchiveFile.string('now.json', jsonEncode({
             'id': 'dedup_file',
-            'url': 'file://${DatabaseService.filePathPlaceholder}/dedup_file.jpg',
+            'url': 'file://$filePathPlaceholder/dedup_file.jpg',
             'latitude': 0.0,
             'longitude': 0.0,
           })));
