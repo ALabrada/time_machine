@@ -39,7 +39,7 @@ class GalleryController with TaskManager {
   Stream<bool> get syncInProgress => cloudSyncService?.syncInProgress ?? Stream.empty(broadcast: true);
   Stream<void> get syncFailed => cloudSyncService?.syncFailed.map((e) {}) ?? Stream.empty(broadcast: true);
 
-  StreamSubscription? _searchSubscription, _importSubscription;
+  StreamSubscription? _searchSubscription, _importSubscription, _dbUpdatedSubscription;
 
   @override
   void dispose() {
@@ -47,6 +47,8 @@ class GalleryController with TaskManager {
     _searchSubscription = null;
     _importSubscription?.cancel();
     _importSubscription = null;
+    _dbUpdatedSubscription?.cancel();
+    _dbUpdatedSubscription = null;
     isEditing.close();
     sections.close();
     selection.close();
@@ -136,6 +138,14 @@ class GalleryController with TaskManager {
     final cloudSyncService = this.cloudSyncService;
     if (databaseService != null && cloudSyncService != null && cloudProvider != null && !cloudSyncService.isActive) {
       unawaited(cloudSyncService.init(databaseService: databaseService, provider: cloudProvider));
+    }
+
+    _dbUpdatedSubscription?.cancel();
+    final dbUpdatedStream = cloudSyncService?.dbUpdated;
+    if (dbUpdatedStream != null) {
+      _dbUpdatedSubscription = dbUpdatedStream.listen((_) {
+        unawaited(_reloadElements());
+      });
     }
 
     _searchSubscription?.cancel();

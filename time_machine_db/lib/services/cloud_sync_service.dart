@@ -5,6 +5,7 @@ import 'package:time_machine_db/time_machine_db.dart';
 class CloudSyncService {
   final _errorStreamController = StreamController<(Object, StackTrace)>.broadcast();
   final _busyStreamController = StreamController<bool>.broadcast();
+  final _dbEventsController = StreamController<void>.broadcast();
   final _eventQueue = <Object>[];
 
   DatabaseService? _databaseService;
@@ -25,6 +26,7 @@ class CloudSyncService {
   RecordSynchronizer? get records => _records;
   Stream<(Object, StackTrace)> get syncFailed => _errorStreamController.stream;
   Stream<bool> get syncInProgress => _busyStreamController.stream;
+  Stream<void> get dbUpdated => _dbEventsController.stream;
 
   Future<void> init({
     required DatabaseService databaseService,
@@ -41,6 +43,7 @@ class CloudSyncService {
   Future<void> dispose() async {
     _errorStreamController.close();
     _busyStreamController.close();
+    _dbEventsController.close();
     _eventSubscription?.cancel();
     _cloudSubscription?.cancel();
     _eventQueue.clear();
@@ -111,10 +114,12 @@ class CloudSyncService {
       _lastChange = null;
       _eventQueue.clear();
       _errorStreamController.sink.add((error, stack));
-    } finally {
+} finally {
       _syncInProgress = false;
       _busyStreamController.sink.add(false);
     }
+
+    _dbEventsController.add(null);
 
     if (_eventQueue.isNotEmpty && _lastChange != null) {
       _processingEvents = true;
@@ -281,6 +286,7 @@ class CloudSyncService {
 
   Future<void> _processQueue() async {
     var requiresResync = false;
+    var dbUpdated = false;
     while (_eventQueue.isNotEmpty) {
       final event = _eventQueue.removeAt(0);
       final lastChange = _lastChange;
@@ -323,12 +329,14 @@ class CloudSyncService {
           final date = mirror?.lastDate;
           if (date != null && date.isAfter(lastChange)) {
             _lastChange = date;
+            dbUpdated = true;
           }
         } else if (event is CloudUpdatedEvent && event.collection == recordCollection && lastChange != null && recordCollection != null) {
           final mirror = await records.pullRecord(event.metadata, event.data);
           final date = mirror?.lastDate;
           if (date != null && date.isAfter(lastChange)) {
             _lastChange = date;
+            dbUpdated = true;
           }
         } else if (event is CloudDeletedEvent && event.collection == recordCollection && lastChange != null && recordCollection != null) {
           final mirror = await mirrorRepo.findByIdAndCloud(event.metadata.id, cloudId);
@@ -336,6 +344,7 @@ class CloudSyncService {
             continue;
           }
           await records.deleteFromDB(mirror.recordId);
+          dbUpdated = true;
         } else if (event is CloudInsertedEvent && event.collection == pictureCollection && lastChange != null && pictureCollection != null) {
           final mirror = await pictures.pullPicture(
             event.metadata.id,
@@ -345,6 +354,7 @@ class CloudSyncService {
           final date = mirror?.lastDate;
           if (date != null && date.isAfter(lastChange)) {
             _lastChange = date;
+            dbUpdated = true;
           }
         } else if (event is CloudUpdatedEvent && event.collection == pictureCollection && lastChange != null && pictureCollection != null) {
           final mirror = await pictures.pullPicture(
@@ -355,6 +365,7 @@ class CloudSyncService {
           final date = mirror?.lastDate;
           if (date != null && date.isAfter(lastChange)) {
             _lastChange = date;
+            dbUpdated = true;
           }
         } else if (event is CloudDeletedEvent && event.collection == pictureCollection && lastChange != null && pictureCollection != null) {
           final mirror = await pictureMirrorRepo.findByIdAndCloud(event.metadata.id, cloudId);
@@ -362,6 +373,7 @@ class CloudSyncService {
             continue;
           }
           await pictures.deleteFromDB(mirror.pictureId);
+          dbUpdated = true;
         }
       } catch (_) {
         _lastChange = null;
@@ -370,6 +382,8 @@ class CloudSyncService {
     _processingEvents = false;
     if (requiresResync) {
       unawaited(syncWithCloud());
+    } else if (dbUpdated) {
+      _dbEventsController.add(null);
     }
   }
 
