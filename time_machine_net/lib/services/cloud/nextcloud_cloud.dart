@@ -154,7 +154,7 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
     await _resetSnapshots();
     _startPolling();
     publishEvent(const CloudReconnectedEvent());
-    return 'nextcloud/${session.loginName}';
+    return '${session.serverUrl}/${session.loginName}';
   }
 
   void _startPolling() {
