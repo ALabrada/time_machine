@@ -7,6 +7,7 @@ export 'domain/picture.dart';
 export 'domain/picture_mirror.dart';
 export 'domain/record.dart';
 export 'domain/record_mirror.dart';
+export 'domain/sync_state.dart';
 export 'services/repository.dart';
 export 'services/cloud_sync_provider.dart';
 export 'services/cloud_sync_service.dart';

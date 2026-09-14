@@ -12,6 +12,7 @@ class MockCloudSyncProvider implements CloudSyncProvider {
 
   String id = '';
   bool failInitialize = false;
+  final Set<String> failGetRecord = {};
 
   @override
   Future<String> initialize() async {
@@ -102,6 +103,9 @@ class MockCloudSyncProvider implements CloudSyncProvider {
 
   @override
   Future<Map<String, dynamic>?> getRecord(String collection, String id) async {
+    if (failGetRecord.contains(id)) {
+      throw Exception('Failed to get record: $id');
+    }
     final col = _collections[collection];
     if (col == null) return null;
     final data = col[id];

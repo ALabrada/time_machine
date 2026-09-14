@@ -103,18 +103,19 @@ class CloudSyncService {
     _busyStreamController.sink.add(true);
 
     try {
-      final dt = _lastChange ?? await _oldestMirrorDate(cloudId);
+      final dt = _lastChange ?? await _loadLastSync(cloudId);
       _lastChange = dt;
       await _syncRecords(dt);
       await _syncPictures(dt);
 
       _lastChange ??= DateTime.fromMillisecondsSinceEpoch(0);
+      await _saveLastSync(cloudId);
     } catch (error, stack) {
       debugPrint("Failed to sync: $error\n$stack");
       _lastChange = null;
       _eventQueue.clear();
       _errorStreamController.sink.add((error, stack));
-} finally {
+    } finally {
       _syncInProgress = false;
       _busyStreamController.sink.add(false);
     }
@@ -418,6 +419,9 @@ class CloudSyncService {
       }
     }
     _processingEvents = false;
+    if (_lastChange != null && _cloudId != null) {
+      await _saveLastSync(_cloudId!);
+    }
     if (requiresResync) {
       unawaited(syncWithCloud());
     } else if (dbUpdated) {
@@ -439,21 +443,35 @@ class CloudSyncService {
     }
   }
 
-  Future<DateTime?> _oldestMirrorDate(String cloudId) async {
-    final recordMirrors = await _createRepository<RecordMirror>().findByCloud(cloudId);
-    final pictureMirrors = await _createRepository<PictureMirror>().findByCloud(cloudId);
-    DateTime? oldest;
-    for (final mirror in recordMirrors) {
-      if (oldest == null || mirror.updatedAt.isBefore(oldest)) {
-        oldest = mirror.updatedAt;
-      }
+  Future<DateTime?> _loadLastSync(String cloudId) async {
+    final databaseService = _databaseService;
+    if (databaseService == null) {
+      return null;
     }
-    for (final mirror in pictureMirrors) {
-      if (oldest == null || mirror.updatedAt.isBefore(oldest)) {
-        oldest = mirror.updatedAt;
-      }
+    try {
+      final state = await _createRepository<SyncState>().findByCloudId(cloudId);
+      return state?.lastSync;
+    } catch (_) {
+      return null;
     }
-    return oldest;
+  }
+
+  Future<void> _saveLastSync(String cloudId) async {
+    final databaseService = _databaseService;
+    final value = _lastChange;
+    if (databaseService == null || value == null) {
+      return;
+    }
+    try {
+      final repository = _createRepository<SyncState>();
+      final state = await repository.findByCloudId(cloudId);
+      if (state == null) {
+        await repository.insert(SyncState(cloudId: cloudId, lastSync: value));
+      } else {
+        state.lastSync = value;
+        await repository.update(state);
+      }
+    } catch (_) {}
   }
 
   Future<void> deleteRecord(Record item, [DateTime? date]) async {

@@ -70,6 +70,17 @@ class Repository<T> {
         events: events,
       ) as Repository<T>;
     }
+    if (T == SyncState) {
+      return Repository<SyncState>(
+        box: intMapStoreFactory.store('sync_state'),
+        db: db,
+        fromJson: SyncState.fromJson,
+        toJson: (x) => x.toJson(),
+        getKey: (x) => x.localId,
+        setKey: (x, v) => x.localId = v,
+        events: events,
+      ) as Repository<T>;
+    }
     throw Exception("Invalid repository type: ${T.toString()}");
   }
 
