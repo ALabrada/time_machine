@@ -91,6 +91,7 @@ class PictureSynchronizer {
 
     var localMirror = await _createRepository<PictureMirror>().findByIdAndCloud(id, cloudId);
     if (date != null && localMirror != null && !date.isAfter(localMirror.lastDate)) {
+      localMirror.picture = await _createRepository<Picture>().getById(localMirror.pictureId);
       return localMirror;
     }
 

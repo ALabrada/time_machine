@@ -60,6 +60,7 @@ class RecordSynchronizer {
     final date = metadata.lastDate;
     var localMirror = await _createRepository<RecordMirror>().findByIdAndCloud(metadata.id, cloudId);
     if (localMirror != null && !date.isAfter(localMirror.lastDate)) {
+      localMirror.record = await _createRepository<Record>().getById(localMirror.recordId);
       return localMirror;
     }
 

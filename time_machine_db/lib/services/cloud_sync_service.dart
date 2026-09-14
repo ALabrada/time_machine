@@ -321,6 +321,44 @@ class CloudSyncService {
           if (lastChange != null && event.timestamp.isAfter(lastChange)) {
             _lastChange = event.timestamp;
           }
+        } else if (event is EntityInserted<Picture> && lastChange != null &&
+            event.timestamp.isAfter(lastChange) && event.entity.visitedAt != null &&
+            event.entity.localId != null) {
+          final picture = event.entity;
+          final localMirror = await pictureMirrorRepo.findByPictureAndCloud(picture.localId!, cloudId);
+          if (localMirror != null) {
+            continue;
+          }
+          final mirror = await pictures.pushPicture(picture, event.timestamp);
+          final date = mirror?.lastDate;
+          if (date != null && date.isAfter(lastChange)) {
+            _lastChange = date;
+          }
+        } else if (event is EntityUpdated<Picture> && lastChange != null && event.timestamp.isAfter(lastChange)) {
+          final picture = event.entity;
+          final visitedAt = picture.visitedAt;
+          final localId = picture.localId;
+          if (visitedAt == null || localId == null) {
+            continue;
+          }
+          final localMirror = await pictureMirrorRepo.findByPictureAndCloud(localId, cloudId);
+          if (localMirror != null && !visitedAt.isAfter(localMirror.updatedAt)) {
+            continue;
+          }
+          final mirror = await pictures.pushPicture(picture, event.timestamp);
+          final date = mirror?.lastDate;
+          if (date != null && date.isAfter(lastChange)) {
+            _lastChange = date;
+          }
+        } else if (event is EntityRemoved<Picture> && event.entity.localId != null) {
+          final localMirror = await pictureMirrorRepo.findByPictureAndCloud(event.entity.localId!, cloudId);
+          if (localMirror == null || localMirror.deletedAt == null) {
+            await deletePicture(event.entity, event.timestamp);
+            await pictures.deleteFromCloud(event.entity.localId!);
+            if (lastChange != null && event.timestamp.isAfter(lastChange)) {
+              _lastChange = event.timestamp;
+            }
+          }
         } else if (event is CloudReconnectedEvent || event is UnknownEvent) {
           requiresResync = true;
           _eventQueue.clear();

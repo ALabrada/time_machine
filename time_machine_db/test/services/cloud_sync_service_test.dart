@@ -861,6 +861,101 @@ void main() {
       await db.close();
     });
 
+    test('EntityUpdated picture event pushes a re-visited standalone picture', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_pic_entity_updated.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = createProvider();
+
+      final synced = DateTime.now().subtract(const Duration(hours: 1));
+      final picture = Picture(
+        id: 'vis_pic',
+        provider: 'pastvu',
+        url: 'data:image/jpg;base64,AA==',
+        latitude: 48.0,
+        longitude: 2.0,
+        visitedAt: synced,
+      );
+      await dbService.createRepository<Picture>().insert(picture);
+
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
+      expect(mockProvider.hasRecord('pictures', 'pastvu/vis_pic'), true);
+
+      final revisited = DateTime.now().add(const Duration(minutes: 1));
+      picture.visitedAt = revisited;
+      await dbService.createRepository<Picture>().update(picture);
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final cloudData = mockProvider.getRecordData('pictures', 'pastvu/vis_pic');
+      expect(cloudData, isNotNull);
+      expect(cloudData!['visitedAt'], revisited.millisecondsSinceEpoch);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('EntityInserted picture event pushes a visited standalone picture', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_pic_entity_inserted.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = createProvider();
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
+
+      final now = DateTime.now();
+      final picture = Picture(
+        id: 'ins4',
+        provider: 'pastvu',
+        url: 'data:image/jpg;base64,AA==',
+        latitude: 48.0,
+        longitude: 2.0,
+        visitedAt: now,
+      );
+      await dbService.createRepository<Picture>().insert(picture);
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      expect(mockProvider.hasRecord('pictures', 'pastvu/ins4'), true);
+      expect(await dbService.createRepository<PictureMirror>()
+          .findByPictureAndCloud(picture.localId!, 'mock'), isNotNull);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
+    test('EntityRemoved picture event removes a standalone picture from the cloud', () async {
+      final db = await databaseFactoryMemory.openDatabase('test_pic_entity_removed.db');
+      final dbService = DatabaseService(db: db);
+      final mockProvider = createProvider();
+      final syncService = CloudSyncService();
+      await syncService.init(databaseService: dbService, provider: mockProvider);
+
+      final now = DateTime.now();
+      final picture = Picture(
+        id: 'del_v2',
+        provider: 'pastvu',
+        url: 'data:image/jpg;base64,AA==',
+        latitude: 48.0,
+        longitude: 2.0,
+        visitedAt: now,
+      );
+      await dbService.createRepository<Picture>().insert(picture);
+
+      await Future.delayed(const Duration(milliseconds: 200));
+      expect(mockProvider.hasRecord('pictures', 'pastvu/del_v2'), true);
+
+      await dbService.createRepository<Picture>().delete(picture.localId!);
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      expect(mockProvider.hasRecord('pictures', 'pastvu/del_v2'), false);
+
+      await syncService.dispose();
+      mockProvider.dispose();
+      await db.close();
+    });
+
     test('syncWithCloud does not duplicate a picture that belongs to a record', () async {
       final db = await databaseFactoryMemory.openDatabase('test_standalone_pic_record.db');
       final dbService = DatabaseService(db: db);
