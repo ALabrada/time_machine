@@ -299,10 +299,28 @@ abstract class ConfigLocalizations {
   /// **'Provider'**
   String get cloudPageProvider;
 
+  /// No description provided for @cloudPageChangeProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Change provider'**
+  String get cloudPageChangeProvider;
+
+  /// No description provided for @settingCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud'**
+  String get settingCloud;
+
+  /// No description provided for @sectionSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronization'**
+  String get sectionSync;
+
   /// No description provided for @cloudPageProviderNotSelected.
   ///
   /// In en, this message translates to:
-  /// **'No cloud provider is selected in Settings.'**
+  /// **'No cloud provider selected.'**
   String get cloudPageProviderNotSelected;
 
   /// No description provided for @cloudPageProviderUnavailable.
@@ -310,6 +328,30 @@ abstract class ConfigLocalizations {
   /// In en, this message translates to:
   /// **'The selected cloud provider is not available.'**
   String get cloudPageProviderUnavailable;
+
+  /// No description provided for @cloudPageLoadingConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get cloudPageLoadingConnecting;
+
+  /// No description provided for @cloudPageLoadingAuthenticating.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticating…'**
+  String get cloudPageLoadingAuthenticating;
+
+  /// No description provided for @cloudPageLoadingSynchronizing.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronizing…'**
+  String get cloudPageLoadingSynchronizing;
+
+  /// No description provided for @cloudPageLoadingDeactivating.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivating…'**
+  String get cloudPageLoadingDeactivating;
 
   /// No description provided for @cloudPageStatus.
   ///

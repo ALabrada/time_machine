@@ -34,6 +34,13 @@ final class CloudController extends ValueNotifier<CloudState> {
 
   String? get cloudName => configurationService.cloud;
 
+  /// The cloud providers available for selection, sorted by name.
+  List<String> get cloudNames {
+    final names = networkService.clouds.keys.toList();
+    names.sort();
+    return names;
+  }
+
   CloudBase? get cloud {
     final name = configurationService.cloud;
     if (name == null) {
@@ -47,6 +54,41 @@ final class CloudController extends ValueNotifier<CloudState> {
   bool get isActive => cloudSyncService.isActive;
 
   bool get loading => value is LoadingState;
+
+  /// The phase of the ongoing loading operation, when [loading] is true.
+  CloudLoadingPhase? get loadingPhase =>
+      value is LoadingState ? (value as LoadingState).phase : null;
+
+  /// Selects the configured cloud provider and loads its state. If a
+  /// different cloud is currently active, it is deactivated first so no
+  /// previous provider keeps syncing.
+  void selectCloud(String name) {
+    final current = configurationService.cloud;
+    if (current == null || current == name) {
+      unawaited(_load());
+      return;
+    }
+    unawaited(_changeProvider(name));
+  }
+
+  Future<void> _changeProvider(String name) async {
+    if (isActive) {
+      try {
+        await _deactivate();
+      } catch (_) {
+        // Keep the current cloud configured; do not switch to a new one
+        // whose activation was never confirmed.
+        return;
+      }
+    }
+    configurationService.cloud = name;
+    await _load();
+  }
+
+  /// Switches back to the provider selection list.
+  void showSelection() {
+    value = NotSelectedState(clouds: cloudNames);
+  }
 
   Object? get error {
     final current = value;
@@ -79,10 +121,10 @@ final class CloudController extends ValueNotifier<CloudState> {
   }
 
   Future<void> _load() async {
-    value = const LoadingState();
+    value = const LoadingState(phase: CloudLoadingPhase.connecting);
     final cloud = this.cloud;
     if (cloud == null) {
-      value = const NotSelectedState();
+      value = NotSelectedState(clouds: cloudNames);
       return;
     }
     try {
@@ -103,22 +145,34 @@ final class CloudController extends ValueNotifier<CloudState> {
     if (cloud == null) {
       return;
     }
-    value = const LoadingState();
+    value = const LoadingState(phase: CloudLoadingPhase.authenticating);
     try {
-      final active = await _authenticate(
+      final (active, storedSession) = await _authenticate(
         cloud,
         serverUrl: serverUrl,
         loginName: loginName,
         password: password,
       );
+      value = const LoadingState(phase: CloudLoadingPhase.synchronizing);
+      try {
+        await cloudSyncService.setProvider(active);
+      } catch (error) {
+        // A freshly stored Nextcloud session was not validated yet; if the
+        // server rejects it, drop it so the user can re-enter their data
+        // instead of being locked to a broken session.
+        if (storedSession && active is NextCloudCloud) {
+          await active.tokenStore.clear();
+        }
+        rethrow;
+      }
       if (!cloudSyncService.isActive) {
         // CloudSyncService.setProvider swallows initialize() errors (it only
         // logs them), so a Nextcloud session may have been stored without
         // ever being validated against the server. Clear it, otherwise the
         // stored server URL and login name could later be mistaken for a
         // valid sign-in.
-        if (cloud is NextCloudCloud) {
-          await cloud.tokenStore.clear();
+        if (active is NextCloudCloud) {
+          await active.tokenStore.clear();
         }
         throw Exception('Cloud activation failed');
       }
@@ -138,7 +192,7 @@ final class CloudController extends ValueNotifier<CloudState> {
     }
   }
 
-  Future<CloudBase> _authenticate(
+  Future<(CloudBase, bool)> _authenticate(
     CloudBase cloud, {
     String? serverUrl,
     String? loginName,
@@ -151,8 +205,7 @@ final class CloudController extends ValueNotifier<CloudState> {
       }
       final authenticated = await signIn.connect(openBrowser: _openBrowser);
       networkService.clouds[cloudName!] = authenticated;
-      await cloudSyncService.setProvider(authenticated);
-      return authenticated;
+      return (authenticated, false);
     }
     if (cloud is DropBoxCloud) {
       final session = await DropBoxCloud.authorize(
@@ -176,18 +229,7 @@ final class CloudController extends ValueNotifier<CloudState> {
         storedSession = true;
       }
     }
-    try {
-      await cloudSyncService.setProvider(cloud);
-    } catch (error) {
-      // A freshly stored Nextcloud session was not validated yet; if the
-      // server rejects it, drop it so the user can re-enter their data
-      // instead of being locked to a broken session.
-      if (storedSession && cloud is NextCloudCloud) {
-        await cloud.tokenStore.clear();
-      }
-      rethrow;
-    }
-    return cloud;
+    return (cloud, storedSession);
   }
 
   Future<void> _openBrowser(Uri uri) async {
@@ -203,7 +245,7 @@ final class CloudController extends ValueNotifier<CloudState> {
     if (cloud == null) {
       return;
     }
-    value = const LoadingState();
+    value = const LoadingState(phase: CloudLoadingPhase.deactivating);
     try {
       await cloudSyncService.setProvider(null);
       if (cloud is SupabaseCloud) {
@@ -223,7 +265,7 @@ final class CloudController extends ValueNotifier<CloudState> {
           isActive: false,
         );
       } else {
-        value = const NotSelectedState();
+        value = NotSelectedState(clouds: cloudNames);
       }
     } catch (error) {
       value = previous;
@@ -254,6 +296,6 @@ final class CloudController extends ValueNotifier<CloudState> {
         isActive: isActive,
       );
     }
-    return const NotSelectedState();
+    return NotSelectedState(clouds: cloudNames);
   }
 }

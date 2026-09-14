@@ -63,6 +63,7 @@ final class ConfigurationService extends ChangeNotifier {
     } else {
       preferences()?.setString('settings.cloud', value);
     }
+    notifyListeners();
   }
 
   String? get geocoder => preferences()?.getString('settings.geocoder');

@@ -74,51 +74,53 @@ class _NextCloudCloudContentState extends State<NextCloudCloudContent> {
       children: [
         const SizedBox(height: 16),
         Card(
-          child: Column(children: [
-            ListTile(
-              leading: Icon(
-                authenticated ? Icons.verified_user : Icons.person_outline,
-                color: authenticated
-                    ? Colors.green
-                    : Theme.of(context).colorScheme.outline,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ListTile(
+                leading: Icon(
+                  authenticated ? Icons.verified_user : Icons.person_outline,
+                  color: authenticated
+                      ? Colors.green
+                      : Theme.of(context).colorScheme.outline,
+                ),
+                title: Text(localizations.cloudPageAuthSection),
+                subtitle: authenticated && nextcloud!.loginName != null
+                    ? Text(
+                        nextcloud.serverUrl == null
+                            ? nextcloud.loginName!
+                            : '${nextcloud.loginName}\n${nextcloud.serverUrl}',
+                      )
+                    : null,
+                trailing: Text(
+                  authenticated
+                      ? localizations.cloudPageAuthSignedIn
+                      : localizations.cloudPageAuthSignedOut,
+                ),
               ),
-              title: Text(localizations.cloudPageAuthSection),
-              subtitle: authenticated && nextcloud!.loginName != null
-                  ? Text(
-                      nextcloud.serverUrl == null
-                          ? nextcloud.loginName!
-                          : '${nextcloud.loginName}\n${nextcloud.serverUrl}',
-                    )
-                  : null,
-              trailing: Text(
-                authenticated
-                    ? localizations.cloudPageAuthSignedIn
-                    : localizations.cloudPageAuthSignedOut,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: authenticated
+                    ? FilledButton.icon(
+                        onPressed: active
+                            ? () => _deactivate(context)
+                            : () => _activate(context),
+                        icon: Icon(
+                          active
+                              ? Icons.cloud_off_outlined
+                              : Icons.cloud_upload_outlined,
+                        ),
+                        label: Text(
+                          active
+                              ? localizations.cloudPageDeactivate
+                              : localizations.cloudPageActivate,
+                        ),
+                      )
+                    : _buildSignInForm(context, localizations),
               ),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 16),
-        if (authenticated)
-          FilledButton.icon(
-            onPressed:
-                active ? () => _deactivate(context) : () => _activate(context),
-            icon: Icon(
-              active ? Icons.cloud_off_outlined : Icons.cloud_upload_outlined,
-            ),
-            label: Text(
-              active
-                  ? localizations.cloudPageDeactivate
-                  : localizations.cloudPageActivate,
-            ),
-          )
-        else
-          Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: _buildSignInForm(context, localizations),
-            ),
+            ],
           ),
+        ),
       ],
     );
   }

@@ -260,19 +260,15 @@ class ConfigurationPageState extends State<ConfigurationPage> {
   }
 
   AbstractSettingsSection _buildSyncSection() {
+    final localizations = ConfigLocalizations.of(context);
     return SettingsSection(
-      title: Text('Synchronization'),
+      title: Text(localizations.sectionSync),
       tiles: [
         SettingsTile.navigation(
-          title: Text('Provider'),
-          value: Text(controller.cloud.value),
-          onPressed: (_) => _showSelectionDialog(
-            label: 'Provider',
-            controller: controller.cloud,
-          ),
-        ),
-        SettingsTile.navigation(
-          title: Text('Activate'),
+          title: Text(localizations.settingCloud),
+          value: controller.cloud.value.isEmpty
+              ? null
+              : Text(controller.cloud.value),
           onPressed: (context) => context.go('/cloud'),
         ),
       ],

@@ -130,12 +130,33 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
   String get cloudPageProvider => 'Proveedor';
 
   @override
+  String get cloudPageChangeProvider => 'Cambiar proveedor';
+
+  @override
+  String get settingCloud => 'Nube';
+
+  @override
+  String get sectionSync => 'Sincronización';
+
+  @override
   String get cloudPageProviderNotSelected =>
-      'No hay ningún proveedor de nube seleccionado en Ajustes.';
+      'No hay ningún proveedor de nube seleccionado.';
 
   @override
   String get cloudPageProviderUnavailable =>
       'El proveedor de nube seleccionado no está disponible.';
+
+  @override
+  String get cloudPageLoadingConnecting => 'Conectando…';
+
+  @override
+  String get cloudPageLoadingAuthenticating => 'Autenticando…';
+
+  @override
+  String get cloudPageLoadingSynchronizing => 'Sincronizando…';
+
+  @override
+  String get cloudPageLoadingDeactivating => 'Desactivando…';
 
   @override
   String get cloudPageStatus => 'Estado';

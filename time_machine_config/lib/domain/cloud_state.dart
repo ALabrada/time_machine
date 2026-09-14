@@ -1,13 +1,32 @@
+enum CloudLoadingPhase {
+  /// Connecting to the selected provider before its content can be shown.
+  connecting,
+
+  /// Running the provider's authentication flow (OAuth, sign-in, ...).
+  authenticating,
+
+  /// Synchronizing local data with the cloud after activation.
+  synchronizing,
+
+  /// Disconnecting the provider.
+  deactivating,
+}
+
 abstract class CloudState {
   const CloudState();
 }
 
 class NotSelectedState extends CloudState {
-  const NotSelectedState();
+  /// The cloud providers available for selection.
+  final List<String> clouds;
+
+  const NotSelectedState({this.clouds = const []});
 }
 
 class LoadingState extends CloudState {
-  const LoadingState();
+  final CloudLoadingPhase phase;
+
+  const LoadingState({this.phase = CloudLoadingPhase.connecting});
 }
 
 class FailedState extends CloudState {

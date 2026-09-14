@@ -25,33 +25,38 @@ class GoogleDriveCloudContent extends StatelessWidget {
       children: [
         const SizedBox(height: 16),
         Card(
-          child: Column(children: [
-            ListTile(
-              leading: Icon(
-                authenticated ? Icons.verified_user : Icons.person_outline,
-                color: authenticated
-                    ? Colors.green
-                    : Theme.of(context).colorScheme.outline,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ListTile(
+                leading: Icon(
+                  authenticated ? Icons.verified_user : Icons.person_outline,
+                  color: authenticated
+                      ? Colors.green
+                      : Theme.of(context).colorScheme.outline,
+                ),
+                title: Text(localizations.cloudPageAuthSection),
+                trailing: Text(
+                  authenticated
+                      ? localizations.cloudPageStatusActive
+                      : localizations.cloudPageStatusInactive,
+                ),
               ),
-              title: Text(localizations.cloudPageAuthSection),
-              trailing: Text(
-                authenticated
-                    ? localizations.cloudPageStatusActive
-                    : localizations.cloudPageStatusInactive,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: FilledButton.icon(
+                  onPressed: active ? () => _deactivate(context) : () => _activate(context),
+                  icon: Icon(
+                    active ? Icons.cloud_off_outlined : Icons.cloud_upload_outlined,
+                  ),
+                  label: Text(
+                    active
+                        ? localizations.cloudPageDeactivate
+                        : localizations.cloudPageActivate,
+                  ),
+                ),
               ),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: active ? () => _deactivate(context) : () => _activate(context),
-          icon: Icon(
-            active ? Icons.cloud_off_outlined : Icons.cloud_upload_outlined,
-          ),
-          label: Text(
-            active
-                ? localizations.cloudPageDeactivate
-                : localizations.cloudPageActivate,
+            ],
           ),
         ),
       ],

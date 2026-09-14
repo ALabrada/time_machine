@@ -70,10 +70,6 @@ final class ConfigurationController extends ChangeNotifier {
       configurationService.tileServer = tileServer.value;
       notifyListeners();
     });
-    cloud.addListener(() {
-      configurationService.cloud = cloud.value;
-      notifyListeners();
-    });
     geocoder.addListener(() {
       configurationService.geocoder = geocoder.value;
       notifyListeners();
@@ -96,6 +92,16 @@ final class ConfigurationController extends ChangeNotifier {
         notifyListeners();
       });
     }
+    // The cloud provider is selected on the Cloud page; keep the value shown
+    // on the settings page in sync when it changes there.
+    configurationService.addListener(() {
+      final cloudName = configurationService.cloud ?? '';
+      if (cloudName != cloud.value) {
+        cloud.value = cloudName;
+      } else {
+        notifyListeners();
+      }
+    });
   }
 
   final NetworkService? networkService;

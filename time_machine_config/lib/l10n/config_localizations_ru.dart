@@ -131,12 +131,32 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
   String get cloudPageProvider => 'Провайдер';
 
   @override
-  String get cloudPageProviderNotSelected =>
-      'Облачный провайдер не выбран в настройках.';
+  String get cloudPageChangeProvider => 'Сменить провайдера';
+
+  @override
+  String get settingCloud => 'Облако';
+
+  @override
+  String get sectionSync => 'Синхронизация';
+
+  @override
+  String get cloudPageProviderNotSelected => 'Облачный провайдер не выбран.';
 
   @override
   String get cloudPageProviderUnavailable =>
       'Выбранный облачный провайдер недоступен.';
+
+  @override
+  String get cloudPageLoadingConnecting => 'Подключение…';
+
+  @override
+  String get cloudPageLoadingAuthenticating => 'Аутентификация…';
+
+  @override
+  String get cloudPageLoadingSynchronizing => 'Синхронизация…';
+
+  @override
+  String get cloudPageLoadingDeactivating => 'Отключение…';
 
   @override
   String get cloudPageStatus => 'Статус';
