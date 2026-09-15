@@ -58,7 +58,6 @@ class TimeMachineApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    final gdriveScheme = Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI).scheme;
     return MultiProvider(
       providers: [
         Provider<RouteObserver>(
@@ -67,10 +66,11 @@ class TimeMachineApp extends StatelessWidget {
         Provider<GoRouter>(
           create: (context) {
             return GoRouter(
-              redirect: (context, state) => oauthDeepLinkRedirect(
-                state.uri,
-                redirectScheme: gdriveScheme,
-              ),
+              // Do not adopt the engine's `defaultRouteName` (which on a cold
+              // launch via the OAuth scheme is the deep link itself): start at
+              // home and let the auth flow read the link off app_links.
+              initialLocation: '/',
+              redirect: (context, state) => oauthDeepLinkRedirect(state.uri),
               routes: [
                 GoRoute(
                     path: '/',
@@ -182,9 +182,12 @@ class TimeMachineApp extends StatelessWidget {
             );
           },
         ),
+        Provider<AppLinks>(
+          create: (_) => AppLinks(),
+        ),
         Provider<GoogleDriveSignIn>(
-          create: (_) {
-            final appLinks = AppLinks();
+          create: (context) {
+            final appLinks = context.read<AppLinks>();
             return GoogleDriveSignIn(
               clientId: auth.ClientId(
                 defaultTargetPlatform == TargetPlatform.iOS
@@ -203,6 +206,7 @@ class TimeMachineApp extends StatelessWidget {
         Provider<NetworkService>(
           create: (context) {
             final gdriveSignIn = context.read<GoogleDriveSignIn>();
+            final appLinks = context.read<AppLinks>();
             return NetworkService(
               clouds: {
                 // No Google Play Services involved: OAuth runs through the
@@ -221,10 +225,13 @@ class TimeMachineApp extends StatelessWidget {
                   appRootFolderName: 'HistoryLens',
                 ),
                 'yandex': YandexDiskCloud(
-                  appRootFolderName: 'HistoryLens',
                   clientId: secrets.YANDEX_CLIENT_ID,
                   redirectUri: secrets.YANDEX_REDIRECT_URI,
                   customUriScheme: secrets.YANDEX_CUSTOM_URI_SCHEME,
+                  // Consent returns through the same deep-link pipeline as
+                  // Google: open the authorize URL in the system browser and
+                  // receive the redirect on app_links.
+                  redirectStream: _mergeDeepLinks(appLinks),
                 ),
               },
               userAgent: userAgent,
@@ -280,7 +287,10 @@ class TimeMachineApp extends StatelessWidget {
         ),
         Provider<SharingService>(
           create: (_) => SharingService(
-            ignoreUriSchemes: {gdriveScheme},
+            // The OAuth consent return arrives on Android as an ACTION_VIEW
+            // intent that the sharing plugin also sees; do not try to import
+            // the `...:/oauth2redirect` URL as a shared file.
+            ignoreUriSchemes: oauthRedirectSchemes(),
           ),
         ),
         FutureProvider<SharedPreferencesWithCache?>(
@@ -352,12 +362,48 @@ Stream<Uri> _mergeDeepLinks(AppLinks appLinks) async* {
   yield* appLinks.uriLinkStream;
 }
 
+/// The custom URL schemes the OAuth consent return is delivered through.
+Set<String> oauthRedirectSchemes() => {
+  Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI).scheme,
+  secrets.YANDEX_CUSTOM_URI_SCHEME,
+};
+
 /// Bounces custom-scheme deep links (the OAuth consent return) back to the
 /// home route. The auth flow reads the URI off the app_links stream, so the
 /// router must not try to match it or it throws "no routes for location".
-String? oauthDeepLinkRedirect(Uri uri, {required String redirectScheme}) {
-  if (uri.scheme == redirectScheme) {
+///
+/// This is a cold-start safety net: [OAuthDeepLinkObserver] swallows warm
+/// redirects before they reach GoRouter, and GoRouter starts on '/', so only
+/// an unexpected platform push ever gets here.
+String? oauthDeepLinkRedirect(
+  Uri uri, {
+  Set<String>? redirectSchemes,
+}) {
+  if ((redirectSchemes ?? oauthRedirectSchemes()).contains(uri.scheme)) {
     return '/';
   }
   return null;
+}
+
+/// Consumes the OAuth consent return *before* GoRouter sees it.
+///
+/// Flutter's Android embedding forwards the custom-scheme intent of a warm
+/// OAuth return to every `WidgetsBindingObserver` via
+/// `didPushRouteInformation` (in registration order, until one returns true).
+/// Registering this first means GoRouter never tries to "navigate" to
+/// `com.fakegem.historylens.yandex:/oauth2redirect?...`, so the page the user
+/// initiated the sign-in from (e.g. the Cloud page) stays put — the URI is
+/// consumed by the app_links stream instead.
+class OAuthDeepLinkObserver extends WidgetsBindingObserver {
+  OAuthDeepLinkObserver(this.redirectSchemes);
+
+  final Set<String> redirectSchemes;
+
+  @override
+  Future<bool> didPushRouteInformation(RouteInformation routeInformation) {
+    if (redirectSchemes.contains(routeInformation.uri.scheme)) {
+      return SynchronousFuture(true);
+    }
+    return SynchronousFuture(false);
+  }
 }

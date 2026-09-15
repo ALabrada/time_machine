@@ -47,12 +47,13 @@ final class CloudController extends ValueNotifier<CloudState> {
   CloudLoadingPhase? get loadingPhase =>
       value is LoadingState ? (value as LoadingState).phase : null;
 
-  /// Selects the configured cloud provider and loads its state. If a
-  /// different cloud is currently active, it is deactivated first so no
-  /// previous provider keeps syncing.
+  /// Selects the configured cloud provider and loads its state. Re-selecting
+  /// the already-configured provider just reloads it; otherwise the selection
+  /// is persisted (deactivating a previously active cloud first, so no old
+  /// provider keeps syncing).
   void selectCloud(String name) {
     final current = configurationService.cloud;
-    if (current == null || current == name) {
+    if (current == name) {
       unawaited(_load());
       return;
     }

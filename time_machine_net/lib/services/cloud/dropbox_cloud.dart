@@ -16,9 +16,10 @@ import 'package:time_machine_net/services/cloud/file_cloud_base.dart';
 /// [FileCloudBase] implementation backed by a Dropbox account, built on the
 /// third-party `dropbox_api` package instead of hand-written HTTP requests.
 ///
-/// All content lives under a dedicated root folder (`/TimeMachine` by
-/// default), mirroring the layout used by [GoogleDriveCloud]:
-/// `/TimeMachine/models/<collection>/<id>` and `/TimeMachine/files/<name>`.
+/// All content lives under the application's dedicated Dropbox app folder
+  /// (`/Apps/<name>`), mirroring the layout used by [GoogleDriveCloud]:
+  /// `/Apps/TimeMachine/models/<collection>/<id>` and
+  /// `/Apps/TimeMachine/files/<name>`.
 /// Dropbox has no custom file properties, so record metadata is stored inside
 /// the encrypted record body and decoded lazily by [FileCloudBase.listRecords].
 ///
@@ -368,9 +369,10 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
   Future<void> _ensureRootFolder() async {
     if (_ensuredFolders.contains('')) return;
     try {
-      await _requireApi().createFolder('/$appRootFolderName');
+      await _requireApi().createFolder(_absolute(''));
     } on HttpException catch (error) {
-      // The root folder already exists from a previous session.
+      // The root folder already exists from a previous session (in app-folder
+      // mode it already exists and Dropbox rejects re-creating it).
       if (!_isConflict(error)) {
         rethrow;
       }
@@ -379,8 +381,9 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
   }
 
   /// Turns a package-relative [FileCloudBase] path into an absolute Dropbox
-  /// path below the app root folder.
-  String _absolute(String path) => '/${p.join(appRootFolderName, path)}';
+  /// path below the application's dedicated app folder.
+  String _absolute(String path) =>
+      '/${p.join('Apps', appRootFolderName, path)}';
 
   String _recordPath(String collection, String encodedId) =>
       p.join(FileCloudBase.modelsDir, collection, encodedId);

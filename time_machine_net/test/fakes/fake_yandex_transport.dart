@@ -5,8 +5,8 @@ import 'dart:typed_data';
 import 'package:time_machine_net/services/cloud/yandex_disk_transport.dart';
 
 /// In-memory [YandexDiskTransport] double reproducing the behaviour of the
-/// WebDAV layer: missing files surface as [HttpException]s and deletes are
-/// idempotent, exactly like `webdav_client`.
+/// REST transport: missing files surface as exceptions and deletes are
+/// idempotent.
 class FakeYandexTransport implements YandexDiskTransport {
   final Map<String, Uint8List> files = {};
   final Set<String> folders = {'/'};
@@ -67,13 +67,13 @@ class FakeYandexTransport implements YandexDiskTransport {
   @override
   Future<void> mkdirAll(String path) async {
     // Creates the folder and every missing parent, and tolerates folders
-    // that already exist. Folders are stored without a trailing slash, the
-    // spelling the cloud uses for its paths.
+    // that already exist. Paths use the `app:` prefix, which the transport
+    // resolves to the app root ('app:' alone needs no request).
     final segments = path.split('/');
     var sub = '';
     for (final segment in segments) {
       if (segment.isEmpty) continue;
-      sub = '$sub/$segment';
+      sub = sub.isEmpty ? segment : '$sub/$segment';
       folders.add(sub);
     }
   }

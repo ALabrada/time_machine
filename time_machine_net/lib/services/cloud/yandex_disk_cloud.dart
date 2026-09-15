@@ -7,14 +7,17 @@ import 'package:time_machine_net/services/cloud/file_cloud_base.dart';
 import 'package:time_machine_net/services/cloud/yandex_disk_auth.dart';
 import 'package:time_machine_net/services/cloud/yandex_disk_token_store.dart';
 import 'package:time_machine_net/services/cloud/yandex_disk_transport.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
-/// [FileCloudBase] implementation backed by a Yandex Disk account, built on
-/// the third-party `webdav_client` package instead of hand-written HTTP
-/// requests.
+/// [FileCloudBase] implementation backed by a Yandex Disk account, talking to
+/// the REST API (`https://cloud-api.yandex.net`, see
+/// [RestYandexDiskTransport]).
 ///
-/// All content lives under a dedicated root folder (`/YandexDisk` by
-/// default), mirroring the layout used by [GoogleDriveCloud]:
-/// `/YandexDisk/models/<collection>/<id>` and `/YandexDisk/files/<name>`.
+/// All content lives inside the application's dedicated Yandex Disk app
+/// folder, addressed through the locale-independent `app:/` shortcut that
+/// Yandex resolves to the connected app's folder automatically. The layout
+/// mirrors the one used by [GoogleDriveCloud]:
+/// `app:/models/<collection>/<id>` and `app:/files/<name>`.
 /// Yandex Disk has no server-side custom properties, so record metadata is
 /// stored inside the encrypted record body and decoded lazily by
 /// [FileCloudBase.listRecords].
@@ -22,8 +25,8 @@ import 'package:time_machine_net/services/cloud/yandex_disk_transport.dart';
 /// Change notifications are provided through the [EventfulFileCloud] mixin:
 /// after [initialize] the cloud snapshots every collection folder and polls
 /// them on a timer, publishing inserted/updated/deleted events whenever the
-/// server-side revision (the WebDAV `etag`, falling back to size + mtime) of
-/// an entry changed or an entry disappeared.
+/// server-side revision (a Yandex content hash, falling back to size + mtime)
+/// of an entry changed or an entry disappeared.
 ///
 /// Authorization to the web/app shell is the [YandexDiskAuth] OAuth flow
 /// (authorization code + PKCE, no client secret). Access tokens live ~1 year,
@@ -33,10 +36,11 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
   YandexDiskCloud({
     required this.clientId,
     this.tokenStore = const SecureYandexDiskTokenStore(),
-    this.appRootFolderName = 'YandexDisk',
     this.pollInterval = const Duration(minutes: 1),
     String? redirectUri,
     String? customUriScheme,
+    this.redirectStream,
+    this.openBrowser,
     super.encryptionKey,
     YandexDiskTransport? transport,
     YandexDiskAuth? auth,
@@ -53,8 +57,6 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
   /// re-running the OAuth consent flow.
   final YandexDiskTokenStore tokenStore;
 
-  final String appRootFolderName;
-
   /// How often the collection folders are polled for remote changes.
   final Duration pollInterval;
 
@@ -65,6 +67,15 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
   /// Uri scheme that the OAuth callback is delivered on; must match the
   /// redirect URI scheme registered for the OAuth app.
   final String customUriScheme;
+
+  /// Stream of custom-scheme URLs delivered to the app (deep links). The
+  /// stream must be broadcast-friendly: it is subscribed before the browser is
+  /// opened, and must surface the Yandex redirect once the user consents.
+  final Stream<Uri>? redirectStream;
+
+  /// Opens [Uri]s in the system browser for the OAuth consent flow. When
+  /// null, the platform default browser is used.
+  final void Function(Uri uri)? openBrowser;
 
   static const defaultRedirectUri = YandexDiskAuth.defaultRedirectUri;
   static const defaultCustomUriScheme = YandexDiskAuth.defaultCustomUriScheme;
@@ -89,11 +100,11 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
 
   final Set<String> _ensuredFolders = {};
 
-  /// Builds the WebDAV transport for the current access token. Called by
+  /// Builds the REST transport for the current access token. Called by
   /// [initialize] and again when [logout] had released it.
   void _connect(String accessToken) {
     final injected = _injectedTransport;
-    _transport = injected ?? WebDavYandexDiskTransport(accessToken);
+    _transport = injected ?? RestYandexDiskTransport(accessToken);
   }
 
   /// Drops the transport so its socket pool can be reclaimed.
@@ -101,28 +112,48 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
     _transport = null;
   }
 
-  /// Runs the Yandex OAuth consent flow through the [YandexDiskAuth] wrapper
-  /// and returns the resulting session, ready to be persisted with
-  /// [YandexDiskTokenStore.write].
+  /// Runs the Yandex OAuth consent flow through the system browser, using the
+  /// [app_links] redirect stream wired in the shell, and persists the
+  /// resulting session in [YandexDiskTokenStore].
   static Future<YandexDiskSession> authorize({
     required String clientId,
     String? redirectUri,
     String? customUriScheme,
+    required Stream<Uri> redirectStream,
+    void Function(Uri uri)? openBrowser,
     YandexDiskAuth? auth,
   }) async {
     final oauth =
         auth ?? YandexDiskAuth(redirectUri: redirectUri, customUriScheme: customUriScheme);
-    return oauth.authorize(clientId: clientId);
+    final launch = openBrowser ?? _launchBrowser;
+    return oauth.obtainSession(
+      clientId: clientId,
+      openBrowser: launch,
+      redirectStream: redirectStream,
+    );
   }
 
   Future<void> authenticate() async {
+    final stream = redirectStream;
+    if (stream == null) {
+      throw StateError('Yandex OAuth requires a redirect stream');
+    }
     final session = await authorize(
       clientId: clientId,
       redirectUri: redirectUri,
       customUriScheme: customUriScheme,
+      redirectStream: stream,
+      openBrowser: openBrowser ?? _launchBrowser,
       auth: _injectedAuth,
     );
     await tokenStore.write(session);
+  }
+
+  static Future<void> _launchBrowser(Uri uri) async {
+    final opened = await launchUrlString(uri.toString());
+    if (!opened) {
+      throw Exception('Could not open the browser');
+    }
   }
 
   @override
@@ -268,8 +299,8 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
 
   @override
   Future<String> onDelete(String path) async {
-    // The WebDAV DELETE is already idempotent: `webdav_client` treats a
-    // missing resource as a successful delete.
+    // The REST DELETE is idempotent: the transport treats a missing resource
+    // as a successful delete.
     await _requireTransport().remove(_absolute(path));
     return path;
   }
@@ -329,9 +360,8 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
     }
   }
 
-  /// The WebDAV `etag` is the strongest change signal. When a server omits it
-  /// (Yandex Disk sometimes does in PROPFIND responses), fall back to a
-  /// size + mtime fingerprint.
+  /// A Yandex content hash (`sha256`/`md5`) is the strongest change signal.
+  /// When a listing omits one, fall back to a size + mtime fingerprint.
   String _revisionKey(YandexDiskEntry entry) => entry.eTag.isNotEmpty
       ? entry.eTag
       : '${entry.mTime?.millisecondsSinceEpoch ?? 0}:${entry.size}';
@@ -344,21 +374,22 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
     if (_ensuredFolders.contains(folderPath)) return;
     final parent = p.dirname(folderPath);
     await _ensureFolderPath(parent);
-    // `webdav_client.mkdirAll` treats an existing folder (HTTP 405) and an
-    // already-created chain (HTTP 409, created recursively) as success.
+    // The REST create-folder returns 409 for an existing folder; the
+    // transport treats it as a success.
     await _requireTransport().mkdirAll(_absolute(folderPath));
     _ensuredFolders.add(folderPath);
   }
 
   Future<void> _ensureRootFolder() async {
     if (_ensuredFolders.contains('')) return;
-    await _requireTransport().mkdirAll('/$appRootFolderName');
+    await _requireTransport().mkdirAll(_absolute(''));
     _ensuredFolders.add('');
   }
 
-  /// Turns a package-relative [FileCloudBase] path into an absolute WebDAV
-  /// path below the app root folder.
-  String _absolute(String path) => '/${p.join(appRootFolderName, path)}';
+  /// Turns a package-relative [FileCloudBase] path into an absolute path below
+  /// the application's dedicated app folder, using the `app:/` shortcut that
+  /// Yandex resolves to the app folder regardless of its real name.
+  String _absolute(String path) => path.isEmpty ? 'app:/' : 'app:/$path';
 
   String _recordPath(String collection, String encodedId) =>
       p.join(FileCloudBase.modelsDir, collection, encodedId);

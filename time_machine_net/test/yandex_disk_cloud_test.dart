@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -28,7 +29,6 @@ void main() {
       clientId: clientId,
       tokenStore: store,
       transport: adapter,
-      appRootFolderName: 'YandexDisk',
     );
   });
 
@@ -38,22 +38,22 @@ void main() {
 
       expect(cloudId, 'yandex/user@example.com');
       expect(adapter.folders, containsAll(<String>[
-        '/YandexDisk',
-        '/YandexDisk/models',
-        '/YandexDisk/models/pictures',
-        '/YandexDisk/models/records',
-        '/YandexDisk/files',
+        'app:',
+        'app:/models',
+        'app:/models/pictures',
+        'app:/models/records',
+        'app:/files',
       ]));
       expect(store.session!.userEmail, 'user@example.com');
     });
 
     test('reuses folders from a previous session', () async {
       adapter.folders.addAll(const [
-        '/YandexDisk',
-        '/YandexDisk/models',
-        '/YandexDisk/models/pictures',
-        '/YandexDisk/models/records',
-        '/YandexDisk/files',
+        'app:',
+        'app:/models',
+        'app:/models/pictures',
+        'app:/models/records',
+        'app:/files',
       ]);
 
       final cloudId = await cloud.initialize();
@@ -77,7 +77,6 @@ void main() {
         clientId: clientId,
         tokenStore: store,
         transport: adapter,
-        appRootFolderName: 'YandexDisk',
         auth: _FakeYandexAuth(),
       );
 
@@ -87,6 +86,45 @@ void main() {
       expect(store.session!.accessToken, 'fresh-token');
       expect(store.session!.refreshToken, 'fresh-refresh');
       expect(store.session!.expiresAt, isNotNull);
+    });
+  });
+
+  group('authenticate', () {
+    test('runs the consent flow through the browser and persists the session',
+        () async {
+      final opens = <Uri>[];
+      final redirects = StreamController<Uri>.broadcast();
+
+      cloud = YandexDiskCloud(
+        clientId: clientId,
+        tokenStore: store,
+        transport: adapter,
+        auth: _FakeYandexAuth(),
+        redirectStream: redirects.stream,
+        openBrowser: (uri) {
+          opens.add(uri);
+          // Simulate the browser returning the redirect immediately.
+          redirects.add(Uri.parse('com.fakegem.historylens.yandex:/oauth2redirect'
+              '?code=auth-code&state=state-123'));
+        },
+      );
+
+      await cloud.authenticate();
+
+      expect(opens, hasLength(1));
+      expect(store.session, isNotNull);
+      expect(store.session!.accessToken, 'auth-token');
+      await redirects.close();
+    });
+
+    test('throws when no redirect stream is provided', () async {
+      cloud = YandexDiskCloud(
+        clientId: clientId,
+        tokenStore: store,
+        transport: adapter,
+      );
+
+      expect(cloud.authenticate(), throwsStateError);
     });
   });
 
@@ -115,7 +153,7 @@ void main() {
       final metadata = await cloud.saveRecord('records', null, {'id': 'src-r'});
 
       expect(adapter.files.keys.single,
-          '/YandexDisk/models/records/${metadata.id}');
+          'app:/models/records/${metadata.id}');
     });
 
     test('re-saving an id overwrites the same yandex file', () async {
@@ -124,7 +162,7 @@ void main() {
       await cloud.saveRecord('records', existing, {'v': 2});
 
       expect(adapter.files.keys.single,
-          '/YandexDisk/models/records/${existing.id}');
+          'app:/models/records/${existing.id}');
       expect(await cloud.getRecord('records', existing.id), {'v': 2});
     });
 
@@ -164,7 +202,7 @@ void main() {
       final path = await cloud.uploadFile(name: 'img.jpg', fileData: bytes);
 
       expect(path, 'files/img.jpg');
-      expect(adapter.files.keys.single, '/YandexDisk/files/img.jpg');
+      expect(adapter.files.keys.single, 'app:/files/img.jpg');
     });
 
     test('downloadFile reads back the uploaded bytes', () async {
@@ -243,7 +281,7 @@ void main() {
       final first = await cloud.saveRecord('records', null, {'v': 1});
       await cloud.pollChanges();
 
-      final path = '/YandexDisk/models/records/${first.id}';
+      final path = 'app:/models/records/${first.id}';
       adapter.files[path] = _encodeBody({'v': 2}, id: first.id);
       adapter.touch(path);
 
@@ -262,7 +300,7 @@ void main() {
 
       // With no etag the revision is `size + mtime`; growing the body changes
       // the size and must surface as an update.
-      final path = '/YandexDisk/models/records/${first.id}';
+      final path = 'app:/models/records/${first.id}';
       adapter.files[path] = _encodeBody(
         {'v': 2, 'note': 'a longer payload changes the file size'},
         id: first.id,
@@ -282,7 +320,7 @@ void main() {
       final first = await cloud.saveRecord('records', null, {'v': 1});
       await cloud.pollChanges();
 
-      await adapter.remove('/YandexDisk/models/records/${first.id}');
+      await adapter.remove('app:/models/records/${first.id}');
 
       final events =
           await _collectEvents(cloud, () => cloud.pollChanges());
@@ -369,6 +407,30 @@ class _FakeYandexAuth extends YandexDiskAuth {
       accessToken: 'fresh-token',
       refreshToken: 'fresh-refresh',
       expiresAt: DateTime.now().add(const Duration(hours: 1)),
+    );
+  }
+
+  @override
+  Future<YandexDiskSession> obtainSession({
+    required String clientId,
+    required void Function(Uri authorizationUri) openBrowser,
+    required Stream<Uri> redirectStream,
+    List<String> scopes = const [],
+    http.Client? httpClient,
+  }) async {
+    // Simulate the browser opening and returning via the redirect stream.
+    final completer = Completer<void>();
+    final sub = redirectStream.listen((uri) {
+      if (!completer.isCompleted && uri.queryParameters['state'] != null) {
+        completer.complete();
+      }
+    });
+    openBrowser(Uri.parse('https://oauth.yandex.ru/authorize?state=state-123'));
+    await completer.future.timeout(const Duration(seconds: 1));
+    await sub.cancel();
+    return const YandexDiskSession(
+      accessToken: 'auth-token',
+      refreshToken: 'auth-refresh',
     );
   }
 }

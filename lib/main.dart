@@ -12,6 +12,12 @@ Future<void> main() async {
     runApp(TimeMachineApp());
   } else {
     WidgetsFlutterBinding.ensureInitialized();
+    // Swallows the warm OAuth consent return before GoRouter sees it, so the
+    // page the sign-in started from (e.g. the Cloud page) is not navigated
+    // away from. Must be registered before the router builds to run first.
+    WidgetsBinding.instance.addObserver(
+      OAuthDeepLinkObserver(oauthRedirectSchemes()),
+    );
     await prefetchOsTabletStatus();
     await FkUserAgent.init();
     final userAgent = FkUserAgent.userAgent;
