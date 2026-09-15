@@ -30,16 +30,18 @@ abstract class CloudBase implements CloudSyncProvider {
   @override
   bool get supportsFiles => false;
 
-  Future<void> connect() async {}
+  Future<void> logout() async {}
 
   @override
   Future<String> uploadFile({
     required String name,
     required Uint8List fileData,
     String? mimeType,
-  }) => throw Exception('Not supported!');
+  }) =>
+      throw Exception('Not supported!');
   @override
-  Future<Uint8List> downloadFile(String path) => throw Exception('Not supported!');
+  Future<Uint8List> downloadFile(String path) =>
+      throw Exception('Not supported!');
   @override
   Future<void> deleteFile(String path) => throw Exception('Not supported!');
 

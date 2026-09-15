@@ -24,7 +24,8 @@ class GoogleDriveSignIn {
     Uri? redirectUri,
     this.hostedDomain,
     http.Client? baseClient,
-  })  : redirectUri = redirectUri ?? Uri(scheme: 'com.fakegem.historylens', path: '/oauth2redirect'),
+  })  : redirectUri = redirectUri ??
+            Uri(scheme: 'com.fakegem.historylens', path: '/oauth2redirect'),
         _baseClient = baseClient;
 
   /// OAuth 2 client identifier registered for this app.
@@ -64,6 +65,25 @@ class GoogleDriveSignIn {
     Uint8List? encryptionKey,
     GoogleDriveTokenStore? tokenStore,
   }) async {
+    final store = tokenStore ?? const SecureGoogleDriveTokenStore();
+    final session = await obtainSession(openBrowser: openBrowser);
+    await store.write(session);
+    return GoogleDriveCloud(
+      client: _baseClient,
+      tokenStore: store,
+      appRootFolderName: appRootFolderName ?? 'TimeMachine',
+      pollInterval: pollInterval,
+      encryptionKey: encryptionKey,
+    );
+  }
+
+  /// Runs the OAuth consent flow and returns a [GoogleDriveSession] without
+  /// constructing a new [GoogleDriveCloud]. Used by
+  /// [GoogleDriveCloud.authenticate] so the already-configured instance keeps
+  /// its own settings and token store.
+  Future<GoogleDriveSession> obtainSession({
+    required void Function(Uri authorizationUri) openBrowser,
+  }) async {
     final codeVerifier = _createCodeVerifier();
     final state = _randomState();
     final authorizationUri = _authorizationUri(
@@ -99,20 +119,13 @@ class GoogleDriveSignIn {
       client.close();
     }
 
-    final store = tokenStore ?? const SecureGoogleDriveTokenStore();
     final refreshToken = credentials.refreshToken;
-    if (refreshToken != null && refreshToken.isNotEmpty) {
-      await store.write(GoogleDriveSession(
-        clientId: clientId.identifier,
-        refreshToken: refreshToken,
-      ));
+    if (refreshToken == null || refreshToken.isEmpty) {
+      throw StateError('No refresh token returned; cannot keep the session');
     }
-    return GoogleDriveCloud(
-      client: _baseClient,
-      tokenStore: store,
-      appRootFolderName: appRootFolderName ?? 'TimeMachine',
-      pollInterval: pollInterval,
-      encryptionKey: encryptionKey,
+    return GoogleDriveSession(
+      clientId: clientId.identifier,
+      refreshToken: refreshToken,
     );
   }
 
@@ -159,8 +172,8 @@ class GoogleDriveSignIn {
         if (!completer.isCompleted &&
             uri.scheme == redirectUri.scheme &&
             uri.host == redirectUri.host &&
-            uri.path == redirectUri.path && (
-                uri.queryParameters['state'] != null)) {
+            uri.path == redirectUri.path &&
+            (uri.queryParameters['state'] != null)) {
           completer.complete(uri);
         }
       },
@@ -194,8 +207,8 @@ class GoogleDriveSignIn {
       if (hostedDomain != null) 'hd': hostedDomain!,
     };
     return const auth.GoogleAuthEndpoints().authorizationEndpoint.replace(
-      queryParameters: queries,
-    );
+          queryParameters: queries,
+        );
   }
 
   static const _verifierCharacters =

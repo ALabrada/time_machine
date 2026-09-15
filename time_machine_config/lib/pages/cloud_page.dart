@@ -28,7 +28,6 @@ class CloudPageState extends State<CloudPage> {
       configurationService: context.read(),
       networkService: context.read(),
       cloudSyncService: context.read(),
-      googleDriveSignIn: context.read<GoogleDriveSignIn?>(),
     );
   }
 
@@ -61,27 +60,29 @@ class CloudPageState extends State<CloudPage> {
           } else {
             child = _buildProviderContent(context);
           }
-          final key = loading
-              ? 'loading'
-              : error != null
+          final key =
+              loading
+                  ? 'loading'
+                  : error != null
                   ? 'error'
                   : controller.value is NotSelectedState
-                      ? 'selection'
-                      : 'provider';
+                  ? 'selection'
+                  : 'provider';
           return AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
             switchInCurve: Curves.easeOut,
             switchOutCurve: Curves.easeIn,
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0.04, 0),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
-              ),
-            ),
+            transitionBuilder:
+                (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.04, 0),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
             child: KeyedSubtree(
               key: ValueKey<String>(key),
               child: SizedBox.expand(child: child),
@@ -94,9 +95,8 @@ class CloudPageState extends State<CloudPage> {
 
   Widget _buildLoading(BuildContext context) {
     final localizations = ConfigLocalizations.of(context);
-    final message = switch (
-      controller.loadingPhase ?? CloudLoadingPhase.connecting
-    ) {
+    final message = switch (controller.loadingPhase ??
+        CloudLoadingPhase.connecting) {
       CloudLoadingPhase.authenticating =>
         localizations.cloudPageLoadingAuthenticating,
       CloudLoadingPhase.synchronizing =>
@@ -141,9 +141,7 @@ class CloudPageState extends State<CloudPage> {
 
   Widget _buildSelectionContent(BuildContext context) {
     final state = controller.value;
-    final clouds = state is NotSelectedState
-        ? state.clouds
-        : const <String>[];
+    final clouds = state is NotSelectedState ? state.clouds : const <String>[];
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -173,9 +171,10 @@ class CloudPageState extends State<CloudPage> {
           ListTile(
             leading: Icon(
               controller.isActive ? Icons.check_circle : Icons.cancel,
-              color: controller.isActive
-                  ? Colors.green
-                  : Theme.of(context).colorScheme.error,
+              color:
+                  controller.isActive
+                      ? Colors.green
+                      : Theme.of(context).colorScheme.error,
             ),
             title: Text(localizations.cloudPageStatus),
             trailing: Text(

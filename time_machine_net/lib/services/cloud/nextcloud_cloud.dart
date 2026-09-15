@@ -60,6 +60,17 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
   NextcloudSession? _session;
   bool _signedOut = false;
 
+  /// Credentials remembered by the most recent [authenticate] call so the
+  /// sign-in form can be repopulated even after a failed activation clears
+  /// the token store.
+  String? _lastServerUrl;
+  String? _lastLoginName;
+
+  /// Set to `true` by [authenticate] and cleared once [initialize] confirms
+  /// the session against the server. Lets [logout] discard a just-submitted
+  /// sign-in that was never validated.
+  bool _freshSession = false;
+
   Timer? _pollTimer;
   bool _polling = false;
   bool _pollingStarted = false;
@@ -123,16 +134,10 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
     );
   }
 
-  /// Restores the persisted session (without speaking to the server) so the
-  /// UI can tell whether the user has already signed in before [initialize]
-  /// runs.
-  @override
-  Future<void> connect() async {
-    _session = await tokenStore.read();
-  }
-
-  /// Base URL of the Nextcloud instance, once a session has been restored.
-  String? get serverUrl => _session?.serverUrl;
+  /// Base URL of the Nextcloud instance. After a failed sign-in the value
+  /// falls back to the last attempted server URL so the form can be
+  /// repopulated.
+  String? get serverUrl => _session?.serverUrl ?? _lastServerUrl;
 
   @override
   Future<String> initialize() async {
@@ -142,20 +147,70 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
         session.loginName.isEmpty) {
       throw Exception('No Nextcloud session available');
     }
-    _signedOut = false;
-    _session = session;
-    _connectClient();
+    try {
+      _signedOut = false;
+      _session = session;
+      _connectClient();
 
-    await _ensureRootFolder();
-    for (final collection in collectionNames.values) {
-      await _ensureFolderPath(p.join(FileCloudBase.modelsDir, collection));
+      await _ensureRootFolder();
+      for (final collection in collectionNames.values) {
+        await _ensureFolderPath(p.join(FileCloudBase.modelsDir, collection));
+      }
+      await _ensureFolderPath(FileCloudBase.filesDir);
+      await _resetSnapshots();
+      _startPolling();
+      _freshSession = false;
+      publishEvent(const CloudReconnectedEvent());
+      return '${session.serverUrl}/${session.loginName}';
+    } catch (error) {
+      if (_freshSession) {
+        await logout();
+      }
+      rethrow;
     }
-    await _ensureFolderPath(FileCloudBase.filesDir);
-    await _resetSnapshots();
-    _startPolling();
-    publishEvent(const CloudReconnectedEvent());
-    return '${session.serverUrl}/${session.loginName}';
   }
+
+  /// Remembers the submitted credentials and persists the session so the
+  /// following [initialize] can validate it against the server.
+  Future<void> authenticate({
+    required String serverUrl,
+    required String loginName,
+    required String password,
+  }) async {
+    _lastServerUrl = serverUrl;
+    _lastLoginName = loginName;
+    _freshSession = true;
+    final session = await authorize(
+      serverUrl: serverUrl,
+      loginName: loginName,
+      password: password,
+    );
+    await tokenStore.write(session);
+  }
+
+  /// Clears the persisted session, releases the client connection, stops
+  /// polling and marks the cloud signed out. Every subsequent API call fails
+  /// until the cloud is re-authenticated; the same instance can be reused
+  /// after a new session was stored and [initialize] ran again.
+  ///
+  /// The same cleanup also undoes a fresh sign-in whose [initialize] never
+  /// confirmed it: the token store is discarded, but the remembered form
+  /// values survive so the user can retry the credentials they entered.
+  @override
+  Future<void> logout() async {
+    _signedOut = true;
+    _session = null;
+    _freshSession = false;
+    _releaseClient();
+    _snapshots.clear();
+    _stopPolling();
+    await tokenStore.clear();
+  }
+
+  /// The signed-in account, once [initialize] has persisted it. Mirrors
+  /// `DropBoxCloud.userEmail`. Falls back to the last attempted login name
+  /// after a failed sign-in so the form can show what the user entered.
+  String? get userEmail => _session?.loginName ?? _lastLoginName;
 
   void _startPolling() {
     if (_pollingStarted) return;
@@ -175,19 +230,6 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
     super.dispose();
   }
 
-  /// Clears the persisted session, releases the client connection and stops
-  /// polling. Every subsequent API call fails until the cloud is
-  /// re-authenticated; the same instance can be reused after a new session
-  /// was stored and [initialize] ran again.
-  Future<void> logout() async {
-    _signedOut = true;
-    _session = null;
-    _releaseClient();
-    _snapshots.clear();
-    _stopPolling();
-    await tokenStore.clear();
-  }
-
   WebDavClient _requireWebDav() {
     final webDav = _webDav;
     if (_signedOut || webDav == null) {
@@ -195,10 +237,6 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
     }
     return webDav;
   }
-
-  /// The signed-in account, once [initialize] has persisted it. Mirrors
-  /// `DropBoxCloud.userEmail`.
-  String? get userEmail => _session?.loginName;
 
   @override
   Stream<CloudFileEntry> onList(String path, {DateTime? since}) async* {
@@ -280,7 +318,8 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
             await publishFileUpdated(path: recordPath);
           }
         }
-        for (final name in previous.keys.where((n) => !current.containsKey(n))) {
+        for (final name
+            in previous.keys.where((n) => !current.containsKey(n))) {
           await publishFileDeleted(path: _recordPath(collection, name));
         }
         _snapshots[collection] = current;

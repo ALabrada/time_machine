@@ -182,58 +182,6 @@ class TimeMachineApp extends StatelessWidget {
             );
           },
         ),
-        Provider<NetworkService>(
-          create: (_) => NetworkService(
-            clouds: {
-              // No Google Play Services involved: OAuth runs through the
-              // system browser and a custom URL scheme delivered to the app
-              // as a deep link, so the cloud only needs the token store.
-              'gdrive': GoogleDriveCloud(
-                appRootFolderName: 'HistoryLens',
-              ),
-              'dropbox': DropBoxCloud(
-                appRootFolderName: 'HistoryLens',
-                clientId: secrets.DROPBOX_APP_KEY,
-                redirectUri: secrets.DROPBOX_REDIRECT_URI,
-              ),
-              'nextcloud': NextCloudCloud(
-                appRootFolderName: 'HistoryLens',
-              ),
-            },
-            userAgent: userAgent,
-            geocoders: {
-              if (userAgent != null)
-                'OSM': OsmSearchEngine(
-                  userAgent: userAgent!,
-                ),
-              'VKMaps': VKMapsGeocoder(
-                userAgent: userAgent,
-                apiKey: secrets.VK_MAPS_API_KEY,
-              ),
-              'Geonames': GeonamesGeocoder(
-                userAgent: userAgent,
-                userName: 'historylens',
-              ),
-            },
-            providers: {
-              'pastvu': PastVuProvider(
-                userAgent: userAgent,
-              ),
-              'russiainphoto': RussiaInPhotoProvider(
-                userAgent: userAgent,
-              ),
-              're.photos': RetroPhotosProvider(
-                userAgent: userAgent,
-              ),
-              'historypin': HistoryPinProvider(
-                userAgent: userAgent,
-              ),
-              'sepiatown': SepiaTownProvider(
-                userAgent: userAgent,
-              ),
-            },
-          ),
-        ),
         Provider<GoogleDriveSignIn>(
           create: (_) {
             final appLinks = AppLinks();
@@ -249,6 +197,62 @@ class TimeMachineApp extends StatelessWidget {
               // arrive through `uriLinkStream`. Merge both into one stream.
               redirectStream: _mergeDeepLinks(appLinks),
               redirectUri: Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI),
+            );
+          },
+        ),
+        Provider<NetworkService>(
+          create: (context) {
+            final gdriveSignIn = context.read<GoogleDriveSignIn>();
+            return NetworkService(
+              clouds: {
+                // No Google Play Services involved: OAuth runs through the
+                // system browser and a custom URL scheme delivered to the app
+                // as a deep link, so the cloud only needs the token store.
+                'gdrive': GoogleDriveCloud(
+                  appRootFolderName: 'HistoryLens',
+                  signIn: gdriveSignIn,
+                ),
+                'dropbox': DropBoxCloud(
+                  appRootFolderName: 'HistoryLens',
+                  clientId: secrets.DROPBOX_APP_KEY,
+                  redirectUri: secrets.DROPBOX_REDIRECT_URI,
+                ),
+                'nextcloud': NextCloudCloud(
+                  appRootFolderName: 'HistoryLens',
+                ),
+              },
+              userAgent: userAgent,
+              geocoders: {
+                if (userAgent != null)
+                  'OSM': OsmSearchEngine(
+                    userAgent: userAgent!,
+                  ),
+                'VKMaps': VKMapsGeocoder(
+                  userAgent: userAgent,
+                  apiKey: secrets.VK_MAPS_API_KEY,
+                ),
+                'Geonames': GeonamesGeocoder(
+                  userAgent: userAgent,
+                  userName: 'historylens',
+                ),
+              },
+              providers: {
+                'pastvu': PastVuProvider(
+                  userAgent: userAgent,
+                ),
+                'russiainphoto': RussiaInPhotoProvider(
+                  userAgent: userAgent,
+                ),
+                're.photos': RetroPhotosProvider(
+                  userAgent: userAgent,
+                ),
+                'historypin': HistoryPinProvider(
+                  userAgent: userAgent,
+                ),
+                'sepiatown': SepiaTownProvider(
+                  userAgent: userAgent,
+                ),
+              },
             );
           },
         ),

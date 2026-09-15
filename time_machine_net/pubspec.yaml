@@ -36,6 +36,7 @@ dependencies:
   meta: any
   nextcloud: ^9.0.0
   uuid: any
+  url_launcher: ^6.3.1
   pointycastle: ^3.7.3
 
 dev_dependencies:

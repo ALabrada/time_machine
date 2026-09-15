@@ -10,11 +10,9 @@ class CloudDeactivateEvent extends CloudEvent {
   const CloudDeactivateEvent();
 }
 
-/// Signs into a Nextcloud instance and activates it. Carries the credentials
-/// collected by the UI so that [cloud_controller.CloudController] can perform
-/// the authentication; extends [CloudActivateEvent] because a successful
-/// sign-in immediately activates the cloud. The [password] may be an app
-/// password or the account password; the cloud tries both.
+/// Carries the credentials collected by the Nextcloud sign-in form.
+/// Extends [CloudActivateEvent] because a successful sign-in immediately
+/// activates the cloud.
 class NextCloudSignInEvent extends CloudActivateEvent {
   const NextCloudSignInEvent({
     required this.serverUrl,

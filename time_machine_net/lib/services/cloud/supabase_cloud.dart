@@ -21,22 +21,22 @@ class SupabaseCloud extends CloudBase with EventfulCloud {
 
   @override
   Map<Type, String> get collectionNames => const {
-    Picture: 'pictures',
-    Record: 'records',
-  };
+        Picture: 'pictures',
+        Record: 'records',
+      };
 
   SupabaseCloud({
     required String supabaseUrl,
     required String supabaseKey,
     String bucketName = 'time-machine',
-  }) : _client = SupabaseClient(supabaseUrl, supabaseKey),
-       _bucketName = bucketName;
+  })  : _client = SupabaseClient(supabaseUrl, supabaseKey),
+        _bucketName = bucketName;
 
   SupabaseCloud.withClient({
     required SupabaseClient client,
     String bucketName = 'time-machine',
-  }) : _client = client,
-       _bucketName = bucketName;
+  })  : _client = client,
+        _bucketName = bucketName;
 
   @override
   Future<String> initialize() async {
@@ -146,6 +146,9 @@ class SupabaseCloud extends CloudBase with EventfulCloud {
   String? get userEmail => _client.auth.currentSession?.user.email;
 
   @override
+  Future<void> logout() => signOut();
+
+  @override
   void dispose() {
     for (final channel in _realtimeChannels) {
       unawaited(channel.unsubscribe());
@@ -190,18 +193,16 @@ class SupabaseCloud extends CloudBase with EventfulCloud {
 
   @override
   Future<Map<String, dynamic>?> getRecord(String collection, String id) async {
-    final result = await _client
-        .from(collection)
-        .select()
-        .eq(idColumn, id)
-        .maybeSingle();
+    final result =
+        await _client.from(collection).select().eq(idColumn, id).maybeSingle();
     if (result == null) return null;
 
     return _decodeData(result);
   }
 
   @override
-  Future<List<CloudMetadata>> listRecords(String collection, {DateTime? since}) async {
+  Future<List<CloudMetadata>> listRecords(String collection,
+      {DateTime? since}) async {
     var query = _client.from(collection).select();
     if (since != null) {
       query = query.gte('updatedAt', since.toUtc().toIso8601String());
@@ -225,12 +226,12 @@ class SupabaseCloud extends CloudBase with EventfulCloud {
     String? mimeType,
   }) async {
     await _client.storage.from(_bucketName).uploadBinary(
-      name,
-      fileData,
-      fileOptions: mimeType != null
-          ? FileOptions(contentType: mimeType)
-          : const FileOptions(),
-    );
+          name,
+          fileData,
+          fileOptions: mimeType != null
+              ? FileOptions(contentType: mimeType)
+              : const FileOptions(),
+        );
     return name;
   }
 

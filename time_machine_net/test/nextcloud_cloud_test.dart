@@ -42,14 +42,16 @@ void main() {
     test('returns nextcloud id and creates the folder tree', () async {
       final cloudId = await cloud.initialize();
 
-      expect(cloudId, 'nextcloud/user');
-      expect(server.folders, containsAll(<String>[
-        'TimeMachine',
-        'TimeMachine/models',
-        'TimeMachine/models/pictures',
-        'TimeMachine/models/records',
-        'TimeMachine/files',
-      ]));
+      expect(cloudId, 'http://localhost:8080/nextcloud/user');
+      expect(
+          server.folders,
+          containsAll(<String>[
+            'TimeMachine',
+            'TimeMachine/models',
+            'TimeMachine/models/pictures',
+            'TimeMachine/models/records',
+            'TimeMachine/files',
+          ]));
     });
 
     test('reuses folders from a previous session', () async {
@@ -63,7 +65,7 @@ void main() {
 
       final cloudId = await cloud.initialize();
 
-      expect(cloudId, 'nextcloud/user');
+      expect(cloudId, 'http://localhost:8080/nextcloud/user');
     });
 
     test('throws when the token store has no session', () async {
@@ -82,13 +84,21 @@ void main() {
       final metadata = await cloud.saveRecord('pictures', null, {
         'id': 'src-1',
         'name': 'Found',
-        'nested': {'a': [1, 2]},
+        'nested': {
+          'a': [1, 2]
+        },
       });
 
       expect(metadata.deletedAt, isNull);
       expect(
         await cloud.getRecord('pictures', metadata.id),
-        {'id': 'src-1', 'name': 'Found', 'nested': {'a': [1, 2]}},
+        {
+          'id': 'src-1',
+          'name': 'Found',
+          'nested': {
+            'a': [1, 2]
+          }
+        },
       );
       final listed = await cloud.listRecords('pictures');
       expect(listed.single.id, metadata.id);
@@ -188,8 +198,7 @@ void main() {
         mimeType: 'image/jpeg',
       );
 
-      expect(server.files.keys.single,
-          'TimeMachine/files/photos/2024/img.jpg');
+      expect(server.files.keys.single, 'TimeMachine/files/photos/2024/img.jpg');
       expect(
         await cloud.downloadFile('files/photos/2024/img.jpg'),
         bytes,
@@ -232,8 +241,7 @@ void main() {
     test('publishes an insert event for a new record file', () async {
       final metadata = await cloud.saveRecord('records', null, {'v': 1});
 
-      final events =
-          await _collectEvents(cloud, () => cloud.pollChanges());
+      final events = await _collectEvents(cloud, () => cloud.pollChanges());
 
       expect(events, hasLength(1));
       expect(events.first.runtimeType.toString(), 'CloudInsertedEvent');
@@ -245,8 +253,7 @@ void main() {
       await cloud.saveRecord('records', null, {'v': 1});
       await cloud.pollChanges();
 
-      final events =
-          await _collectEvents(cloud, () => cloud.pollChanges());
+      final events = await _collectEvents(cloud, () => cloud.pollChanges());
 
       expect(events, isEmpty);
     });
@@ -258,8 +265,7 @@ void main() {
       final path = 'TimeMachine/models/records/${first.id}';
       server.addFile(path, _encodeBody({'v': 2}, id: first.id));
 
-      final events =
-          await _collectEvents(cloud, () => cloud.pollChanges());
+      final events = await _collectEvents(cloud, () => cloud.pollChanges());
 
       expect(events, hasLength(1));
       expect(events.first.runtimeType.toString(), 'CloudUpdatedEvent');
@@ -273,8 +279,7 @@ void main() {
 
       server.removePath('TimeMachine/models/records/${first.id}');
 
-      final events =
-          await _collectEvents(cloud, () => cloud.pollChanges());
+      final events = await _collectEvents(cloud, () => cloud.pollChanges());
 
       expect(events, hasLength(1));
       expect(events.first.runtimeType.toString(), 'CloudDeletedEvent');
@@ -284,8 +289,7 @@ void main() {
   });
 
   group('credentials', () {
-    test('logout clears the saved session and rejects further calls',
-        () async {
+    test('logout clears the saved session and rejects further calls', () async {
       await cloud.initialize();
 
       await cloud.logout();
@@ -313,15 +317,53 @@ void main() {
 
       final cloudId = await cloud.initialize();
 
-      expect(cloudId, 'nextcloud/user');
+      expect(cloudId, 'http://localhost:8080/nextcloud/user');
       final metadata = await cloud.saveRecord('records', null, {'v': 1});
       expect(await cloud.getRecord('records', metadata.id), {'v': 1});
     });
   });
 
+  group('authentication', () {
+    test('authenticate persists the submitted credentials', () async {
+      await cloud.authenticate(
+        serverUrl: 'http://localhost:8080/nextcloud',
+        loginName: 'user',
+        password: 'app-password',
+      );
+
+      expect(store.session?.serverUrl, 'http://localhost:8080/nextcloud');
+      expect(store.session?.loginName, 'user');
+      expect(store.session?.password, 'app-password');
+    });
+
+    test(
+        'logout clears a fresh session that was never validated but keeps '
+        'the remembered credentials', () async {
+      await cloud.authenticate(
+        serverUrl: 'http://localhost:8080/nextcloud',
+        loginName: 'user',
+        password: 'app-password',
+      );
+
+      await cloud.logout();
+
+      expect(store.session, isNull);
+      expect(cloud.serverUrl, 'http://localhost:8080/nextcloud');
+      expect(cloud.userEmail, 'user');
+      expect(cloud.initialize(), throwsException);
+    });
+
+    test('logout clears a session confirmed by initialize', () async {
+      await cloud.initialize();
+
+      await cloud.logout();
+
+      expect(store.session, isNull);
+    });
+  });
+
   group('app-password → account-password fallback', () {
-    test('retries with HTTP Basic when the Bearer token is rejected',
-        () async {
+    test('retries with HTTP Basic when the Bearer token is rejected', () async {
       server
         ..appPassword = 'valid-app-password'
         ..accountPassword = 'account-password';
@@ -344,7 +386,8 @@ void main() {
 
       expect(result, isNotNull);
       expect(server.requestedAuthorizations, hasLength(2));
-      expect(server.requestedAuthorizations.first, 'Bearer rejected-bearer-token');
+      expect(
+          server.requestedAuthorizations.first, 'Bearer rejected-bearer-token');
       expect(server.requestedAuthorizations.last, startsWith('Basic '));
     });
 
@@ -398,7 +441,8 @@ void main() {
 
       expect(server.files['TimeMachine/file.txt'], bytes);
       expect(server.requestedAuthorizations, hasLength(2));
-      expect(server.requestedAuthorizations.first, 'Bearer rejected-bearer-token');
+      expect(
+          server.requestedAuthorizations.first, 'Bearer rejected-bearer-token');
       expect(server.requestedAuthorizations.last, startsWith('Basic '));
     });
   });

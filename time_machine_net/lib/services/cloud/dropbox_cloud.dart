@@ -125,6 +125,14 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     );
   }
 
+  Future<void> authenticate() async {
+    final session = await authorize(
+      clientId: clientId,
+      redirectUri: redirectUri,
+    );
+    await tokenStore.write(session);
+  }
+
   @override
   Future<String> initialize() async {
     final session = await tokenStore.read();
@@ -184,6 +192,7 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
   /// polling. Every subsequent API call fails until the cloud is
   /// re-authenticated; the same instance can be reused after a new session
   /// was stored and [initialize] ran again.
+  @override
   Future<void> logout() async {
     _signedOut = true;
     _session = null;
@@ -210,8 +219,7 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     }
     _session = _session!.copy(
       accessToken: token.accessToken,
-      refreshToken:
-          token.refreshToken.isEmpty ? null : token.refreshToken,
+      refreshToken: token.refreshToken.isEmpty ? null : token.refreshToken,
     );
     await tokenStore.write(_session!);
     return token.accessToken;
@@ -303,7 +311,8 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
             await publishFileUpdated(path: recordPath);
           }
         }
-        for (final name in previous.keys.where((n) => !current.containsKey(n))) {
+        for (final name
+            in previous.keys.where((n) => !current.containsKey(n))) {
           await publishFileDeleted(path: _recordPath(collection, name));
         }
         _snapshots[collection] = current;

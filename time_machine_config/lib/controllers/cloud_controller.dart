@@ -6,14 +6,12 @@ import 'package:time_machine_config/domain/cloud_state.dart';
 import 'package:time_machine_config/services/configuration_service.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/time_machine_net.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 final class CloudController extends ValueNotifier<CloudState> {
   CloudController({
     required this.configurationService,
     required this.networkService,
     required this.cloudSyncService,
-    this.googleDriveSignIn,
   }) : super(const NotSelectedState()) {
     unawaited(_load());
   }
@@ -21,16 +19,6 @@ final class CloudController extends ValueNotifier<CloudState> {
   final ConfigurationService configurationService;
   final NetworkService networkService;
   final CloudSyncService cloudSyncService;
-
-  /// Runs the Google OAuth consent flow used when activating a
-  /// [GoogleDriveCloud]. When null, Google Drive cannot be activated.
-  final GoogleDriveSignIn? googleDriveSignIn;
-
-  /// The Nextcloud server URL and login name from the last sign-in attempt
-  /// (successful or not), kept so the form can be repopulated after a change
-  /// of state instead of wiping what the user typed.
-  String? _nextcloudServerUrl;
-  String? _nextcloudLoginName;
 
   String? get cloudName => configurationService.cloud;
 
@@ -100,21 +88,8 @@ final class CloudController extends ValueNotifier<CloudState> {
 
   Future<void> handleEvent(CloudEvent event) async {
     switch (event) {
-      // Must be matched before CloudActivateEvent because it extends it.
-      case NextCloudSignInEvent(
-          :final serverUrl,
-          :final loginName,
-          :final password
-        ):
-        _nextcloudServerUrl = serverUrl;
-        _nextcloudLoginName = loginName;
-        await _activate(
-          serverUrl: serverUrl,
-          loginName: loginName,
-          password: password,
-        );
       case CloudActivateEvent():
-        await _activate();
+        await _activate(event);
       case CloudDeactivateEvent():
         await _deactivate();
     }
@@ -127,19 +102,10 @@ final class CloudController extends ValueNotifier<CloudState> {
       value = NotSelectedState(clouds: cloudNames);
       return;
     }
-    try {
-      await cloud.connect();
-      value = _stateFor(cloud);
-    } catch (error) {
-      value = FailedState(error: error);
-    }
+    value = _stateFor(cloud);
   }
 
-  Future<void> _activate({
-    String? serverUrl,
-    String? loginName,
-    String? password,
-  }) async {
+  Future<void> _activate(CloudActivateEvent event) async {
     final previous = value;
     final cloud = this.cloud;
     if (cloud == null) {
@@ -147,96 +113,69 @@ final class CloudController extends ValueNotifier<CloudState> {
     }
     value = const LoadingState(phase: CloudLoadingPhase.authenticating);
     try {
-      final (active, storedSession) = await _authenticate(
-        cloud,
-        serverUrl: serverUrl,
-        loginName: loginName,
-        password: password,
-      );
+      await _authenticate(cloud, event);
       value = const LoadingState(phase: CloudLoadingPhase.synchronizing);
       try {
-        await cloudSyncService.setProvider(active);
+        await cloudSyncService.setProvider(cloud);
       } catch (error) {
-        // A freshly stored Nextcloud session was not validated yet; if the
-        // server rejects it, drop it so the user can re-enter their data
-        // instead of being locked to a broken session.
-        if (storedSession && active is NextCloudCloud) {
-          await active.tokenStore.clear();
-        }
+        // The cloud may have persisted a session the server never confirmed;
+        // let it log itself out instead of keeping unvalidated credentials.
+        await cloud.logout();
         rethrow;
       }
       if (!cloudSyncService.isActive) {
-        // CloudSyncService.setProvider swallows initialize() errors (it only
-        // logs them), so a Nextcloud session may have been stored without
-        // ever being validated against the server. Clear it, otherwise the
-        // stored server URL and login name could later be mistaken for a
-        // valid sign-in.
-        if (active is NextCloudCloud) {
-          await active.tokenStore.clear();
-        }
+        // CloudSyncService.setProvider swallows initialize() errors, so a
+        // freshly stored session may never have been validated. Log the cloud
+        // out so the user is not locked to a broken sign-in.
+        await cloud.logout();
         throw Exception('Cloud activation failed');
       }
-      value = _stateFor(active);
+      value = _stateFor(cloud);
     } catch (error) {
       // A failed Nextcloud sign-in restores a non-authenticated state that
       // still carries the remembered credentials, so the form is refilled
       // with the server URL and login name the user just entered.
-      value = cloud is NextCloudCloud
-          ? NextCloudState(
-              serverUrl: _nextcloudServerUrl,
-              loginName: _nextcloudLoginName,
-              isActive: false,
-            )
-          : previous;
+      value = _stateForAuthFailure(cloud, previous);
       rethrow;
     }
   }
 
-  Future<(CloudBase, bool)> _authenticate(
-    CloudBase cloud, {
-    String? serverUrl,
-    String? loginName,
-    String? password,
-  }) async {
-    if (cloud is GoogleDriveCloud) {
-      final signIn = googleDriveSignIn;
-      if (signIn == null) {
-        throw UnsupportedError('Google Drive sign-in is not configured');
-      }
-      final authenticated = await signIn.connect(openBrowser: _openBrowser);
-      networkService.clouds[cloudName!] = authenticated;
-      return (authenticated, false);
-    }
-    if (cloud is DropBoxCloud) {
-      final session = await DropBoxCloud.authorize(
-        clientId: cloud.clientId,
-        redirectUri: cloud.redirectUri,
-      );
-      await cloud.tokenStore.write(session);
-    }
-    var storedSession = false;
-    if (cloud is NextCloudCloud) {
-      final url = serverUrl;
-      final user = loginName;
-      final pwd = password;
-      if (url != null && user != null && pwd != null) {
-        final session = await NextCloudCloud.authorize(
-          serverUrl: url,
-          loginName: user,
-          password: pwd,
+  /// Dispatches the authentication step to the configured cloud. Every
+  /// provider exposes its own `authenticate`/`signIn` variant; Nextcloud
+  /// additionally carries the submitted credentials on the event.
+  Future<void> _authenticate(CloudBase cloud, CloudActivateEvent event) async {
+    if (event is NextCloudSignInEvent) {
+      if (cloud is! NextCloudCloud) {
+        throw StateError(
+          'Nextcloud sign-in requires a Nextcloud cloud, '
+          'not ${cloud.runtimeType}',
         );
-        await cloud.tokenStore.write(session);
-        storedSession = true;
       }
+      await cloud.authenticate(
+        serverUrl: event.serverUrl,
+        loginName: event.loginName,
+        password: event.password,
+      );
+      return;
     }
-    return (cloud, storedSession);
+    // Providers whose session needs no extra credentials here (Supabase fills
+    // its own session through its client) need no authentication step.
+    if (cloud is DropBoxCloud) {
+      await cloud.authenticate();
+    } else if (cloud is GoogleDriveCloud) {
+      await cloud.authenticate();
+    }
   }
 
-  Future<void> _openBrowser(Uri uri) async {
-    final opened = await launchUrlString(uri.toString());
-    if (!opened) {
-      throw Exception('Could not open the browser');
+  CloudState _stateForAuthFailure(CloudBase cloud, CloudState previous) {
+    if (cloud is NextCloudCloud) {
+      return NextCloudState(
+        serverUrl: cloud.serverUrl,
+        loginName: cloud.userEmail,
+        isActive: false,
+      );
     }
+    return previous;
   }
 
   Future<void> _deactivate() async {
@@ -248,29 +187,32 @@ final class CloudController extends ValueNotifier<CloudState> {
     value = const LoadingState(phase: CloudLoadingPhase.deactivating);
     try {
       await cloudSyncService.setProvider(null);
-      if (cloud is SupabaseCloud) {
-        await cloud.signOut();
-        value = const SupabaseState(isActive: false);
-      } else if (cloud is GoogleDriveCloud) {
-        await cloud.logout();
-        value = const GoogleDriveState(isConnected: false, isActive: false);
-      } else if (cloud is DropBoxCloud) {
-        await cloud.logout();
-        value = const DropBoxState(isActive: false);
-      } else if (cloud is NextCloudCloud) {
-        await cloud.logout();
-        value = NextCloudState(
-          serverUrl: _nextcloudServerUrl,
-          loginName: _nextcloudLoginName,
-          isActive: false,
-        );
-      } else {
-        value = NotSelectedState(clouds: cloudNames);
-      }
+      await cloud.logout();
+      value = _stateForDeactivated(cloud);
     } catch (error) {
       value = previous;
       rethrow;
     }
+  }
+
+  CloudState _stateForDeactivated(CloudBase cloud) {
+    if (cloud is SupabaseCloud) {
+      return const SupabaseState(isActive: false);
+    }
+    if (cloud is GoogleDriveCloud) {
+      return const GoogleDriveState(isConnected: false, isActive: false);
+    }
+    if (cloud is DropBoxCloud) {
+      return const DropBoxState(isActive: false);
+    }
+    if (cloud is NextCloudCloud) {
+      return NextCloudState(
+        serverUrl: cloud.serverUrl,
+        loginName: cloud.userEmail,
+        isActive: false,
+      );
+    }
+    return NotSelectedState(clouds: cloudNames);
   }
 
   CloudState _stateFor(CloudBase cloud) {
@@ -291,8 +233,8 @@ final class CloudController extends ValueNotifier<CloudState> {
         signedIn: isActive,
         // A restored session wins; otherwise fall back to the credentials of
         // the last sign-in attempt so the form keeps them.
-        serverUrl: cloud.serverUrl ?? _nextcloudServerUrl,
-        loginName: cloud.userEmail ?? _nextcloudLoginName,
+        serverUrl: cloud.serverUrl,
+        loginName: cloud.userEmail,
         isActive: isActive,
       );
     }

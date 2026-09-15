@@ -9,7 +9,9 @@ import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/services/cloud/file_cloud_base.dart';
+import 'package:time_machine_net/services/cloud/google_drive_auth.dart';
 import 'package:time_machine_net/services/cloud/google_drive_token_store.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   GoogleDriveCloud({
@@ -18,9 +20,13 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     GoogleDriveTokenStore? tokenStore,
     this.appRootFolderName = 'TimeMachine',
     this.pollInterval = const Duration(minutes: 1),
+    GoogleDriveSignIn? signIn,
+    void Function(Uri uri)? openBrowser,
     super.encryptionKey,
-  }) : tokenStore = tokenStore ?? const SecureGoogleDriveTokenStore(),
-       _ownsClient = client == null || closeClient {
+  })  : tokenStore = tokenStore ?? const SecureGoogleDriveTokenStore(),
+        _ownsClient = client == null || closeClient,
+        _signIn = signIn,
+        _openBrowser = openBrowser {
     _baseClient = client ?? http.Client();
     _drive = drive.DriveApi(_baseClient);
   }
@@ -50,6 +56,9 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   final String appRootFolderName;
   final Duration pollInterval;
 
+  final GoogleDriveSignIn? _signIn;
+  final void Function(Uri uri)? _openBrowser;
+
   Timer? _pollTimer;
   String? _nextChangeToken;
   bool _polling = false;
@@ -61,6 +70,7 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
 
   /// Signs out, clearing the persisted credentials and the current session
   /// so every subsequent request fails until the cloud is re-authenticated.
+  @override
   Future<void> logout() async {
     _signedOut = true;
     final sessionClient = _sessionClient;
@@ -70,6 +80,23 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     }
     _drive = drive.DriveApi(_RejectingClient());
     await tokenStore.clear();
+  }
+
+  Future<void> authenticate() async {
+    final signIn = _signIn;
+    if (signIn == null) {
+      throw UnsupportedError('Google Drive sign-in is not configured');
+    }
+    final openBrowser = _openBrowser ?? _launchBrowser;
+    final session = await signIn.obtainSession(openBrowser: openBrowser);
+    await tokenStore.write(session);
+  }
+
+  Future<void> _launchBrowser(Uri uri) async {
+    final opened = await launchUrlString(uri.toString());
+    if (!opened) {
+      throw Exception('Could not open the browser');
+    }
   }
 
   /// Restores a previously signed-in session from the saved refresh token
@@ -131,7 +158,8 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
 
   Future<void> _initCollectionFolders() async {
     for (final collection in collectionNames.values) {
-      final folderId = await _ensureFolderPath(p.join(FileCloudBase.modelsDir, collection));
+      final folderId =
+          await _ensureFolderPath(p.join(FileCloudBase.modelsDir, collection));
       _collectionByFolderId[folderId] = collection;
     }
   }
@@ -173,9 +201,8 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
             'fileId,removed,'
             'file(id,name,parents,appProperties))',
       );
-  
-      for (final change in result.changes ?? const []) {
 
+      for (final change in result.changes ?? const []) {
         await _handleChange(change);
       }
       _nextChangeToken = result.nextPageToken ?? token;
@@ -316,8 +343,8 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   }
 
   Future<String> _ensureRootFolder() async {
-    final existing = await _findChild(appDataFolder, appRootFolderName,
-        folder: true);
+    final existing =
+        await _findChild(appDataFolder, appRootFolderName, folder: true);
     if (existing != null) {
       final id = existing.id!;
       _folderIds[''] = id;
