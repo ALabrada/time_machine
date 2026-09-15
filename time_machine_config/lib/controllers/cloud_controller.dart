@@ -164,6 +164,8 @@ final class CloudController extends ValueNotifier<CloudState> {
       await cloud.authenticate();
     } else if (cloud is GoogleDriveCloud) {
       await cloud.authenticate();
+    } else if (cloud is YandexDiskCloud) {
+      await cloud.authenticate();
     }
   }
 
@@ -205,6 +207,9 @@ final class CloudController extends ValueNotifier<CloudState> {
     if (cloud is DropBoxCloud) {
       return const DropBoxState(isActive: false);
     }
+    if (cloud is YandexDiskCloud) {
+      return const YandexDiskState(isActive: false);
+    }
     if (cloud is NextCloudCloud) {
       return NextCloudState(
         serverUrl: cloud.serverUrl,
@@ -225,6 +230,12 @@ final class CloudController extends ValueNotifier<CloudState> {
     }
     if (cloud is DropBoxCloud) {
       return DropBoxState(accountEmail: cloud.userEmail, isActive: isActive);
+    }
+    if (cloud is YandexDiskCloud) {
+      return YandexDiskState(
+        accountEmail: cloud.userEmail,
+        isActive: isActive,
+      );
     }
     if (cloud is NextCloudCloud) {
       return NextCloudState(

@@ -220,6 +220,12 @@ class TimeMachineApp extends StatelessWidget {
                 'nextcloud': NextCloudCloud(
                   appRootFolderName: 'HistoryLens',
                 ),
+                'yandex': YandexDiskCloud(
+                  appRootFolderName: 'HistoryLens',
+                  clientId: secrets.YANDEX_CLIENT_ID,
+                  redirectUri: secrets.YANDEX_REDIRECT_URI,
+                  customUriScheme: secrets.YANDEX_CUSTOM_URI_SCHEME,
+                ),
               },
               userAgent: userAgent,
               geocoders: {

@@ -63,6 +63,7 @@ class CloudProviderSelection extends StatelessWidget {
       'gdrive' => 'assets/images/gdrive_icon.png',
       'dropbox' => 'assets/images/dropbox_icon.png',
       'nextcloud' => 'assets/images/nextcloud_icon.png',
+      'yandex' => 'assets/images/yandexdisk_icon.png',
       _ => '',
     };
     if (asset.isEmpty) {

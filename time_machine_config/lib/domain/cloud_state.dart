@@ -59,6 +59,13 @@ class DropBoxState extends CloudState {
   const DropBoxState({this.accountEmail, required this.isActive});
 }
 
+class YandexDiskState extends CloudState {
+  final String? accountEmail;
+  final bool isActive;
+
+  const YandexDiskState({this.accountEmail, required this.isActive});
+}
+
 class NextCloudState extends CloudState {
   /// Whether the user is currently authenticated with the provider. This is
   /// only true while the cloud is actually connected, i.e. after a sign-in has

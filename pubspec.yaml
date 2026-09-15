@@ -81,6 +81,13 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+# flutter_web_auth_2 3.x is what oauth2_client 3.3.0 declares, but 3.1.2 still
+# uses the Android embedding v1 `Registrar` API which no longer compiles on the
+# current Flutter. 4.0.2 drops v1 embedding while keeping the same Dart
+# `authenticate`/`FlutterWebAuth2Options` surface that oauth2_client uses.
+dependency_overrides:
+  flutter_web_auth_2: 4.0.2
+
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true

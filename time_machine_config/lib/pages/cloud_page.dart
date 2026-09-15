@@ -7,6 +7,7 @@ import 'package:time_machine_config/molecules/dropbox_cloud_content.dart';
 import 'package:time_machine_config/molecules/google_drive_cloud_content.dart';
 import 'package:time_machine_config/molecules/nextcloud_cloud_content.dart';
 import 'package:time_machine_config/molecules/supabase_cloud_content.dart';
+import 'package:time_machine_config/molecules/yandex_disk_cloud_content.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 
 import '../l10n/config_localizations.dart';
@@ -216,6 +217,11 @@ class CloudPageState extends State<CloudPage> {
         )
       else if (cloud is NextCloudCloud)
         NextCloudCloudContent(
+          state: controller.value,
+          onEvent: controller.handleEvent,
+        )
+      else if (cloud is YandexDiskCloud)
+        YandexDiskCloudContent(
           state: controller.value,
           onEvent: controller.handleEvent,
         ),

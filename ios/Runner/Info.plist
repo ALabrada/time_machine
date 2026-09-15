@@ -32,6 +32,14 @@
 				<string>com.fakegem.historylens</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.fakegem.historylens.yandex.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.fakegem.historylens.yandex</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
