@@ -26,7 +26,7 @@ void main() {
     test('exchanges the code and returns a session', () async {
       final redirects = _RedirectStream();
       final auth = YandexDiskAuth(
-        redirectUri: 'com.fakegem.historylens.yandex:/oauth2redirect',
+        redirectUri: 'com.fakegem.historylens:/oauth2redirect-yandex',
       );
 
       Future<http.Response> fakeClient(http.Request request) async {
@@ -54,7 +54,7 @@ void main() {
 
     test('rejects a state mismatch', () async {
       final auth = YandexDiskAuth(
-        redirectUri: 'com.fakegem.historylens.yandex:/oauth2redirect',
+        redirectUri: 'com.fakegem.historylens:/oauth2redirect-yandex',
       );
       final redirects = _RedirectStream();
 
@@ -76,7 +76,7 @@ void main() {
 
     test('throws when the redirect lacks a code', () async {
       final auth = YandexDiskAuth(
-        redirectUri: 'com.fakegem.historylens.yandex:/oauth2redirect',
+        redirectUri: 'com.fakegem.historylens:/oauth2redirect-yandex',
       );
       final redirects = _RedirectStream();
 
@@ -98,7 +98,7 @@ void main() {
 
     test('subscribes before opening the browser', () async {
       final auth = YandexDiskAuth(
-        redirectUri: 'com.fakegem.historylens.yandex:/oauth2redirect',
+        redirectUri: 'com.fakegem.historylens:/oauth2redirect-yandex',
       );
       final redirects = _RedirectStream();
       final opens = <Uri>[];

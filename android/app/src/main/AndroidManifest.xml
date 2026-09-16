@@ -39,7 +39,6 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="com.fakegem.historylens"/>
-                <data android:scheme="com.fakegem.historylens.yandex"/>
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

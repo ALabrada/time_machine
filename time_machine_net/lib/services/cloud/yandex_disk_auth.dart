@@ -17,14 +17,15 @@ import 'package:time_machine_net/services/cloud/yandex_disk_token_store.dart';
 /// (`https://oauth.yandex.ru/`), ready for the authorization-code flow with
 /// PKCE that Yandex supports without a client secret.
 class YandexDiskAuth extends OAuth2Client {
-  YandexDiskAuth({
-    String? redirectUri,
-    String? customUriScheme,
-  }) : super(
+  YandexDiskAuth({String? redirectUri}) : super(
           authorizeUrl: 'https://oauth.yandex.ru/authorize',
           tokenUrl: 'https://oauth.yandex.ru/token',
           redirectUri: redirectUri ?? defaultRedirectUri,
-          customUriScheme: customUriScheme ?? defaultCustomUriScheme,
+          // The callback scheme always mirrors the redirect URI's scheme, so
+          // Yandex can share the common `com.fakegem.historylens` deep-link
+          // scheme and stay unambiguous by redirect path instead.
+          customUriScheme:
+              Uri.parse(redirectUri ?? defaultRedirectUri).scheme,
           // Yandex expects the client id in the token request body; there is
           // no client secret when PKCE is in use.
           credentialsLocation: CredentialsLocation.body,
@@ -38,7 +39,6 @@ class YandexDiskAuth extends OAuth2Client {
   static const cloudApiDiskInfoScope = 'cloud_api:disk.info';
 
   static const defaultRedirectUri = 'yandexauth://oauth';
-  static const defaultCustomUriScheme = 'yandexauth';
 
   /// Runs the authorization-code consent flow and maps the response to a
   /// persistable [YandexDiskSession]. Throws when the user cancelled the

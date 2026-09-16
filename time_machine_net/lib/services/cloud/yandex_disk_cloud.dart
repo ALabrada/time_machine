@@ -38,14 +38,12 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
     this.tokenStore = const SecureYandexDiskTokenStore(),
     this.pollInterval = const Duration(minutes: 1),
     String? redirectUri,
-    String? customUriScheme,
     this.redirectStream,
     this.openBrowser,
     super.encryptionKey,
     YandexDiskTransport? transport,
     YandexDiskAuth? auth,
   })  : redirectUri = redirectUri ?? defaultRedirectUri,
-        customUriScheme = customUriScheme ?? defaultCustomUriScheme,
         _injectedTransport = transport,
         _injectedAuth = auth;
 
@@ -64,10 +62,6 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
   /// refresh) the OAuth flow.
   final String redirectUri;
 
-  /// Uri scheme that the OAuth callback is delivered on; must match the
-  /// redirect URI scheme registered for the OAuth app.
-  final String customUriScheme;
-
   /// Stream of custom-scheme URLs delivered to the app (deep links). The
   /// stream must be broadcast-friendly: it is subscribed before the browser is
   /// opened, and must surface the Yandex redirect once the user consents.
@@ -78,7 +72,6 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
   final void Function(Uri uri)? openBrowser;
 
   static const defaultRedirectUri = YandexDiskAuth.defaultRedirectUri;
-  static const defaultCustomUriScheme = YandexDiskAuth.defaultCustomUriScheme;
 
   YandexDiskTransport? _transport;
 
@@ -118,13 +111,11 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
   static Future<YandexDiskSession> authorize({
     required String clientId,
     String? redirectUri,
-    String? customUriScheme,
     required Stream<Uri> redirectStream,
     void Function(Uri uri)? openBrowser,
     YandexDiskAuth? auth,
   }) async {
-    final oauth =
-        auth ?? YandexDiskAuth(redirectUri: redirectUri, customUriScheme: customUriScheme);
+    final oauth = auth ?? YandexDiskAuth(redirectUri: redirectUri);
     final launch = openBrowser ?? _launchBrowser;
     return oauth.obtainSession(
       clientId: clientId,
@@ -141,7 +132,6 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
     final session = await authorize(
       clientId: clientId,
       redirectUri: redirectUri,
-      customUriScheme: customUriScheme,
       redirectStream: stream,
       openBrowser: openBrowser ?? _launchBrowser,
       auth: _injectedAuth,
@@ -239,11 +229,7 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
       return null;
     }
     try {
-      final auth = oauth ??
-          YandexDiskAuth(
-            redirectUri: redirectUri,
-            customUriScheme: customUriScheme,
-          );
+      final auth = oauth ?? YandexDiskAuth(redirectUri: redirectUri);
       final result = await auth.refresh(refreshToken, clientId: clientId);
       if (result == null) {
         return null;

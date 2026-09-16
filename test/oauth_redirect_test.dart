@@ -8,7 +8,7 @@ import 'package:time_machine/secrets.dart' as secrets;
 void main() {
   final redirectSchemes = {
     Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI).scheme,
-    secrets.YANDEX_CUSTOM_URI_SCHEME,
+    Uri.parse(secrets.YANDEX_REDIRECT_URI).scheme,
   };
 
   Uri oauthUri(String scheme) =>

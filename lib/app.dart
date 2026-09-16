@@ -226,7 +226,6 @@ class TimeMachineApp extends StatelessWidget {
                 'yandex': YandexDiskCloud(
                   clientId: secrets.YANDEX_CLIENT_ID,
                   redirectUri: secrets.YANDEX_REDIRECT_URI,
-                  customUriScheme: secrets.YANDEX_CUSTOM_URI_SCHEME,
                   // Consent returns through the same deep-link pipeline as
                   // Google: open the authorize URL in the system browser and
                   // receive the redirect on app_links.
@@ -361,10 +360,12 @@ Stream<Uri> _mergeDeepLinks(AppLinks appLinks) async* {
   yield* appLinks.uriLinkStream;
 }
 
-/// The custom URL schemes the OAuth consent return is delivered through.
+/// The custom URL scheme the OAuth consent return is delivered through. Every
+/// provider (Google, Dropbox, Yandex) shares the `com.fakegem.historylens`
+/// scheme and stays unambiguous by redirect path.
 Set<String> oauthRedirectSchemes() => {
   Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI).scheme,
-  secrets.YANDEX_CUSTOM_URI_SCHEME,
+  Uri.parse(secrets.YANDEX_REDIRECT_URI).scheme,
 };
 
 /// Bounces custom-scheme deep links (the OAuth consent return) back to the
@@ -390,9 +391,9 @@ String? oauthDeepLinkRedirect(
 /// OAuth return to every `WidgetsBindingObserver` via
 /// `didPushRouteInformation` (in registration order, until one returns true).
 /// Registering this first means GoRouter never tries to "navigate" to
-/// `com.fakegem.historylens.yandex:/oauth2redirect?...`, so the page the user
-/// initiated the sign-in from (e.g. the Cloud page) stays put — the URI is
-/// consumed by the app_links stream instead.
+  /// a provider's redirect (e.g. `com.fakegem.historylens:/oauth2redirect-yandex?...`),
+  /// so the page the user initiated the sign-in from (e.g. the Cloud page)
+  /// stays put — the URI is consumed by the app_links stream instead.
 class OAuthDeepLinkObserver extends WidgetsBindingObserver {
   OAuthDeepLinkObserver(this.redirectSchemes);
 

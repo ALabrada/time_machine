@@ -104,8 +104,8 @@ void main() {
         openBrowser: (uri) {
           opens.add(uri);
           // Simulate the browser returning the redirect immediately.
-          redirects.add(Uri.parse('com.fakegem.historylens.yandex:/oauth2redirect'
-              '?code=auth-code&state=state-123'));
+redirects.add(Uri.parse('com.fakegem.historylens:/oauth2redirect-yandex'
+            '?code=auth-code&state=state-123'));
         },
       );
 
