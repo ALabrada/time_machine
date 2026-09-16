@@ -217,7 +217,6 @@ class TimeMachineApp extends StatelessWidget {
                   signIn: gdriveSignIn,
                 ),
                 'dropbox': DropBoxCloud(
-                  appRootFolderName: 'HistoryLens',
                   clientId: secrets.DROPBOX_APP_KEY,
                   redirectUri: secrets.DROPBOX_REDIRECT_URI,
                 ),

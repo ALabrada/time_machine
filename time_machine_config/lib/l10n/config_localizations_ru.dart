@@ -131,6 +131,9 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
   String get cloudPageProvider => 'Провайдер';
 
   @override
+  String get cloudPageProviderSelect => 'Выберите провайдера';
+
+  @override
   String get cloudPageChangeProvider => 'Сменить провайдера';
 
   @override

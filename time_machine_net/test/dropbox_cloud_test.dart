@@ -26,7 +26,6 @@ void main() {
       clientId: clientId,
       tokenStore: store,
       api: adapter,
-      appRootFolderName: 'TimeMachine',
     );
   });
 
@@ -36,22 +35,21 @@ void main() {
 
       expect(cloudId, 'dropbox/user@example.com');
       expect(adapter.folders, containsAll(<String>[
-        '/Apps/TimeMachine',
-        '/Apps/TimeMachine/models',
-        '/Apps/TimeMachine/models/pictures',
-        '/Apps/TimeMachine/models/records',
-        '/Apps/TimeMachine/files',
+        '/models',
+        '/models/pictures',
+        '/models/records',
+        '/files',
       ]));
       expect(store.session!.accountEmail, 'user@example.com');
     });
 
     test('reuses folders from a previous session', () async {
       adapter.folders.addAll(const [
-        '/Apps/TimeMachine',
-        '/Apps/TimeMachine/models',
-        '/Apps/TimeMachine/models/pictures',
-        '/Apps/TimeMachine/models/records',
-        '/Apps/TimeMachine/files',
+        '/',
+        '/models',
+        '/models/pictures',
+        '/models/records',
+        '/files',
       ]);
 
       final cloudId = await cloud.initialize();
@@ -91,7 +89,7 @@ void main() {
       final metadata = await cloud.saveRecord('records', null, {'id': 'src-r'});
 
       expect(adapter.files.keys.single,
-          '/Apps/TimeMachine/models/records/${metadata.id}');
+          '/models/records/${metadata.id}');
     });
 
     test('re-saving an id overwrites the same dropbox file', () async {
@@ -100,7 +98,7 @@ void main() {
       await cloud.saveRecord('records', existing, {'v': 2});
 
       expect(adapter.files.keys.single,
-          '/Apps/TimeMachine/models/records/${existing.id}');
+          '/models/records/${existing.id}');
       expect(await cloud.getRecord('records', existing.id), {'v': 2});
     });
 
@@ -163,7 +161,7 @@ void main() {
       );
 
       expect(adapter.files.keys.single,
-          '/Apps/TimeMachine/files/photos/2024/img.jpg');
+          '/files/photos/2024/img.jpg');
       expect(
         await cloud.downloadFile('files/photos/2024/img.jpg'),
         bytes,
@@ -250,7 +248,7 @@ void main() {
       final first = await cloud.saveRecord('records', null, {'v': 1});
       await cloud.pollChanges();
 
-      final path = '/Apps/TimeMachine/models/records/${first.id}';
+      final path = '/models/records/${first.id}';
       adapter.files[path] = _encodeBody({'v': 2}, id: first.id);
       adapter.touch(path);
 
@@ -267,7 +265,7 @@ void main() {
       final first = await cloud.saveRecord('records', null, {'v': 1});
       await cloud.pollChanges();
 
-      await adapter.delete('/Apps/TimeMachine/models/records/${first.id}');
+      await adapter.delete('/models/records/${first.id}');
 
       final events =
           await _collectEvents(cloud, () => cloud.pollChanges());

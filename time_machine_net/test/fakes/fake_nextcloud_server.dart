@@ -13,7 +13,7 @@ import 'package:http/http.dart' as http;
 /// detect remote updates by polling.
 class FakeNextcloudServer extends http.BaseClient {
   final Map<String, Uint8List> files = {};
-  final Set<String> folders = {'TimeMachine'};
+  final Set<String> folders = {'Apps/TimeMachine'};
 
   /// The login the server answers to. When either credential field is set,
   /// requested requests must carry a matching `Authorization` header.

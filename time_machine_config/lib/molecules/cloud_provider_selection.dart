@@ -42,7 +42,7 @@ class CloudProviderSelection extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                localizations.cloudPageProvider,
+                localizations.cloudPageProviderSelect,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),

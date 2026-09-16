@@ -46,21 +46,21 @@ void main() {
       expect(
           server.folders,
           containsAll(<String>[
-            'TimeMachine',
-            'TimeMachine/models',
-            'TimeMachine/models/pictures',
-            'TimeMachine/models/records',
-            'TimeMachine/files',
+            'Apps/TimeMachine',
+            'Apps/TimeMachine/models',
+            'Apps/TimeMachine/models/pictures',
+            'Apps/TimeMachine/models/records',
+            'Apps/TimeMachine/files',
           ]));
     });
 
     test('reuses folders from a previous session', () async {
       server.folders.addAll(const [
-        'TimeMachine',
-        'TimeMachine/models',
-        'TimeMachine/models/pictures',
-        'TimeMachine/models/records',
-        'TimeMachine/files',
+        'Apps/TimeMachine',
+        'Apps/TimeMachine/models',
+        'Apps/TimeMachine/models/pictures',
+        'Apps/TimeMachine/models/records',
+        'Apps/TimeMachine/files',
       ]);
 
       final cloudId = await cloud.initialize();
@@ -108,7 +108,7 @@ void main() {
       final metadata = await cloud.saveRecord('records', null, {'id': 'src-r'});
 
       expect(server.files.keys.single,
-          'TimeMachine/models/records/${metadata.id}');
+          'Apps/TimeMachine/models/records/${metadata.id}');
     });
 
     test('re-saving an id overwrites the same nextcloud file', () async {
@@ -117,7 +117,7 @@ void main() {
       await cloud.saveRecord('records', existing, {'v': 2});
 
       expect(server.files.keys.single,
-          'TimeMachine/models/records/${existing.id}');
+          'Apps/TimeMachine/models/records/${existing.id}');
       expect(await cloud.getRecord('records', existing.id), {'v': 2});
     });
 
@@ -143,7 +143,7 @@ void main() {
         {'id': 'src-dated'},
       );
 
-      final path = 'TimeMachine/models/pictures/${metadata.id}';
+      final path = 'Apps/TimeMachine/models/pictures/${metadata.id}';
       expect(server.lastModifiedTimes[path], DateTime.utc(2024, 2, 2));
       expect(server.createdTimes[path], DateTime.utc(2024, 1, 1));
     });
@@ -198,7 +198,7 @@ void main() {
         mimeType: 'image/jpeg',
       );
 
-      expect(server.files.keys.single, 'TimeMachine/files/photos/2024/img.jpg');
+      expect(server.files.keys.single, 'Apps/TimeMachine/files/photos/2024/img.jpg');
       expect(
         await cloud.downloadFile('files/photos/2024/img.jpg'),
         bytes,
@@ -262,7 +262,7 @@ void main() {
       final first = await cloud.saveRecord('records', null, {'v': 1});
       await cloud.pollChanges();
 
-      final path = 'TimeMachine/models/records/${first.id}';
+      final path = 'Apps/TimeMachine/models/records/${first.id}';
       server.addFile(path, _encodeBody({'v': 2}, id: first.id));
 
       final events = await _collectEvents(cloud, () => cloud.pollChanges());
@@ -277,7 +277,7 @@ void main() {
       final first = await cloud.saveRecord('records', null, {'v': 1});
       await cloud.pollChanges();
 
-      server.removePath('TimeMachine/models/records/${first.id}');
+      server.removePath('Apps/TimeMachine/models/records/${first.id}');
 
       final events = await _collectEvents(cloud, () => cloud.pollChanges());
 
@@ -380,7 +380,7 @@ void main() {
       );
 
       final result = await client.webdav.propfind(
-        PathUri.parse('TimeMachine'),
+        PathUri.parse('Apps/TimeMachine'),
         depth: WebDavDepth.zero,
       );
 
@@ -410,7 +410,7 @@ void main() {
 
       await expectLater(
         client.webdav.propfind(
-          PathUri.parse('TimeMachine'),
+          PathUri.parse('Apps/TimeMachine'),
           depth: WebDavDepth.zero,
         ),
         throwsA(isA<DynamiteStatusCodeException>()),
@@ -436,10 +436,10 @@ void main() {
       final bytes = Uint8List.fromList(utf8.encode('content-body'));
       await client.webdav.put(
         bytes,
-        PathUri.parse('TimeMachine/file.txt'),
+        PathUri.parse('Apps/TimeMachine/file.txt'),
       );
 
-      expect(server.files['TimeMachine/file.txt'], bytes);
+      expect(server.files['Apps/TimeMachine/file.txt'], bytes);
       expect(server.requestedAuthorizations, hasLength(2));
       expect(
           server.requestedAuthorizations.first, 'Bearer rejected-bearer-token');

@@ -129,6 +129,9 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
   String get cloudPageProvider => 'Provider';
 
   @override
+  String get cloudPageProviderSelect => 'Select a provider';
+
+  @override
   String get cloudPageChangeProvider => 'Change provider';
 
   @override

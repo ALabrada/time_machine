@@ -373,8 +373,18 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
 
   Future<void> _ensureRootFolder() async {
     if (_ensuredFolders.contains('')) return;
+    // Nextcloud user homes expose `/remote.php/webdav` rooted at the user's
+    // home, which has no `Apps` folder out of the box; create the wrapper the
+    // app root lives under first, then the root folder itself.
+    for (final folder in ['Apps', 'Apps/$appRootFolderName']) {
+      await _ensureDavFolder(PathUri.parse(folder));
+    }
+    _ensuredFolders.add('');
+  }
+
+  Future<void> _ensureDavFolder(PathUri folder) async {
     try {
-      await _requireWebDav().mkcol(_path(''));
+      await _requireWebDav().mkcol(folder);
     } on DynamiteStatusCodeException catch (error) {
       // Creating an existing collection yields a 405; treat it as already
       // there from a previous session.
@@ -382,15 +392,14 @@ class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
         rethrow;
       }
     }
-    _ensuredFolders.add('');
   }
 
   /// Turns a package-relative [FileCloudBase] path into a WebDAV [PathUri]
-  /// below the app root folder (relative to the user's home, which is where
-  /// `/remote.php/webdav` is rooted). Pass an empty string to address the
-  /// root folder itself.
+  /// inside the app's `Apps/<name>` folder in the user's home, which is where
+  /// `/remote.php/webdav` is rooted (so `Apps/…` maps onto `/Apps/…` in the
+  /// web UI). Pass an empty string to address the root folder itself.
   PathUri _path(String relativePath) =>
-      PathUri.parse('$appRootFolderName/$relativePath');
+      PathUri.parse('Apps/$appRootFolderName/$relativePath');
 
   String _recordPath(String collection, String encodedId) =>
       p.join(FileCloudBase.modelsDir, collection, encodedId);

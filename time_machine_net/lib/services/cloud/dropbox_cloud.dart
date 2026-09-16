@@ -16,10 +16,11 @@ import 'package:time_machine_net/services/cloud/file_cloud_base.dart';
 /// [FileCloudBase] implementation backed by a Dropbox account, built on the
 /// third-party `dropbox_api` package instead of hand-written HTTP requests.
 ///
-/// All content lives under the application's dedicated Dropbox app folder
-  /// (`/Apps/<name>`), mirroring the layout used by [GoogleDriveCloud]:
-  /// `/Apps/TimeMachine/models/<collection>/<id>` and
-  /// `/Apps/TimeMachine/files/<name>`.
+/// The app is configured with scoped ("app folder") access, so Dropbox already
+/// roots every path at the application's dedicated folder (`/Apps/<name>`).
+/// Package-relative paths are therefore mapped one-to-one onto that root:
+/// `models/<collection>/<id>` and `files/<name>`.
+///
 /// Dropbox has no custom file properties, so record metadata is stored inside
 /// the encrypted record body and decoded lazily by [FileCloudBase.listRecords].
 ///
@@ -31,7 +32,6 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
   DropBoxCloud({
     required this.clientId,
     this.tokenStore = const SecureDropboxTokenStore(),
-    this.appRootFolderName = 'TimeMachine',
     this.pollInterval = const Duration(minutes: 1),
     String? redirectUri,
     super.encryptionKey,
@@ -50,8 +50,6 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
   /// Persists the session across launches so it can be restored without
   /// re-running the OAuth consent flow.
   final DropboxTokenStore tokenStore;
-
-  final String appRootFolderName;
 
   /// How often the collection folders are polled for remote changes.
   final Duration pollInterval;
@@ -381,9 +379,9 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
   }
 
   /// Turns a package-relative [FileCloudBase] path into an absolute Dropbox
-  /// path below the application's dedicated app folder.
-  String _absolute(String path) =>
-      '/${p.join('Apps', appRootFolderName, path)}';
+  /// path. The app is scoped to its own app folder, so the path maps directly
+  /// onto the folder root (`/` == `/Apps/<name>`).
+  String _absolute(String path) => p.join('/', path);
 
   String _recordPath(String collection, String encodedId) =>
       p.join(FileCloudBase.modelsDir, collection, encodedId);

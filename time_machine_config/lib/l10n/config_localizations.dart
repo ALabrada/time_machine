@@ -299,6 +299,12 @@ abstract class ConfigLocalizations {
   /// **'Provider'**
   String get cloudPageProvider;
 
+  /// No description provided for @cloudPageProviderSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a provider'**
+  String get cloudPageProviderSelect;
+
   /// No description provided for @cloudPageChangeProvider.
   ///
   /// In en, this message translates to:
