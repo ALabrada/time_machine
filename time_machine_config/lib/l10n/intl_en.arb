@@ -68,6 +68,7 @@
   "settingSearchEnd": "End (year)",
   "cloudPageTitle": "Cloud",
   "cloudPageProvider": "Provider",
+  "cloudPageProviderSelect": "Select a provider",
   "cloudPageChangeProvider": "Change provider",
   "settingCloud": "Cloud",
   "sectionSync": "Synchronization",

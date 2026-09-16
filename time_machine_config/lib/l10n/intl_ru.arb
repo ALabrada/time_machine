@@ -31,6 +31,7 @@
   "settingSearchEnd": "Конец (года)",
   "cloudPageTitle": "Облако",
   "cloudPageProvider": "Провайдер",
+  "cloudPageProviderSelect": "Выберите провайдера",
   "cloudPageChangeProvider": "Сменить провайдера",
   "settingCloud": "Облако",
   "sectionSync": "Синхронизация",

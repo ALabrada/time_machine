@@ -16,6 +16,13 @@ final class CloudController extends ValueNotifier<CloudState> {
     unawaited(_load());
   }
 
+  /// Follows the sync service while a provider is connected so the shown
+  /// loading screen and provider content track the sync that may already be
+  /// running (e.g. the first sync started at app launch). A sync can only
+  /// happen once a provider exists, so this subscription is re-armed whenever
+  /// a cloud is configured and dropped around user-triggered operations.
+  StreamSubscription<bool>? _syncSubscription;
+
   final ConfigurationService configurationService;
   final NetworkService networkService;
   final CloudSyncService cloudSyncService;
@@ -27,6 +34,36 @@ final class CloudController extends ValueNotifier<CloudState> {
     final names = networkService.clouds.keys.toList();
     names.sort();
     return names;
+  }
+
+  void _subscribeToSync() {
+    _syncSubscription ??=
+        cloudSyncService.syncInProgress.listen(_onSyncInProgress);
+  }
+
+  void _cancelSyncSubscription() {
+    _syncSubscription?.cancel();
+    _syncSubscription = null;
+  }
+
+  /// Drives the shown state from the sync progress alone: a running sync shows
+  /// the "synchronizing" loading screen and its completion shows the provider
+  /// content. There is nothing else to distinguish because the subscription is
+  /// only alive while a provider is connected.
+  void _onSyncInProgress(bool busy) {
+    final cloud = this.cloud;
+    if (cloud == null) {
+      return;
+    }
+    value = busy
+        ? const LoadingState(phase: CloudLoadingPhase.synchronizing)
+        : _stateFor(cloud);
+  }
+
+  @override
+  void dispose() {
+    _cancelSyncSubscription();
+    super.dispose();
   }
 
   CloudBase? get cloud {
@@ -76,6 +113,7 @@ final class CloudController extends ValueNotifier<CloudState> {
 
   /// Switches back to the provider selection list.
   void showSelection() {
+    _cancelSyncSubscription();
     value = NotSelectedState(clouds: cloudNames);
   }
 
@@ -100,13 +138,23 @@ final class CloudController extends ValueNotifier<CloudState> {
     value = const LoadingState(phase: CloudLoadingPhase.connecting);
     final cloud = this.cloud;
     if (cloud == null) {
+      _cancelSyncSubscription();
       value = NotSelectedState(clouds: cloudNames);
+      return;
+    }
+    // Re-arm the sync subscription: once a provider is connected, a sync
+    // running when this controller loads keeps the loading screen on and
+    // its completion (or a later sync) drives the shown state.
+    _subscribeToSync();
+    if (cloudSyncService.syncBusy) {
+      value = const LoadingState(phase: CloudLoadingPhase.synchronizing);
       return;
     }
     value = _stateFor(cloud);
   }
 
   Future<void> _activate(CloudActivateEvent event) async {
+    _cancelSyncSubscription();
     final previous = value;
     final cloud = this.cloud;
     if (cloud == null) {
@@ -131,6 +179,8 @@ final class CloudController extends ValueNotifier<CloudState> {
         await cloud.logout();
         throw Exception('Cloud activation failed');
       }
+      // The provider is connected now; resume following its syncs.
+      _subscribeToSync();
       value = _stateFor(cloud);
     } catch (error) {
       // A failed Nextcloud sign-in restores a non-authenticated state that
@@ -182,6 +232,7 @@ final class CloudController extends ValueNotifier<CloudState> {
   }
 
   Future<void> _deactivate() async {
+    _cancelSyncSubscription();
     final previous = value;
     final cloud = this.cloud;
     if (cloud == null) {

@@ -22,6 +22,7 @@ class CloudSyncService {
 
   bool get isActive =>  isInitialized && _provider != null;
   bool get isInitialized => _databaseService != null;
+  bool get syncBusy => _syncInProgress;
   PictureSynchronizer? get pictures => _pictures;
   RecordSynchronizer? get records => _records;
   Stream<(Object, StackTrace)> get syncFailed => _errorStreamController.stream;
