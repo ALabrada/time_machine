@@ -4,12 +4,16 @@ import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 
 /// Keeps the single [Record] rendered by a page in sync with the database,
-/// reacting to the changes [CloudSyncService] pushes. It only watches
-/// [Record]s — the picture page watches [Picture]s on its own controller.
+/// reacting to the changes [CloudSyncService] pushes. Only [Record]s are
+/// watched here — the picture page watches [Picture]s on its own controller.
 ///
 /// Cloud sync writes the database directly (through raw repositories
 /// that never emit `RepositoryEvent`s), so [CloudSyncService.dbUpdated] — not
-/// `DatabaseService.events` — is the change signal the watcher relies on.
+/// `DatabaseService.events` — is the change signal the watcher relies on. A
+/// local `savePicture` edit does not emit `dbUpdated`; it surfaces when the
+/// page calls `watchSyncRecord` again (the record page re-watches on
+/// `didUpdateWidget`, which go_router fires when the route stack returns to
+/// it).
 ///
 /// The mixin owns the record state and publishes it to [recordChanges], a
 /// broadcast `BehaviorSubject`: views render it with a `StreamBuilder` and, for
@@ -18,8 +22,8 @@ import 'package:time_machine_db/time_machine_db.dart';
 /// notification. On every `dbUpdated` the record is re-read with raw `getById`:
 /// - if an already-loaded record disappears, it emits [recordDeleted] once;
 /// - otherwise it compares [Record.updateAt] — the only fingerprint — and
-///   publishes the record only when it changed, so a cloud sync that changed
-///   nothing never causes a visible reload.
+///   publishes the record only when it changed, so a sync that changed nothing
+///   never causes a visible reload.
 ///
 /// Views never touch the services: they render [recordChanges] and listen to
 /// [recordDeleted].

@@ -59,6 +59,16 @@ class ComparisonPageState extends State<ComparisonPage>
   }
 
   @override
+  void didUpdateWidget(covariant ComparisonPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // go_router recreates the page widget when the route stack changes, so
+    // didUpdateWidget fires on return from a pushed PicturePage. The picture
+    // may have been renamed there (a local edit that emits no `dbUpdated`);
+    // re-watch the record to re-read it from the database.
+    comparisonController.watchRecord(widget.recordId);
+  }
+
+  @override
   void dispose() {
     disposeSyncRecordWatcher();
     comparisonController.dispose();

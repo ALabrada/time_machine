@@ -7,15 +7,19 @@ import 'package:time_machine_img/services/database_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 
 /// Keeps the [Picture] rendered by [PicturePage] in sync with the database,
-/// reacting to changes pushed by [CloudSyncService] as well as to local writes
-/// observed through [DatabaseService.events]. Only [Picture]s are watched here
-/// — record pages use `SyncRecordController`.
+/// reacting to changes pushed by [CloudSyncService]. Only [Picture]s are
+/// watched here — record pages use `SyncRecordController`.
+///
+/// Cloud sync writes the database directly (through raw repositories
+/// that never emit `RepositoryEvent`s), so [CloudSyncService.dbUpdated] — not
+/// `DatabaseService.events` — is the change signal the watcher relies on.
 ///
 /// The page renders from [pictureChanges] (initial load + every content
-/// change). The picture is re-read with raw `getById`, so `visitedAt` — which
-/// itself emits an `EntityUpdated` event — never produces a feedback loop;
-/// only a description change is published. When the picture disappears
-/// [entityDeleted] fires once and the page navigates away.
+/// change). A local edit (see [updateDescription]) publishes its new state
+/// directly, without re-reading the database. The description fingerprint is
+/// applied with `distinct`, so `visitedAt` bumps (which do not re-emit here)
+/// never trigger a visible reload. When the picture disappears [entityDeleted]
+/// fires once and the page navigates away.
 class PictureController {
   PictureController({
     required this.cacheService,
@@ -34,7 +38,6 @@ class PictureController {
   final _pictureChanges = BehaviorSubject<Picture?>();
   final _deletedController = StreamController<void>.broadcast();
   StreamSubscription<void>? _dbUpdatedSubscription;
-  StreamSubscription<RepositoryEvent>? _eventsSubscription;
   bool _hasPicture = false;
   bool _deleted = false;
 
@@ -56,12 +59,6 @@ class PictureController {
     _dbUpdatedSubscription?.cancel();
     _dbUpdatedSubscription = cloudSyncService?.dbUpdated.listen((_) {
       unawaited(_reload(id));
-    });
-    _eventsSubscription?.cancel();
-    _eventsSubscription = databaseService?.events.listen((event) {
-      if (event is EntityUpdated<Picture> && event.entity.localId == id) {
-        unawaited(_reload(id));
-      }
     });
     unawaited(_reload(id));
   }
@@ -88,7 +85,6 @@ class PictureController {
 
   void dispose() {
     _dbUpdatedSubscription?.cancel();
-    _eventsSubscription?.cancel();
     _deletedController.close();
     _pictureChanges.close();
   }
@@ -114,5 +110,6 @@ class PictureController {
     }
     picture.description = description.isEmpty ? null : description;
     await databaseService?.savePicture(picture);
+    _pictureChanges.add(picture);
   }
 }

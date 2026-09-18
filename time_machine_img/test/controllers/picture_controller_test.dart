@@ -157,6 +157,24 @@ void main() {
       );
     });
 
+    test('updateDescription publishes the renamed picture', () async {
+      final picture = await seedPicture();
+      final (controller, emissions) = watchPicture(picture.localId);
+      await waitUntil(() => emissions.isNotEmpty);
+
+      await controller.updateDescription('renamed');
+
+      await waitUntil(
+        () => emissions.isNotEmpty && emissions.last!.description == 'renamed',
+      );
+      expect(
+        (await dbService.createRepository<Picture>()
+            .getById(picture.localId!))
+            ?.description,
+        'renamed',
+      );
+    });
+
     test('fires entityDeleted when syncWithCloud deletes the picture',
         () async {
       final picture = await seedPicture();

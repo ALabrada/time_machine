@@ -97,6 +97,37 @@ void main() {
           reason: 'an unchanged UpdateAt fingerprint must not be re-published');
     });
 
+    test('re-emits after a local edit when re-watched (page re-entered)',
+        () async {
+      final (record, watcher, emissions) = await seedAndWatch();
+
+      // Simulate savePicture from the picture page: upsert the picture with
+      // the new description and bump the referencing record's updateAt.
+      final picture = await dbService.createRepository<Picture>()
+          .findPictureByIdAndProvider('rec_pic', 'pastvu');
+      picture!.description = 'renamed';
+      await dbService.createRepository<Picture>().update(picture);
+
+      final newUpdateAt = DateTime.now().add(const Duration(seconds: 1));
+      final fresh =
+          await dbService.createRepository<Record>().getById(record.localId!);
+      fresh!.updateAt = newUpdateAt;
+      await dbService.createRepository<Record>().update(fresh);
+
+      // ComparisonPage.didUpdateWidget re-watches the record when the route
+      // stack returns to it; that re-read must surface the renamed picture.
+      watcher.watchSyncRecord(
+        cloudSyncService: sync,
+        databaseService: dbService,
+        entityId: record.localId,
+      );
+
+      await waitUntil(
+        () => emissions.length >= 2 &&
+            emissions.last!.picture?.description == 'renamed',
+      );
+    });
+
     test('re-emits when a CloudUpdatedEvent changes the record', () async {
       final (_, _, emissions) = await seedAndWatch();
       final newUpdateAt = DateTime.now().add(const Duration(hours: 2));
