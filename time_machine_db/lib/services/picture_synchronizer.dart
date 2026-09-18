@@ -139,6 +139,13 @@ class PictureSynchronizer {
       localCopy = await download(picture, localCopy?.localId);
     } else if (localCopy == null) {
       return null;
+    } else {
+      localCopy = picture.copy(
+        localId: localCopy.localId,
+        url: localCopy.url,
+        fileHash: localCopy.fileHash,
+      );
+      await _createRepository<Picture>().upsert(localCopy);
     }
 
     final dt = date ?? DateTime.now();

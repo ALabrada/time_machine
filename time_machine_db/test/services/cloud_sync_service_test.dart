@@ -1278,5 +1278,72 @@ void main() {
       mockProvider.dispose();
       await db.close();
     });
+
+    test('pulling an already-downloaded picture applies a description-only rename', () async {
+      final dbA = await databaseFactoryMemory.openDatabase('test_a_rename.db');
+      final dbServiceA = DatabaseService(db: dbA);
+      final dbB = await databaseFactoryMemory.openDatabase('test_b_rename.db');
+      final dbServiceB = DatabaseService(db: dbB);
+      final mockProvider = MockCloudSyncProvider(
+        collectionNames: {Record: 'records', Picture: 'pictures'},
+        id: 'mock',
+        supportsFiles: true,
+      );
+
+      final now = DateTime.now();
+      final picture = Picture(
+        id: 'ren1',
+        provider: '',
+        url: 'data:image/jpg;base64,AA==',
+        latitude: 48.0,
+        longitude: 2.0,
+        description: 'old',
+        visitedAt: now,
+      );
+      await dbServiceA.createRepository<Picture>().insert(picture);
+      await insertRecord(dbServiceA, picture, updateAt: now);
+
+      // Client A pushes the picture (with description) to the cloud.
+      final serviceA = CloudSyncService();
+      await serviceA.init(databaseService: dbServiceA, provider: mockProvider);
+      expect(mockProvider.hasRecord('pictures', '/ren1'), true);
+      expect(mockProvider.getRecordData('pictures', '/ren1')?['description'], 'old');
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Client B pulls the same picture: the image bytes are now local.
+      final serviceB = CloudSyncService();
+      await serviceB.init(databaseService: dbServiceB, provider: mockProvider);
+      var bPicture = await dbServiceB.createRepository<Picture>()
+          .findPictureByIdAndProvider('ren1', '');
+      expect(bPicture, isNotNull);
+      expect(bPicture!.description, 'old');
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Client A renames the description; the image bytes do not change.
+      picture.description = 'new';
+      await dbServiceA.createRepository<Picture>().update(picture);
+      final record = await dbServiceA.createRepository<Record>()
+          .findRecordByPictureId(picture.localId!);
+      record!.updateAt = DateTime.now();
+      await dbServiceA.createRepository<Record>().update(record);
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      expect(mockProvider.getRecordData('pictures', '/ren1')?['description'], 'new');
+
+      // Client B syncs: the file hash matches so the bytes are not re-downloaded,
+      // but the renamed description must still reach the local DB.
+      await serviceB.syncWithCloud();
+      await Future.delayed(const Duration(milliseconds: 100));
+      bPicture = await dbServiceB.createRepository<Picture>()
+          .findPictureByIdAndProvider('ren1', '');
+      expect(bPicture, isNotNull);
+      expect(bPicture!.description, 'new');
+
+      await serviceA.dispose();
+      await serviceB.dispose();
+      mockProvider.dispose();
+      await dbA.close();
+      await dbB.close();
+    });
   });
 }
