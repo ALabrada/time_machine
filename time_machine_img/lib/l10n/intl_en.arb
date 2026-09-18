@@ -56,5 +56,7 @@
   "uploadMenuPictureAligned": "My picture (Aligned)",
   "uploadPage": "Upload to {site}",
   "syncInProgress": "Synchronization in progress...",
-  "syncError": "Synchronization failed"
+  "syncError": "Synchronization failed",
+  "recordDeleted": "The replica was deleted",
+  "pictureDeleted": "The picture was deleted"
 }

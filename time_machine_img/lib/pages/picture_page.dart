@@ -14,6 +14,7 @@ import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../l10n/img_localizations.dart';
+import '../molecules/sync_record_page.dart';
 
 class PicturePage extends StatefulWidget {
   const PicturePage({
@@ -28,7 +29,7 @@ class PicturePage extends StatefulWidget {
 }
 
 class PicturePageState extends State<PicturePage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, SyncRecordPage<PicturePage> {
   late PictureController pictureController;
   late AnimationController animationController;
 
@@ -42,20 +43,28 @@ class PicturePageState extends State<PicturePage>
       cacheService: context.read(),
       databaseService: context.read(),
       networkService: context.read(),
+      cloudSyncService: context.read(),
+    );
+    pictureController.watchPicture(widget.pictureId);
+    watchSyncRecord(
+      deleted: pictureController.entityDeleted,
+      isRecord: false,
     );
     super.initState();
   }
 
   @override
   void dispose() {
+    disposeSyncRecordWatcher();
+    pictureController.dispose();
     animationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: pictureController.loadPicture(widget.pictureId),
+    return StreamBuilder<Picture?>(
+      stream: pictureController.pictureChanges,
       builder: (context, snapshot) {
         final picture = snapshot.data;
         return Scaffold(

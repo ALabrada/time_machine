@@ -197,4 +197,10 @@ class ImgLocalizationsEn extends ImgLocalizations {
 
   @override
   String get syncError => 'Synchronization failed';
+
+  @override
+  String get recordDeleted => 'The replica was deleted';
+
+  @override
+  String get pictureDeleted => 'The picture was deleted';
 }

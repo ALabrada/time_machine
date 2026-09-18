@@ -197,4 +197,10 @@ class ImgLocalizationsEs extends ImgLocalizations {
 
   @override
   String get syncError => 'Error de sincronización';
+
+  @override
+  String get recordDeleted => 'La réplica fue eliminada';
+
+  @override
+  String get pictureDeleted => 'La foto fue eliminada';
 }

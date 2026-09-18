@@ -196,4 +196,10 @@ class ImgLocalizationsRu extends ImgLocalizations {
 
   @override
   String get syncError => 'Ошибка синхронизации';
+
+  @override
+  String get recordDeleted => 'Реплика была удалена';
+
+  @override
+  String get pictureDeleted => 'Фотография была удалена';
 }

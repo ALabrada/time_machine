@@ -12,17 +12,18 @@ import 'package:path_provider/path_provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_img/controllers/sync_record_controller.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 
-final class UploadController extends ChangeNotifier {
+final class UploadController extends ChangeNotifier with SyncRecordController {
   static const defaultPageUrl = 'https://www.re.photos/en/compilation/create/';
 
   UploadController({
     required this.cacheService,
     this.databaseService,
     this.networkService,
+    this.cloudSyncService,
     this.preferences,
-    this.record,
     this.onUploadFile,
     this.onError,
     Uri? url,
@@ -32,6 +33,7 @@ final class UploadController extends ChangeNotifier {
   final CacheService cacheService;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
+  final CloudSyncService? cloudSyncService;
   final SharedPreferencesWithCache? preferences;
   final FutureOr<(Picture picture, bool align)?> Function()? onUploadFile;
   final void Function(String? description)? onError;
@@ -39,12 +41,42 @@ final class UploadController extends ChangeNotifier {
   final BehaviorSubject<int?> loadingProgress = BehaviorSubject();
   InAppWebViewController? webViewController;
 
-  Record? record;
+  StreamSubscription<Record?>? _recordSubscription;
+
   String get baseUrl => Uri(
     scheme: url.scheme,
     host: url.host,
     port: url.port,
   ).toString();
+
+  void watchRecord(int? id) {
+    watchSyncRecord(
+      cloudSyncService: cloudSyncService,
+      databaseService: databaseService,
+      entityId: id,
+    );
+    _recordSubscription?.cancel();
+    _recordSubscription = recordChanges.listen((record) {
+      if (record != null) {
+        unawaited(_fillCurrentPage());
+      }
+    });
+  }
+
+  /// Re-runs the fill script against the page the webview currently shows, so
+  /// the metadata inputs reflect the freshly re-read record. The webview
+  /// itself is never rebuilt.
+  Future<void> _fillCurrentPage() async {
+    final controller = webViewController;
+    if (controller == null) {
+      return;
+    }
+    final url = await controller.getUrl();
+    if (url == null) {
+      return;
+    }
+    await fillPage(url.toString());
+  }
 
   Future<Record?> loadRecord(int? id) async {
     if (id == null) {
@@ -319,5 +351,12 @@ final class UploadController extends ChangeNotifier {
       onError?.call(e.toString());
       return ShowFileChooserResponse(handledByClient: true);
     }
+  }
+
+  @override
+  void dispose() {
+    _recordSubscription?.cancel();
+    disposeSyncRecord();
+    super.dispose();
   }
 }

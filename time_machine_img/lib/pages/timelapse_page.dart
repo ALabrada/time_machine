@@ -11,6 +11,7 @@ import 'package:time_machine_img/l10n/img_localizations.dart';
 import 'package:time_machine_img/molecules/frame_view.dart';
 import 'package:time_machine_img/molecules/full_screen_view.dart';
 import 'package:time_machine_img/molecules/playback_tool_bar.dart';
+import 'package:time_machine_img/molecules/sync_record_page.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
 class TimelapsePage extends StatefulWidget {
@@ -26,7 +27,7 @@ class TimelapsePage extends StatefulWidget {
 }
 
 class TimelapsePageState extends State<TimelapsePage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, SyncRecordPage<TimelapsePage> {
   static const duration = Duration(seconds: 2);
   static const _playbackToolbarHeight = 120.0;
 
@@ -50,6 +51,12 @@ class TimelapsePageState extends State<TimelapsePage>
       configurationService: context.read<ConfigurationService>(),
       duration: duration,
       playbackController: playbackController,
+      cloudSyncService: context.read(),
+    );
+    controller.watchRecord(widget.recordId);
+    watchSyncRecord(
+      deleted: controller.recordDeleted,
+      isRecord: true,
     );
     super.initState();
     unawaited(controller.loadRecord(widget.recordId));
@@ -57,6 +64,7 @@ class TimelapsePageState extends State<TimelapsePage>
 
   @override
   void dispose() {
+    disposeSyncRecordWatcher();
     animationController.dispose();
     playbackController.dispose();
     controller.dispose();

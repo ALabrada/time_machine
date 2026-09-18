@@ -56,5 +56,7 @@
   "uploadMenuPictureAligned": "Свою фотографию (Выравнять)",
   "uploadPage": "Загрузить на {site}",
   "syncInProgress": "Синхронизация...",
-  "syncError": "Ошибка синхронизации"
+  "syncError": "Ошибка синхронизации",
+  "recordDeleted": "Реплика была удалена",
+  "pictureDeleted": "Фотография была удалена"
 }

@@ -56,5 +56,7 @@
   "uploadMenuPictureAligned": "Su foto (Alineado)",
   "uploadPage": "Subir a {site}",
   "syncInProgress": "Sincronización en progreso...",
-  "syncError": "Error de sincronización"
+  "syncError": "Error de sincronización",
+  "recordDeleted": "La réplica fue eliminada",
+  "pictureDeleted": "La foto fue eliminada"
 }

@@ -448,6 +448,18 @@ abstract class ImgLocalizations {
   /// In en, this message translates to:
   /// **'Synchronization failed'**
   String get syncError;
+
+  /// No description provided for @recordDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The replica was deleted'**
+  String get recordDeleted;
+
+  /// No description provided for @pictureDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The picture was deleted'**
+  String get pictureDeleted;
 }
 
 class _ImgLocalizationsDelegate

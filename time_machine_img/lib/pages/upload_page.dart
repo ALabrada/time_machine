@@ -9,6 +9,7 @@ import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import '../controllers/upload_controller.dart';
 import '../l10n/img_localizations.dart';
+import '../molecules/sync_record_page.dart';
 
 class UploadPage extends StatefulWidget {
   const UploadPage({
@@ -24,7 +25,7 @@ class UploadPage extends StatefulWidget {
   UploadPageState createState() => UploadPageState();
 }
 
-class UploadPageState extends State<UploadPage> {
+class UploadPageState extends State<UploadPage> with SyncRecordPage<UploadPage> {
   final settings = InAppWebViewSettings(
     isInspectable: kDebugMode,
     mediaPlaybackRequiresUserGesture: false,
@@ -42,13 +43,26 @@ class UploadPageState extends State<UploadPage> {
       cacheService: context.read(),
       databaseService: context.read(),
       networkService: context.read(),
+      cloudSyncService: context.read(),
       preferences: context.read(),
       url: widget.webPage.isEmpty ? null : Uri.parse(widget.webPage),
       onUploadFile: () => showUploadMenu(),
       onError: _showError,
     );
+    uploadController.watchRecord(widget.recordId);
+    watchSyncRecord(
+      deleted: uploadController.recordDeleted,
+      isRecord: true,
+    );
     super.initState();
     unawaited(_loadPage());
+  }
+
+  @override
+  void dispose() {
+    disposeSyncRecordWatcher();
+    uploadController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadPage() async {

@@ -13,6 +13,7 @@ import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../controllers/upload_controller.dart';
+import '../molecules/sync_record_page.dart';
 import '../molecules/tool_bar.dart';
 
 class ComparisonPage extends StatefulWidget {
@@ -27,7 +28,8 @@ class ComparisonPage extends StatefulWidget {
   ComparisonPageState createState() => ComparisonPageState();
 }
 
-class ComparisonPageState extends State<ComparisonPage> with SingleTickerProviderStateMixin {
+class ComparisonPageState extends State<ComparisonPage>
+    with SingleTickerProviderStateMixin, SyncRecordPage<ComparisonPage> {
   static const defaultAspectRatio = 4.0/3.0;
 
   late ComparisonController comparisonController;
@@ -46,14 +48,27 @@ class ComparisonPageState extends State<ComparisonPage> with SingleTickerProvide
       databaseService: context.read(),
       networkService: context.read(),
       telegramService: context.read(),
+      cloudSyncService: context.read(),
+    );
+    comparisonController.watchRecord(widget.recordId);
+    watchSyncRecord(
+      deleted: comparisonController.recordDeleted,
+      isRecord: true,
     );
     super.initState();
   }
 
   @override
+  void dispose() {
+    disposeSyncRecordWatcher();
+    comparisonController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: comparisonController.loadRecord(widget.recordId),
+    return StreamBuilder<Record?>(
+      stream: comparisonController.recordChanges,
       builder: (context, snapshot) {
         final record = snapshot.data;
         return Scaffold(
