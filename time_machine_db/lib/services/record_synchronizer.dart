@@ -34,11 +34,13 @@ class RecordSynchronizer {
 
   Future<RecordMirror?> deleteFromDB(int localId, [DateTime? date]) async {
     final record = await _createRepository<Record>().getById(localId);
-    if (record == null) {
-      return null;
-    }
 
-    await pictures.deleteFromDB(record.pictureId, date);
+    // The record row may already be gone (e.g. deleted via the picture
+    // cascade). The mirror must still be tombstoned so the cloud doesn't
+    // resurrect the record and the sync cursor advances past this deletion.
+    if (record != null) {
+      await pictures.deleteFromDB(record.pictureId, date);
+    }
 
     final mirror = await _createRepository<RecordMirror>().findByRecordAndCloud(localId, cloudId);
     if (mirror == null) {
@@ -47,7 +49,9 @@ class RecordSynchronizer {
     mirror.updatedAt = date ?? DateTime.now();
     mirror.deletedAt = mirror.updatedAt;
     await _createRepository<RecordMirror>().update(mirror);
-    await _createRepository<Record>().delete(localId);
+    if (record != null) {
+      await _createRepository<Record>().delete(localId);
+    }
     return mirror;
   }
 

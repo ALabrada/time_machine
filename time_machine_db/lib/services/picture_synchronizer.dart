@@ -49,19 +49,39 @@ class PictureSynchronizer {
     if (picture == null) {
       return null;
     }
+    final dt = date ?? DateTime.now();
     try {
       await databaseService.deleteFiles('pictures/${picture.id}.jpg');
     } catch (_) {}
+    await _deleteRecordsReferencingPicture(localId, dt);
     await _createRepository<Picture>().delete(localId);
 
     final mirror = await _createRepository<PictureMirror>().findByPictureAndCloud(localId, cloudId);
     if (mirror == null) {
       return null;
     }
-    mirror.updatedAt = date ?? DateTime.now();
+    mirror.updatedAt = dt;
     mirror.deletedAt = mirror.updatedAt;
     await _createRepository<PictureMirror>().update(mirror);
     return mirror;
+  }
+
+  /// A record is bound to its "now" [Picture] (the record's cloud id is
+  /// derived from that picture). When the picture is removed from the DB, the
+  /// record referencing it as its primary picture is invalidated, so it is
+  /// removed too.
+  Future<void> _deleteRecordsReferencingPicture(int pictureId, DateTime dt) async {
+    final record = await _createRepository<Record>().findRecordByPictureId(pictureId);
+    final recordId = record?.localId;
+    if (record == null || recordId == null) {
+      return;
+    }
+    final recordMirrors = await _createRepository<RecordMirror>().findByRecord(recordId);
+    for (final mirror in recordMirrors) {
+      mirror.deletedAt = dt;
+      await _createRepository<RecordMirror>().update(mirror);
+    }
+    await _createRepository<Record>().delete(recordId);
   }
 
   Future<PictureMirror?> pullPicture(String id, {DateTime? date, bool deleted=false}) async {
@@ -104,7 +124,7 @@ class PictureSynchronizer {
         : await _createRepository<Picture>().findPictureByIdAndProvider(sourceId, sourceProvider);
 
     if (localCopy != null && deleted) {
-      return await deleteFromDB(localCopy.localId!);
+      return await deleteFromDB(localCopy.localId!, date);
     } else if (deleted) {
       return null;
     }

@@ -307,24 +307,24 @@ class CloudSyncService {
       final mirrorRepo = _createRepository<RecordMirror>();
       final pictureMirrorRepo = _createRepository<PictureMirror>();
       try {
-        if (event is EntityInserted<Record> && await mirrorRepo.findByRecordAndCloud(event.entity.localId!, cloudId) == null && lastChange != null && event.timestamp.isAfter(lastChange)) {
+        if (event is EntityInserted<Record> && await mirrorRepo.findByRecordAndCloud(event.entity.localId!, cloudId) == null && lastChange != null && !event.timestamp.isBefore(lastChange)) {
           final ts = event.entity.updateAt;
           await records.pushRecord(event.entity, event.timestamp);
           _lastChange = ts;
-        } else if (event is EntityUpdated<Record> && lastChange != null && event.timestamp.isAfter(lastChange)) {
+        } else if (event is EntityUpdated<Record> && lastChange != null && !event.timestamp.isBefore(lastChange)) {
           final ts = event.entity.updateAt;
           await records.pushRecord(event.entity, event.timestamp);
           _lastChange = ts;
-        } else if (event is EntityRemoved<Record>) {
+        } else if (event is EntityRemoved<Record> && event.entity.localId != null) {
           await deleteRecord(event.entity, event.timestamp);
           await pictures.deleteFromDB(event.entity.pictureId, event.timestamp);
           await pictures.deleteFromCloud(event.entity.pictureId);
           await records.deleteFromCloud(event.entity.localId!);
-          if (lastChange != null && event.timestamp.isAfter(lastChange)) {
+          if (lastChange != null && !event.timestamp.isBefore(lastChange)) {
             _lastChange = event.timestamp;
           }
         } else if (event is EntityInserted<Picture> && lastChange != null &&
-            event.timestamp.isAfter(lastChange) && event.entity.visitedAt != null &&
+            !event.timestamp.isBefore(lastChange) && event.entity.visitedAt != null &&
             event.entity.localId != null) {
           final picture = event.entity;
           final localMirror = await pictureMirrorRepo.findByPictureAndCloud(picture.localId!, cloudId);
@@ -333,10 +333,10 @@ class CloudSyncService {
           }
           final mirror = await pictures.pushPicture(picture, event.timestamp);
           final date = mirror?.lastDate;
-          if (date != null && date.isAfter(lastChange)) {
+          if (date != null && !date.isBefore(lastChange)) {
             _lastChange = date;
           }
-        } else if (event is EntityUpdated<Picture> && lastChange != null && event.timestamp.isAfter(lastChange)) {
+        } else if (event is EntityUpdated<Picture> && lastChange != null && !event.timestamp.isBefore(lastChange)) {
           final picture = event.entity;
           final visitedAt = picture.visitedAt;
           final localId = picture.localId;
@@ -349,17 +349,14 @@ class CloudSyncService {
           }
           final mirror = await pictures.pushPicture(picture, event.timestamp);
           final date = mirror?.lastDate;
-          if (date != null && date.isAfter(lastChange)) {
+          if (date != null && !date.isBefore(lastChange)) {
             _lastChange = date;
           }
         } else if (event is EntityRemoved<Picture> && event.entity.localId != null) {
-          final localMirror = await pictureMirrorRepo.findByPictureAndCloud(event.entity.localId!, cloudId);
-          if (localMirror == null || localMirror.deletedAt == null) {
-            await deletePicture(event.entity, event.timestamp);
-            await pictures.deleteFromCloud(event.entity.localId!);
-            if (lastChange != null && event.timestamp.isAfter(lastChange)) {
-              _lastChange = event.timestamp;
-            }
+          await deletePicture(event.entity, event.timestamp);
+          await pictures.deleteFromCloud(event.entity.localId!);
+          if (lastChange != null && !event.timestamp.isBefore(lastChange)) {
+            _lastChange = event.timestamp;
           }
         } else if (event is CloudReconnectedEvent || event is UnknownEvent) {
           requiresResync = true;
@@ -367,14 +364,14 @@ class CloudSyncService {
         } else if (event is CloudInsertedEvent && event.collection == recordCollection && lastChange != null && recordCollection != null) {
           final mirror = await records.pullRecord(event.metadata, event.data);
           final date = mirror?.lastDate;
-          if (date != null && date.isAfter(lastChange)) {
+          if (date != null && !date.isBefore(lastChange)) {
             _lastChange = date;
             dbUpdated = true;
           }
         } else if (event is CloudUpdatedEvent && event.collection == recordCollection && lastChange != null && recordCollection != null) {
           final mirror = await records.pullRecord(event.metadata, event.data);
           final date = mirror?.lastDate;
-          if (date != null && date.isAfter(lastChange)) {
+          if (date != null && !date.isBefore(lastChange)) {
             _lastChange = date;
             dbUpdated = true;
           }
@@ -392,7 +389,7 @@ class CloudSyncService {
             deleted: event.metadata.deletedAt != null,
           );
           final date = mirror?.lastDate;
-          if (date != null && date.isAfter(lastChange)) {
+          if (date != null && !date.isBefore(lastChange)) {
             _lastChange = date;
             dbUpdated = true;
           }
@@ -403,7 +400,7 @@ class CloudSyncService {
             deleted: event.metadata.deletedAt != null,
           );
           final date = mirror?.lastDate;
-          if (date != null && date.isAfter(lastChange)) {
+          if (date != null && !date.isBefore(lastChange)) {
             _lastChange = date;
             dbUpdated = true;
           }
