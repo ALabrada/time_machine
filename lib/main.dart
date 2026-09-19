@@ -21,22 +21,18 @@ Future<void> main() async {
     );
     await prefetchOsTabletStatus();
     final packageInfo = await PackageInfo.fromPlatform();
-    // fk_user_agent reads a real device/WebView user agent, which only exists
-    // on Android/iOS. Every other platform (including the web branch above)
-    // falls back to a synthetic UA so the desktop build boots without a
-    // native channel implementation.
+    // fk_user_agent reads a real device/WebView user agent on Android/iOS and
+    // generates one from the operating system on desktop, so the same path
+    // works for every native target.
     var userAgent =
         "HistoryLens/${packageInfo.version} ${defaultTargetPlatform.name}";
-    if (defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS) {
-      try {
-        await FkUserAgent.init();
-        userAgent = "HistoryLens/${packageInfo.version} "
-            "${FkUserAgent.userAgent ?? defaultTargetPlatform.name}";
-      } on MissingPluginException {
-        userAgent =
-            "HistoryLens/${packageInfo.version} ${defaultTargetPlatform.name}";
-      }
+    try {
+      await FkUserAgent.init();
+      userAgent = "HistoryLens/${packageInfo.version} "
+          "${FkUserAgent.userAgent ?? defaultTargetPlatform.name}";
+    } on MissingPluginException {
+      userAgent =
+          "HistoryLens/${packageInfo.version} ${defaultTargetPlatform.name}";
     }
     runApp(TimeMachineApp(
       userAgent: userAgent,
