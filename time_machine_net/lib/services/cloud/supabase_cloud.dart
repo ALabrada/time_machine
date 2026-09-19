@@ -244,4 +244,27 @@ class SupabaseCloud extends CloudBase with EventfulCloud {
   Future<void> deleteFile(String path) async {
     await _client.storage.from(_bucketName).remove([path]);
   }
+
+  static DateTime? _parseDate(Object? value) {
+    if (value is int) {
+      return DateTime.fromMillisecondsSinceEpoch(value).toUtc();
+    }
+    if (value is String) {
+      return DateTime.tryParse(value)?.toUtc();
+    }
+    return null;
+  }
+
+  CloudMetadata metadataFromData(String id, Map<String, dynamic> data) {
+    final now = DateTime.now().toUtc();
+    final createdAt = _parseDate(data['createdAt']) ?? now;
+    final updatedAt = _parseDate(data['updatedAt']) ?? createdAt;
+    final deletedAt = _parseDate(data['deletedAt']);
+    return CloudMetadata(
+      id: id,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      deletedAt: deletedAt,
+    );
+  }
 }
