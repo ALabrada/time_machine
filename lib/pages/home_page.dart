@@ -83,11 +83,12 @@ class _HomePageState extends State<HomePage> {
         icon: Icon(Icons.photo_album_outlined),
         label: AppLocalizations.of(context).homeTabsGallery,
       ),
-      NavigationDestination(
-        selectedIcon: Icon(Icons.radar),
-        icon: Icon(Icons.radar_outlined),
-        label: AppLocalizations.of(context).homeTabsCamera,
-      ),
+      if (!isDesktopPlatform())
+        NavigationDestination(
+          selectedIcon: Icon(Icons.radar),
+          icon: Icon(Icons.radar_outlined),
+          label: AppLocalizations.of(context).homeTabsCamera,
+        ),
       NavigationDestination(
         selectedIcon: Icon(Icons.map),
         icon: Icon(Icons.map_outlined),
@@ -108,11 +109,12 @@ class _HomePageState extends State<HomePage> {
         icon: Icon(Icons.photo_album_outlined),
         label: Text(AppLocalizations.of(context).homeTabsGallery),
       ),
-      NavigationRailDestination(
-        selectedIcon: Icon(Icons.radar),
-        icon: Icon(Icons.radar_outlined),
-        label: Text(AppLocalizations.of(context).homeTabsCamera),
-      ),
+      if (!isDesktopPlatform())
+        NavigationRailDestination(
+          selectedIcon: Icon(Icons.radar),
+          icon: Icon(Icons.radar_outlined),
+          label: Text(AppLocalizations.of(context).homeTabsCamera),
+        ),
       NavigationRailDestination(
         selectedIcon: Icon(Icons.map),
         icon: Icon(Icons.map_outlined),
@@ -178,7 +180,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildPage() {
     return <Widget>[
       GalleryPage(),
-      ScanningPage(),
+      if (!isDesktopPlatform()) ScanningPage(),
       MapPage(
         pictureId: widget.pictureId,
       ),
@@ -190,12 +192,13 @@ class _HomePageState extends State<HomePage> {
     if (name == null) {
       return;
     }
+    final isDesktop = isDesktopPlatform();
     setState(() {
       switch (name.toLowerCase()) {
         case "gallery": currentPageIndex = 0;
-        case "nearby": currentPageIndex = 1;
-        case "map": currentPageIndex = 2;
-        case "settings": currentPageIndex = 3;
+        case "nearby": if (!isDesktop) currentPageIndex = 1;
+        case "map": currentPageIndex = isDesktop ? 1 : 2;
+        case "settings": currentPageIndex = isDesktop ? 2 : 3;
         default: break;
       }
     });

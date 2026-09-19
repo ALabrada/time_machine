@@ -287,6 +287,12 @@ abstract class ImgLocalizations {
   String galleryEmptyListBody(
       Object importIcon, Object mapLink, Object nearbyLink);
 
+  /// No description provided for @galleryEmptyListBodyDesktop.
+  ///
+  /// In en, this message translates to:
+  /// **'You can start by looking for historical pictures in the [map]({mapLink}). When you replicate a historic picture, your photo will appear here. You can also press {importIcon} to import your pictures from a file, if you previously exported them using the App.'**
+  String galleryEmptyListBodyDesktop(String mapLink, String importIcon);
+
   /// No description provided for @galleryEmptyListTitle.
   ///
   /// In en, this message translates to:

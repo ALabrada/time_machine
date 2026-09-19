@@ -30,6 +30,17 @@
   "timelapseDownloading": "Downloading...",
   "timelapseRendering": "Rendering...",
   "galleryEmptyListBody": "You can start by looking for historical pictures [nearby]({nearbyLink}) or in the [map]({mapLink}). When you replicate a historic picture, your photo will appear here. You can also press {importIcon} to import your pictures from a file, if you previously exported them using the App.",
+  "galleryEmptyListBodyDesktop": "You can start by looking for historical pictures in the [map]({mapLink}). When you replicate a historic picture, your photo will appear here. You can also press {importIcon} to import your pictures from a file, if you previously exported them using the App.",
+  "@galleryEmptyListBodyDesktop": {
+    "placeholders": {
+      "mapLink": {
+        "type": "String"
+      },
+      "importIcon": {
+        "type": "String"
+      }
+    }
+  },
   "galleryEmptyListTitle": "The gallery is empty",
   "galleryNoSearchResults": "No search results",
   "galleryRecentPictures": "Viewed recently",

@@ -111,6 +111,11 @@ class ImgLocalizationsEs extends ImgLocalizations {
   }
 
   @override
+  String galleryEmptyListBodyDesktop(String mapLink, String importIcon) {
+    return 'Puede comenzar buscando fotos históricas en el [mapa]($mapLink). Cuando replique una foto histórica, su foto aparecerá aquí. También puede presionar $importIcon para importar sus fotos desde un archivo, si las exportó previamente usando la Aplicación.';
+  }
+
+  @override
   String get galleryEmptyListTitle => 'La galería está vacía';
 
   @override

@@ -29,6 +29,7 @@ dependencies:
   audioplayers: ^6.5.0
   cached_network_image: ^3.4.1
   camera: ^0.12.0
+  camera_desktop: ^1.2.1
   camerawesome: ^2.4.0
   cross_file: any
   custom_image_crop: ^0.1.1

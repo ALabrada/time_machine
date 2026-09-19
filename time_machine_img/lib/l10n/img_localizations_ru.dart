@@ -110,6 +110,11 @@ class ImgLocalizationsRu extends ImgLocalizations {
   }
 
   @override
+  String galleryEmptyListBodyDesktop(String mapLink, String importIcon) {
+    return 'Вы можете начать с поиска исторических фотографий на [карте]($mapLink). Когда вы создадите реплику исторической фотографии, ваша фотография появится здесь. Также, можете нажать $importIcon, чтобы импортировать свои фотографии из файла, если вы ранее экспортировали их с помощью приложения';
+  }
+
+  @override
   String get galleryEmptyListTitle => 'Галерея пуста';
 
   @override

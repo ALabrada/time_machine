@@ -21,11 +21,19 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
   }
 
   @override
+  String questionHowToFindPicturesBodyDesktop(
+    String mapIcon,
+    String settingsIcon,
+  ) {
+    return 'You can find pictures in the map ($mapIcon **Map** tab). The application will load the pictures from online databases, so you will need an active internet connection. You can choose which databases to use, among other parameters, in the configuration ($settingsIcon **Settings** tab).';
+  }
+
+  @override
   String get questionHowToFindPicturesTitle => 'How to find historic pictures?';
 
   @override
   String questionHowToImportPicturesBody(String saveIcon) {
-    return 'When you select the option to import a photo, you will be asked to find the picture in your phone. When you select it, the photo will appear overlaid with the historic picture. Align the pictures as closely as possible, and then press the $saveIcon **Save** button. You will be taken to the **Comparison** page.';
+    return 'When you select the option to import a photo, you will be asked to find the picture on your device. When you select it, the photo will appear overlaid with the historic picture. Align the pictures as closely as possible, and then press the $saveIcon **Save** button. You will be taken to the **Comparison** page.';
   }
 
   @override
@@ -34,7 +42,11 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
 
   @override
   String get questionHowToReplicatePictureBody =>
-      'Once you found a historic picture in your vicinity or in the map, you can either take a picture in the application, or import an existing picture from your phone. First, tap or long press the historic picture, and then select the desired option from the toolbar or context menu, accordingly.';
+      'Once you found a historic picture in your vicinity or in the map, you can either take a picture in the application, or import an existing picture from your device. First, tap or long press the historic picture, and then select the desired option from the toolbar or context menu, accordingly.';
+
+  @override
+  String get questionHowToReplicatePictureBodyDesktop =>
+      'Once you found a historic picture in the map, you can either take a picture in the application, or import an existing picture from your computer. First, tap or long press the historic picture, and then select the desired option from the toolbar or context menu, accordingly.';
 
   @override
   String get questionHowToReplicatePictureTitle =>
@@ -56,12 +68,16 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
       'When you open the camera to take a picture, the historic picture will appear overlaid with the camera preview. If you are far from the location of the historic picture, the top left corner will show instructions to reach it. Then, align the historic picture with the camera preview as closely as possible and take the photo. When the picture is saved, you will be able to open the **Comparison** screen or continue taking pictures.';
 
   @override
+  String get questionHowToTakePictureBodyDesktop =>
+      'When you open the camera to take a picture, the historic picture will appear overlaid with the camera preview. Align the historic picture with the camera preview as closely as possible and take the photo. When the picture is saved, you will be able to open the **Comparison** screen or continue taking pictures.';
+
+  @override
   String get questionHowToTakePictureTitle =>
       'How to take a picture in the application?';
 
   @override
   String get questionWhatDataIsCollectedBody =>
-      'All the data collected by the application is stored locally in the phone. The data is shared only when you explicitly choose to share the pictures. The recorded photos will also contain their corresponding geo-coordinates.';
+      'All the data collected by the application is stored locally on the device. The data is shared only when you explicitly choose to share the pictures. The recorded photos will also contain their corresponding geo-coordinates.';
 
   @override
   String get questionWhatDataIsCollectedTitle =>

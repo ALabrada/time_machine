@@ -206,6 +206,14 @@ class GalleryPageState extends State<GalleryPage> {
   Widget _buildEmpty() {
     final criteria = galleryController.searchController.text.trim();
     if (criteria.isEmpty) {
+      final localizations = ImgLocalizations.of(context);
+      // The desktop build has no Augmented Reality "Nearby" tab, so the
+      // empty-gallery hint only points at the map.
+      final body = isDesktopPlatform()
+          ? localizations.galleryEmptyListBodyDesktop(
+              '/?tab=map', Icons.unarchive_outlined.md)
+          : localizations.galleryEmptyListBody(Icons.unarchive_outlined.md,
+              '/?tab=map', '/?tab=nearby');
       return Container(
         alignment: Alignment.center,
         padding: EdgeInsets.all(24),
@@ -213,12 +221,12 @@ class GalleryPageState extends State<GalleryPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(ImgLocalizations.of(context).galleryEmptyListTitle,
+            Text(localizations.galleryEmptyListTitle,
               style: TextTheme.of(context).headlineMedium,
             ),
             SizedBox(height: 12),
             RichLocalization(
-              text: ImgLocalizations.of(context).galleryEmptyListBody(Icons.unarchive_outlined.md, '/?tab=map', '/?tab=nearby'),
+              text: body,
               textAlign: TextAlign.center,
               onTapLink: (_, href, __) {
                 if (href != null) {

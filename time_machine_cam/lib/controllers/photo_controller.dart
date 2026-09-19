@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:cross_file/cross_file.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:native_device_orientation/native_device_orientation.dart';
@@ -138,8 +139,17 @@ class PhotoController {
   }
 
   Future<bool> subscribeToPosition() async {
-    final permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      try {
+        permission = await Geolocator.requestPermission();
+      } on UnimplementedError {
+        // Desktop (geolocator_linux) does not implement requestPermission.
+        permission = LocationPermission.unableToDetermine;
+      }
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       return false;
     }
 
@@ -147,9 +157,19 @@ class PhotoController {
       return false;
     }
 
-    positionSubscription = Geolocator.getPositionStream(
-      locationSettings: LocationSettings(accuracy: LocationAccuracy.bestForNavigation),
-    ).listen(position.add);
+    try {
+      positionSubscription = Geolocator.getPositionStream(
+        locationSettings:
+            LocationSettings(accuracy: LocationAccuracy.bestForNavigation),
+      ).listen(position.add, onError: (_) {});
+    } on UnimplementedError {
+      // The platform exposes no position stream.
+    }
+
+    // Desktop has no compass, so skip the heading stream entirely.
+    if (_isDesktop) {
+      return true;
+    }
 
     final headingStream = FlutterCompass.events;
     if (headingStream != null) {
@@ -171,11 +191,17 @@ class PhotoController {
           .listen((value) {
             heading.add(value.$1);
             orientation.add(value.$2);
-          });
+          }, onError: (_) {});
     }
 
     return true;
   }
+
+  bool get _isDesktop =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.windows);
 
   Future<String?> _getAddress(Position? position) async {
     if (position == null) {

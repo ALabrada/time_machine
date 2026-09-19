@@ -53,3 +53,13 @@ bool isTabletLayout(BuildContext context) {
   return MediaQuery.sizeOf(context).shortestSide >= tabletBreakpoint ||
       (_osTablet ?? false);
 }
+
+/// Whether the app is running on a desktop platform (Linux, macOS, Windows).
+///
+/// Web is excluded: the browser's reported OS may be any of these, but the web
+/// build has no desktop camera/sensor plugins.
+bool isDesktopPlatform() =>
+    !kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.linux ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.windows);

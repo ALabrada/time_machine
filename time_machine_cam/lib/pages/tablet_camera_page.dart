@@ -57,7 +57,8 @@ class TabletCameraPageState extends State<TabletCameraPage>
       configurationService: context.read(),
       databaseService: context.read(),
       networkService: context.read(),
-      orientationStream: cameraController.onOrientationChanged(),
+      orientationStream:
+          isDesktopPlatform() ? null : cameraController.onOrientationChanged(),
       applyHeadingOffset: false,
     );
     _loadPictureFuture = controller.loadPicture(widget.pictureId);
@@ -175,6 +176,7 @@ class TabletCameraPageState extends State<TabletCameraPage>
         final v = camera.value;
         final deviceTurns = _quarterTurns(v.deviceOrientation);
         final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+        final isDesktop = isDesktopPlatform();
         final correctionTurns = isAndroid ? deviceTurns : 0;
         final bool portraitContent;
         if (isAndroid) {
@@ -195,6 +197,10 @@ class TabletCameraPageState extends State<TabletCameraPage>
           final contentTurns =
               (sensorQuarterTurns - facingSign * displayQuarterTurns) % 4;
           portraitContent = contentTurns.isOdd;
+        } else if (isDesktop) {
+          // camera_desktop delivers an upright, unrotated preview, so the
+          // content aspect simply follows the camera frame.
+          portraitContent = false;
         } else {
           // iOS and web deliver an upright, correctly-framed preview, so the
           // content aspect follows the device orientation, exactly like the
@@ -219,10 +225,14 @@ class TabletCameraPageState extends State<TabletCameraPage>
           fit: StackFit.expand,
           children: [
             GestureDetector(
-              onScaleStart: (_) => _startZoom = cameraController.zoomLevel,
-              onScaleUpdate: (details) {
-                unawaited(cameraController.setZoom(_startZoom * details.scale));
-              },
+              onScaleStart:
+                  isDesktop ? null : (_) => _startZoom = cameraController.zoomLevel,
+              onScaleUpdate: isDesktop
+                  ? null
+                  : (details) {
+                      unawaited(
+                          cameraController.setZoom(_startZoom * details.scale));
+                    },
               child: Center(
                 child: AspectRatio(
                   aspectRatio: contentAspect,
@@ -239,11 +249,12 @@ class TabletCameraPageState extends State<TabletCameraPage>
                 ),
               ),
             ),
-            Container(
-              alignment: Alignment.bottomCenter,
-              padding: EdgeInsets.only(bottom: 126),
-              child: _buildZoomIndicator(),
-            ),
+            if (!isDesktop)
+              Container(
+                alignment: Alignment.bottomCenter,
+                padding: EdgeInsets.only(bottom: 126),
+                child: _buildZoomIndicator(),
+              ),
             Container(
               alignment: Alignment.bottomCenter,
               padding: const EdgeInsets.only(bottom: 32),
@@ -251,19 +262,24 @@ class TabletCameraPageState extends State<TabletCameraPage>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _buildFlashButton(camera),
-                  const SizedBox(width: 48),
+                  if (!isDesktop) ...[
+                    _buildFlashButton(camera),
+                    const SizedBox(width: 48),
+                  ],
                   _buildTrigger(),
-                  const SizedBox(width: 48),
-                  _buildSwitchButton(),
+                  if (!isDesktop || cameraController.canSwitchCamera) ...[
+                    const SizedBox(width: 48),
+                    _buildSwitchButton(),
+                  ],
                 ],
               ),
             ),
-            Container(
-              alignment: Alignment.topLeft,
-              padding: EdgeInsets.only(top: 16, left: 16),
-              child: _buildCompass(picture),
-            ),
+            if (!isDesktop)
+              Container(
+                alignment: Alignment.topLeft,
+                padding: EdgeInsets.only(top: 16, left: 16),
+                child: _buildCompass(picture),
+              ),
           ],
         );
       },
@@ -459,6 +475,10 @@ class TabletCameraPageState extends State<TabletCameraPage>
   }
 
   NativeDeviceOrientation? _nativeOrientation(CameraController? camera) {
+    if (isDesktopPlatform()) {
+      // Desktop captures are already upright; no orientation metadata needed.
+      return null;
+    }
     final cameraOrientation = camera?.value.deviceOrientation;
     if (cameraOrientation == null) {
       return null;

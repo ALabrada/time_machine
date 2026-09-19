@@ -30,42 +30,52 @@ class HelpPageState extends State<HelpPage> {
   }
 
   Widget _buildContent() {
+    final isDesktop = isDesktopPlatform();
+    final localizations = ConfigLocalizations.of(context);
     return ListView(
       children: [
         QuestionCell(
           key: ValueKey(1),
-          title: ConfigLocalizations.of(context).questionWhatIsAppPurposeTitle,
-          body: ConfigLocalizations.of(context).questionWhatIsAppPurposeBody(telegramChannel),
+          title: localizations.questionWhatIsAppPurposeTitle,
+          body: localizations.questionWhatIsAppPurposeBody(telegramChannel),
         ),
         QuestionCell(
           key: ValueKey(2),
-          title: ConfigLocalizations.of(context).questionHowToFindPicturesTitle,
-          body: ConfigLocalizations.of(context).questionHowToFindPicturesBody(Icons.radar.md, Icons.map.md, Icons.settings.md),
+          title: localizations.questionHowToFindPicturesTitle,
+          body: isDesktop
+              ? localizations.questionHowToFindPicturesBodyDesktop(
+                  Icons.map.md, Icons.settings.md)
+              : localizations.questionHowToFindPicturesBody(
+                  Icons.radar.md, Icons.map.md, Icons.settings.md),
         ),
         QuestionCell(
           key: ValueKey(3),
-          title: ConfigLocalizations.of(context).questionHowToReplicatePictureTitle,
-          body: ConfigLocalizations.of(context).questionHowToReplicatePictureBody,
+          title: localizations.questionHowToReplicatePictureTitle,
+          body: isDesktop
+              ? localizations.questionHowToReplicatePictureBodyDesktop
+              : localizations.questionHowToReplicatePictureBody,
         ),
         QuestionCell(
           key: ValueKey(4),
-          title: ConfigLocalizations.of(context).questionHowToTakePictureTitle,
-          body: ConfigLocalizations.of(context).questionHowToTakePictureBody,
+          title: localizations.questionHowToTakePictureTitle,
+          body: isDesktop
+              ? localizations.questionHowToTakePictureBodyDesktop
+              : localizations.questionHowToTakePictureBody,
         ),
         QuestionCell(
           key: ValueKey(5),
-          title: ConfigLocalizations.of(context).questionHowToImportPicturesTitle,
-          body: ConfigLocalizations.of(context).questionHowToImportPicturesBody(Icons.done.md),
+          title: localizations.questionHowToImportPicturesTitle,
+          body: localizations.questionHowToImportPicturesBody(Icons.done.md),
         ),
         QuestionCell(
           key: ValueKey(6),
-          title: ConfigLocalizations.of(context).questionHowToSharePicturesTitle,
-          body: ConfigLocalizations.of(context).questionHowToSharePicturesBody(telegramChannel, Icons.open_in_browser.md),
+          title: localizations.questionHowToSharePicturesTitle,
+          body: localizations.questionHowToSharePicturesBody(telegramChannel, Icons.open_in_browser.md),
         ),
         QuestionCell(
           key: ValueKey(7),
-          title: ConfigLocalizations.of(context).questionWhatDataIsCollectedTitle,
-          body: ConfigLocalizations.of(context).questionWhatDataIsCollectedBody,
+          title: localizations.questionWhatDataIsCollectedTitle,
+          body: localizations.questionWhatDataIsCollectedBody,
         ),
       ],
     );

@@ -21,12 +21,20 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
   }
 
   @override
+  String questionHowToFindPicturesBodyDesktop(
+    String mapIcon,
+    String settingsIcon,
+  ) {
+    return 'Puede buscar fotos en el mapa (pestaña $mapIcon **Mapa**). La aplicación descargará las fotos de bases de datos en línea, así que deberá estar conectada a internet. Puede elegir cuáles bases de datos utilizar, entre otros parámetros, en la configuración (pestaña $settingsIcon **Opciones**).';
+  }
+
+  @override
   String get questionHowToFindPicturesTitle =>
       '¿Cómo encontrar fotos históricas?';
 
   @override
   String questionHowToImportPicturesBody(String saveIcon) {
-    return 'Cuando seleccione la opción de importar foto, deberá buscar la foto deseada en el teléfono. Cuando la seleccione, se mostrará la foto superpuesta con la foto histórica. Alinee las fotos lo más cercanamente posible y presione el botón $saveIcon **Guardar**. A continuación se abrirá la vista de **Comparación**.';
+    return 'Cuando seleccione la opción de importar foto, deberá buscar la foto deseada en el dispositivo. Cuando la seleccione, se mostrará la foto superpuesta con la foto histórica. Alinee las fotos lo más cercanamente posible y presione el botón $saveIcon **Guardar**. A continuación se abrirá la vista de **Comparación**.';
   }
 
   @override
@@ -35,7 +43,11 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
 
   @override
   String get questionHowToReplicatePictureBody =>
-      'Luego de encontrar una foto histórica en su vecindad o en el mapa, puede tomar una foto en la aplicación, o importar una foto existente del teléfono. Primeramente, presione brevemente o unos segundos, y luego seleccione la opción deseada de la barra de opciones o del menú, según sea el caso.';
+      'Luego de encontrar una foto histórica en su vecindad o en el mapa, puede tomar una foto en la aplicación, o importar una foto existente del dispositivo. Primeramente, presione brevemente o unos segundos, y luego seleccione la opción deseada de la barra de opciones o del menú, según sea el caso.';
+
+  @override
+  String get questionHowToReplicatePictureBodyDesktop =>
+      'Luego de encontrar una foto histórica en el mapa, puede tomar una foto en la aplicación, o importar una foto existente de su computadora. Primeramente, presione brevemente o unos segundos, y luego seleccione la opción deseada de la barra de opciones o del menú, según sea el caso.';
 
   @override
   String get questionHowToReplicatePictureTitle =>
@@ -57,12 +69,16 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
       'Cuando abra la cámara para tomar una foto, la foto histórica aparecerá montada sobre la vista de la cámara. Si se encuentra lejos del lugar de la foto histórica, en la esquina superior izquierda se mostrarán instrucciones para arribar al lugar. Entonces, alinee la foto histórica con la vista de la cámara lo más cercanamente posible. Cuando se guarde la foto, podrá abrir la vista de **Comparación** o continuar tomando fotos.';
 
   @override
+  String get questionHowToTakePictureBodyDesktop =>
+      'Cuando abra la cámara para tomar una foto, la foto histórica aparecerá montada sobre la vista de la cámara. Alinee la foto histórica con la vista de la cámara lo más cercanamente posible y tome la foto. Cuando se guarde la foto, podrá abrir la vista de **Comparación** o continuar tomando fotos.';
+
+  @override
   String get questionHowToTakePictureTitle =>
       '¿Cómo tomar fotos en la aplicación?';
 
   @override
   String get questionWhatDataIsCollectedBody =>
-      'Toda la información recolectada por la aplicación se almacena localmente en el teléfono. Los datos se comparten solamente cuando usted explícitamente publica las fotos. Las fotos tomadas además contienen las coordenadas geográficas correspondientes.';
+      'Toda la información recolectada por la aplicación se almacena localmente en el dispositivo. Los datos se comparten solamente cuando usted explícitamente publica las fotos. Las fotos tomadas además contienen las coordenadas geográficas correspondientes.';
 
   @override
   String get questionWhatDataIsCollectedTitle =>
