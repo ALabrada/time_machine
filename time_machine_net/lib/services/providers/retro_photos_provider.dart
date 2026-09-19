@@ -3,21 +3,20 @@ import 'package:cachette/cachette.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_map_math/flutter_geo_math.dart';
-import 'package:html/parser.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_net/domain/area.dart';
 
-import 'network_service.dart';
+import '../network_service.dart';
 
-class HistoryPinProvider implements DataProvider {
+class RetroPhotosProvider implements DataProvider {
   final cache = Cachette<String, Picture>(1000);
   final dio = Dio(
-      BaseOptions(baseUrl: 'https://www.historypin.org')
+      BaseOptions(baseUrl: 'https://www.re.photos')
   );
   String? userAgent;
 
-  HistoryPinProvider({this.userAgent,}) {
+  RetroPhotosProvider({this.userAgent,}) {
     if (!kReleaseMode) {
       dio.interceptors.add(
         LogInterceptor(
@@ -38,31 +37,25 @@ class HistoryPinProvider implements DataProvider {
     DateTime? endDate,
   }) async {
     final userAgent = this.userAgent;
-    final response = await dio.get('/pins.json',
+    final response = await dio.get('/api/geo_template/',
       queryParameters: {
-        'nelat': area.maxLat,
-        'nelng': area.maxLng,
-        'swlat': area.minLat,
-        'swlng': area.minLng,
-        'page': 1,
-        'page_size': 10000,
-        'primary_media_type': 'image',
+        'position_in': '${area.minLng}_${area.minLat}_${area.maxLng}_${area.maxLat}',
         if (startDate != null)
-          'start_date': _format(startDate),
+          'later_than': _format(startDate),
         if (endDate != null)
-          'end_date': _format(endDate),
+          'earlier_than': _format(endDate),
       },
       options: Options(
         headers: {
           if (userAgent != null)
             HttpHeaders.userAgentHeader: userAgent,
-          HttpHeaders.acceptHeader: 'application/json',
         },
       ),
     );
     return [
-      for (final obj in response.data['pins'])
-        _decodeJson(obj),
+      for (final item in response.data['rest'])
+        if (item['position']['type'] == 'Point')
+          _decodeItem(item),
     ];
   }
 
@@ -91,17 +84,20 @@ class HistoryPinProvider implements DataProvider {
     return result;
   }
 
-  @override
-  Future<Picture> fetch(Picture original) async {
+  Future<List<Picture>> search({
+    required String query,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
     final userAgent = this.userAgent;
-    final id = original.id;
-    final cached = cache[id];
-    if (cached != null) {
-      return cached;
-    }
-    final response = await dio.get('/pins/map',
+    final response = await dio.get('/api/template/',
       queryParameters: {
-        'pin_card': id,
+        'search': query,
+        'ordering': '-creation_time',
+        if (startDate != null)
+          'later_than': _format(startDate),
+        if (endDate != null)
+          'earlier_than': _format(endDate),
       },
       options: Options(
         headers: {
@@ -110,7 +106,30 @@ class HistoryPinProvider implements DataProvider {
         },
       ),
     );
-    final item = _decodeHtml(html: response.data, original: original);
+    return [
+      for (final item in response.data['results'])
+        if (item['position']['type'] == 'Point')
+          _decodeItem(item),
+    ];
+  }
+
+  @override
+  Future<Picture> fetch(Picture original) async {
+    final userAgent = this.userAgent;
+    final id = original.id;
+    final cached = cache[id];
+    if (cached != null) {
+      return cached;
+    }
+    final response = await dio.get('/api/template/$id/',
+      options: Options(
+        headers: {
+          if (userAgent != null)
+            HttpHeaders.userAgentHeader: userAgent,
+        },
+      ),
+    );
+    final item = _decodeDetails(details: response.data, original: original);
     cache[id] = item;
     return item;
   }
@@ -119,29 +138,21 @@ class HistoryPinProvider implements DataProvider {
     return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
-  Picture _decodeHtml({required String? html, required Picture original}) {
-    final id = original.id;
-
-    final document = parse(html);
-       
-    final sitePath = document.getElementsByClassName('pin-card-link').firstOrNull?.attributes['href'] ?? '/pins/$id';
-    final imgUrl = document.getElementsByClassName('pin-card-image').firstOrNull?.getElementsByTagName('img').firstOrNull?.attributes['src'];
-    final title = document.getElementsByClassName('pin-card-title').firstOrNull?.text;
-    final date = document.getElementsByClassName('pin-card-date').firstOrNull?.text;
-    
+  Picture _decodeDetails({required dynamic details, required Picture original}) {
     return Picture(
-      id: id,
-      description: title,
-      time: date,
-      url: imgUrl ?? '',
-      site: '${dio.options.baseUrl}$sitePath',
+      id: original.id,
+      description: details['title'],
+      url: details['image']['file_fullscreen'].toString(),
+      previewUrl: details['image']['file_thumb'].toString(),
+      time: details['image']['creation_date'].toString(),
+      site: original.site,
       latitude: original.latitude,
       longitude: original.longitude,
     );
   }
 
-  Picture _decodeJson(dynamic json) {
-    final id = json['id'].toString();
+  Picture _decodeItem(dynamic obj) {
+    final id = obj['id'].toString();
 
     final cached = cache[id];
     if (cached != null) {
@@ -151,8 +162,9 @@ class HistoryPinProvider implements DataProvider {
     return Picture(
       id: id,
       url: '',
-      latitude: json['latitude'] as double,
-      longitude: json['longitude'] as double,
+      site: '${dio.options.baseUrl}/en/template/${obj['id']}/',
+      latitude: obj['position']['coordinates'][1] as double,
+      longitude: obj['position']['coordinates'][0] as double,
     );
   }
 }

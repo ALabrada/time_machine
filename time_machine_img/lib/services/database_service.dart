@@ -9,11 +9,6 @@ import 'package:time_machine_db/time_machine_db.dart';
 import 'package:uuid/uuid.dart';
 
 extension DatabaseExtensions on DatabaseService {
-  static String _expandPath(String path, String? filePath) {
-    if (filePath == null) return path;
-    return Uri.decodeFull(path).replaceAll(DatabaseService.filePathPlaceholder, filePath);
-  }
-
   static String _stripImageExtension(String id) {
     return id.replaceFirst(
       RegExp(r'\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|tiff?)$',
@@ -286,7 +281,7 @@ extension DatabaseExtensions on DatabaseService {
         final file = File(localPath);
         await file.create(recursive: true);
         await file.writeAsBytes(imageBytes);
-        picture.url = Uri.file('${DatabaseService.filePathPlaceholder}/pictures/$fileStem.jpg').toString();
+        picture.url = Uri.file('$filePathPlaceholder/pictures/$fileStem.jpg').toString();
       }
     }
 
@@ -343,7 +338,7 @@ extension DatabaseExtensions on DatabaseService {
       return [mainFile, attachmentFile];
     }
     if (url.isScheme('file')) {
-      final resolvedPath = _expandPath(url.path, filePath);
+      final resolvedPath = expandPathGlobal(url.path, filePath);
       final file = File(resolvedPath);
       final size = file.lengthSync();
       final content = FileContentStream(InputFileStream(resolvedPath));

@@ -14,6 +14,10 @@ final class ConfigurationController extends ChangeNotifier {
           value: configurationService.cameraRatio ?? ConfigurationService.defaultCameraRatio,
           elements: ['16x9', '4x3', '1x1'],
         ),
+        cloud = _createClouds(
+          configurationService: configurationService,
+          networkService: networkService,
+        ),
         fps = SelectionController<int>(
           value: configurationService.fps ?? ConfigurationService.defaultFps,
           elements: ConfigurationService.fpsOptions,
@@ -88,12 +92,23 @@ final class ConfigurationController extends ChangeNotifier {
         notifyListeners();
       });
     }
+    // The cloud provider is selected on the Cloud page; keep the value shown
+    // on the settings page in sync when it changes there.
+    configurationService.addListener(() {
+      final cloudName = configurationService.cloud ?? '';
+      if (cloudName != cloud.value) {
+        cloud.value = cloudName;
+      } else {
+        notifyListeners();
+      }
+    });
   }
 
   final NetworkService? networkService;
   final ConfigurationService configurationService;
 
   final SelectionController<String> cameraRatio;
+  final SelectionController<String> cloud;
   final SelectionController<String> geocoder;
   final SelectionController<int> frameSize;
   final SelectionController<int> fps;
@@ -137,6 +152,18 @@ final class ConfigurationController extends ChangeNotifier {
     minYear.elements.value = List.generate(
       maxYear.value - ConfigurationService.defaultMinYear + 1,
           (idx) => ConfigurationService.defaultMinYear + idx,
+    );
+  }
+
+  static SelectionController<String> _createClouds({
+    required ConfigurationService configurationService,
+    NetworkService? networkService,
+  }) {
+    final services = networkService?.clouds.keys.toList();
+    services?.sort();
+    return SelectionController<String>(
+      value: configurationService.cloud ?? '',
+      elements: services ?? [],
     );
   }
 

@@ -49,6 +49,7 @@ class ConfigurationPageState extends State<ConfigurationPage> {
               _buildProvidersSection(),
               _buildSearchOptions(),
               _buildTimelapseSection(),
+              _buildSyncSection(),
               _buildInfo(),
               _buildFooter(),
             ],
@@ -253,6 +254,22 @@ class ConfigurationPageState extends State<ConfigurationPage> {
               selected: isSelected,
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  AbstractSettingsSection _buildSyncSection() {
+    final localizations = ConfigLocalizations.of(context);
+    return SettingsSection(
+      title: Text(localizations.sectionSync),
+      tiles: [
+        SettingsTile.navigation(
+          title: Text(localizations.settingCloud),
+          value: controller.cloud.value.isEmpty
+              ? null
+              : Text(controller.cloud.value),
+          onPressed: (context) => context.go('/cloud'),
         ),
       ],
     );

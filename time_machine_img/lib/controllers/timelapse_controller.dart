@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/controllers/playback_controller.dart';
+import 'package:time_machine_img/controllers/sync_record_controller.dart';
 import 'package:time_machine_img/domain/timelapse_state.dart';
 import 'package:time_machine_img/services/timelapse_service.dart';
 import 'package:time_machine_img/time_machine_img.dart';
@@ -18,11 +19,13 @@ import 'package:time_machine_net/time_machine_net.dart';
 
 import '../services/database_service.dart';
 
-class TimelapseController extends ValueNotifier<TimelapseState> {
+class TimelapseController extends ValueNotifier<TimelapseState>
+    with SyncRecordController {
   TimelapseController({
     required this.cacheService,
     required this.duration,
     this.databaseService,
+    this.cloudSyncService,
     this.playbackController,
     ConfigurationService? configurationService,
     int? frameSize,
@@ -39,11 +42,20 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
   final _cancelToken = CancelToken();
   final CacheService cacheService;
   final DatabaseService? databaseService;
+  final CloudSyncService? cloudSyncService;
   final Duration duration;
   final PlaybackController? playbackController;
   final ConfigurationService? configurationService;
   int frameSize;
   int fps;
+
+  void watchRecord(int? id) {
+    watchSyncRecord(
+      cloudSyncService: cloudSyncService,
+      databaseService: databaseService,
+      entityId: id,
+    );
+  }
 
   TimelapseService? _service;
   Record? _record;
@@ -61,6 +73,7 @@ class TimelapseController extends ValueNotifier<TimelapseState> {
     _disposed = true;
     _cancelToken.cancel();
     _service?.dispose();
+    disposeSyncRecord();
     super.dispose();
   }
 

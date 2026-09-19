@@ -99,6 +99,12 @@ extension RecordRepository on Repository<Record> {
     return result;
   }
 
+  Future<Record?> findRecordByPictureId(int pictureId) async {
+    final finder = Finder(filter: Filter.equals('pictureId', pictureId), limit: 1);
+    final result = await findFirst(finder);
+    return result;
+  }
+
   Future<List<Record>> findVisitedRecords({
     int limit = 20,
   }) async {
@@ -108,6 +114,19 @@ extension RecordRepository on Repository<Record> {
         SortOrder('visitedAt', false),
       ],
       limit: limit,
+    );
+    final result = await find(finder);
+    return result;
+  }
+
+  Future<List<Record>> findUpdatedRecords({
+    DateTime? since,
+  }) async {
+    final finder = Finder(
+      filter: since == null ? null : Filter.greaterThan('updateAt', DateTimeConverter().toJson(since)),
+      sortOrders: [
+        SortOrder('updateAt', false),
+      ],
     );
     final result = await find(finder);
     return result;

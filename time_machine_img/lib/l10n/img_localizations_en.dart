@@ -191,4 +191,16 @@ class ImgLocalizationsEn extends ImgLocalizations {
   String uploadPage(Object site) {
     return 'Upload to $site';
   }
+
+  @override
+  String get syncInProgress => 'Synchronization in progress...';
+
+  @override
+  String get syncError => 'Synchronization failed';
+
+  @override
+  String get recordDeleted => 'The replica was deleted';
+
+  @override
+  String get pictureDeleted => 'The picture was deleted';
 }

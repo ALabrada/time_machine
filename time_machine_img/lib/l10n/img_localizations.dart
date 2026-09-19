@@ -436,6 +436,30 @@ abstract class ImgLocalizations {
   /// In en, this message translates to:
   /// **'Upload to {site}'**
   String uploadPage(Object site);
+
+  /// No description provided for @syncInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronization in progress...'**
+  String get syncInProgress;
+
+  /// No description provided for @syncError.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronization failed'**
+  String get syncError;
+
+  /// No description provided for @recordDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The replica was deleted'**
+  String get recordDeleted;
+
+  /// No description provided for @pictureDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The picture was deleted'**
+  String get pictureDeleted;
 }
 
 class _ImgLocalizationsDelegate

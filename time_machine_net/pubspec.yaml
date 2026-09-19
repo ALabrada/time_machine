@@ -15,21 +15,37 @@ dependencies:
     path: ../time_machine_db
 
   cachette: ^1.0.0
-  cross_file: any
   collection: any
+  cross_file: any
   dio: ^5.7.0
+  dropbox_api: ^0.0.6
   flutter_cache_manager: any
   flutter_map_math: ^0.2.4
+  flutter_secure_storage: ^9.2.2
   geocoding: ^4.0.0
+  googleapis: ^16.0.0
+  googleapis_auth: ^2.3.3
   html: any
+  http: any
   intl: any
   latlong2: any
+  meta: any
+  nextcloud: ^9.0.0
+  oauth2_client: ^3.3.0
+  oauth2restclient: ^0.0.9
   osm_nominatim: ^4.0.1
+  path: any
+  pointycastle: ^3.7.3
+  supabase: ^2.6.0
+  url_launcher: ^6.3.1
+  uuid: any
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  fake_cloud_firestore: ^3.0.0
+  firebase_auth_mocks: ^0.14.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

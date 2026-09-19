@@ -21,6 +21,7 @@ Picture _$PictureFromJson(Map<String, dynamic> json) => Picture(
       site: json['site'] as String?,
       visitedAt: _$JsonConverterFromJson<Object, DateTime>(
           json['visitedAt'], const DateTimeConverter().fromJson),
+      fileHash: json['fileHash'] as String?,
     );
 
 Map<String, dynamic> _$PictureToJson(Picture instance) => <String, dynamic>{
@@ -38,6 +39,7 @@ Map<String, dynamic> _$PictureToJson(Picture instance) => <String, dynamic>{
       'site': instance.site,
       'visitedAt': _$JsonConverterToJson<Object, DateTime>(
           instance.visitedAt, const DateTimeConverter().toJson),
+      'fileHash': instance.fileHash,
     };
 
 Value? _$JsonConverterFromJson<Json, Value>(

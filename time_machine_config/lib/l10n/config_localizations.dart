@@ -287,6 +287,222 @@ abstract class ConfigLocalizations {
   /// **'End (year)'**
   String get settingSearchEnd;
 
+  /// No description provided for @cloudPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud'**
+  String get cloudPageTitle;
+
+  /// No description provided for @cloudPageProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider'**
+  String get cloudPageProvider;
+
+  /// No description provided for @cloudPageProviderSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a provider'**
+  String get cloudPageProviderSelect;
+
+  /// No description provided for @cloudPageChangeProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Change provider'**
+  String get cloudPageChangeProvider;
+
+  /// No description provided for @settingCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud'**
+  String get settingCloud;
+
+  /// No description provided for @sectionSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronization'**
+  String get sectionSync;
+
+  /// No description provided for @cloudPageProviderNotSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No cloud provider selected.'**
+  String get cloudPageProviderNotSelected;
+
+  /// No description provided for @cloudPageProviderUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected cloud provider is not available.'**
+  String get cloudPageProviderUnavailable;
+
+  /// No description provided for @cloudPageLoadingConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get cloudPageLoadingConnecting;
+
+  /// No description provided for @cloudPageLoadingAuthenticating.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticating…'**
+  String get cloudPageLoadingAuthenticating;
+
+  /// No description provided for @cloudPageLoadingSynchronizing.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronizing…'**
+  String get cloudPageLoadingSynchronizing;
+
+  /// No description provided for @cloudPageLoadingDeactivating.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivating…'**
+  String get cloudPageLoadingDeactivating;
+
+  /// No description provided for @cloudPageStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get cloudPageStatus;
+
+  /// No description provided for @cloudPageStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get cloudPageStatusActive;
+
+  /// No description provided for @cloudPageStatusInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get cloudPageStatusInactive;
+
+  /// No description provided for @cloudPageAuthSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication'**
+  String get cloudPageAuthSection;
+
+  /// No description provided for @cloudPageAuthSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in'**
+  String get cloudPageAuthSignedIn;
+
+  /// No description provided for @cloudPageAuthSignedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Not signed in'**
+  String get cloudPageAuthSignedOut;
+
+  /// No description provided for @cloudPageAuthSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in.'**
+  String get cloudPageAuthSuccess;
+
+  /// No description provided for @cloudPageAuthFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed.'**
+  String get cloudPageAuthFailed;
+
+  /// No description provided for @cloudPageEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get cloudPageEmail;
+
+  /// No description provided for @cloudPagePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get cloudPagePassword;
+
+  /// No description provided for @cloudPageSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get cloudPageSignIn;
+
+  /// No description provided for @cloudPageSignInAnonymously.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in anonymously'**
+  String get cloudPageSignInAnonymously;
+
+  /// No description provided for @cloudPageSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get cloudPageSignOut;
+
+  /// No description provided for @cloudPageActivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate'**
+  String get cloudPageActivate;
+
+  /// No description provided for @cloudPageActivationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud activated.'**
+  String get cloudPageActivationSuccess;
+
+  /// No description provided for @cloudPageActivationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Activation failed. Sign in to the provider first.'**
+  String get cloudPageActivationFailed;
+
+  /// No description provided for @cloudPageDeactivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate'**
+  String get cloudPageDeactivate;
+
+  /// No description provided for @cloudPageDeactivationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud deactivated.'**
+  String get cloudPageDeactivationSuccess;
+
+  /// No description provided for @cloudPageDeactivationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivation failed.'**
+  String get cloudPageDeactivationFailed;
+
+  /// No description provided for @cloudPageServerUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Server URL'**
+  String get cloudPageServerUrl;
+
+  /// No description provided for @cloudPageLoginName.
+  ///
+  /// In en, this message translates to:
+  /// **'Login name'**
+  String get cloudPageLoginName;
+
+  /// No description provided for @cloudPagePasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use an app password (recommended) or your account password. An app password is created in Personal settings → Security → App passwords.'**
+  String get cloudPagePasswordHint;
+
+  /// No description provided for @cloudPageServerUrlInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid server URL.'**
+  String get cloudPageServerUrlInvalid;
+
+  /// No description provided for @cloudPageFieldRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required.'**
+  String get cloudPageFieldRequired;
+
   /// No description provided for @settingThemeMode.
   ///
   /// In en, this message translates to:

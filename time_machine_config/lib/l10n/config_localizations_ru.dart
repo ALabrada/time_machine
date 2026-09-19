@@ -125,6 +125,117 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
   String get settingSearchEnd => 'Конец (года)';
 
   @override
+  String get cloudPageTitle => 'Облако';
+
+  @override
+  String get cloudPageProvider => 'Провайдер';
+
+  @override
+  String get cloudPageProviderSelect => 'Выберите провайдера';
+
+  @override
+  String get cloudPageChangeProvider => 'Сменить провайдера';
+
+  @override
+  String get settingCloud => 'Облако';
+
+  @override
+  String get sectionSync => 'Синхронизация';
+
+  @override
+  String get cloudPageProviderNotSelected => 'Облачный провайдер не выбран.';
+
+  @override
+  String get cloudPageProviderUnavailable =>
+      'Выбранный облачный провайдер недоступен.';
+
+  @override
+  String get cloudPageLoadingConnecting => 'Подключение…';
+
+  @override
+  String get cloudPageLoadingAuthenticating => 'Аутентификация…';
+
+  @override
+  String get cloudPageLoadingSynchronizing => 'Синхронизация…';
+
+  @override
+  String get cloudPageLoadingDeactivating => 'Отключение…';
+
+  @override
+  String get cloudPageStatus => 'Статус';
+
+  @override
+  String get cloudPageStatusActive => 'Активно';
+
+  @override
+  String get cloudPageStatusInactive => 'Неактивно';
+
+  @override
+  String get cloudPageAuthSection => 'Аутентификация';
+
+  @override
+  String get cloudPageAuthSignedIn => 'Выполнен вход';
+
+  @override
+  String get cloudPageAuthSignedOut => 'Вход не выполнен';
+
+  @override
+  String get cloudPageAuthSuccess => 'Вход выполнен.';
+
+  @override
+  String get cloudPageAuthFailed => 'Ошибка аутентификации.';
+
+  @override
+  String get cloudPageEmail => 'Эл. почта';
+
+  @override
+  String get cloudPagePassword => 'Пароль';
+
+  @override
+  String get cloudPageSignIn => 'Войти';
+
+  @override
+  String get cloudPageSignInAnonymously => 'Войти анонимно';
+
+  @override
+  String get cloudPageSignOut => 'Выйти';
+
+  @override
+  String get cloudPageActivate => 'Активировать';
+
+  @override
+  String get cloudPageActivationSuccess => 'Облако активировано.';
+
+  @override
+  String get cloudPageActivationFailed =>
+      'Не удалось активировать. Сначала войдите в провайдера.';
+
+  @override
+  String get cloudPageDeactivate => 'Деактивировать';
+
+  @override
+  String get cloudPageDeactivationSuccess => 'Облако деактивировано.';
+
+  @override
+  String get cloudPageDeactivationFailed => 'Не удалось деактивировать.';
+
+  @override
+  String get cloudPageServerUrl => 'URL сервера';
+
+  @override
+  String get cloudPageLoginName => 'Имя пользователя';
+
+  @override
+  String get cloudPagePasswordHint =>
+      'Используйте пароль приложения (рекомендуется) или пароль учётной записи. Пароль приложения создаётся в разделе Личные настройки → Безопасность → Пароли приложений.';
+
+  @override
+  String get cloudPageServerUrlInvalid => 'Введите корректный URL сервера.';
+
+  @override
+  String get cloudPageFieldRequired => 'Обязательно.';
+
+  @override
   String get settingThemeMode => 'Тема';
 
   @override

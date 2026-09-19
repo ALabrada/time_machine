@@ -3,7 +3,7 @@ import 'package:osm_nominatim/osm_nominatim.dart';
 import 'package:time_machine_db/domain/location.dart';
 import 'package:time_machine_net/domain/place_info.dart';
 
-import 'network_service.dart';
+import '../network_service.dart';
 
 class OsmSearchEngine implements GeocodingService {
   final Nominatim api;

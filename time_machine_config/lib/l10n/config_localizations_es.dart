@@ -124,6 +124,119 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
   String get settingSearchEnd => 'Fin (año)';
 
   @override
+  String get cloudPageTitle => 'Nube';
+
+  @override
+  String get cloudPageProvider => 'Proveedor';
+
+  @override
+  String get cloudPageProviderSelect => 'Selecciona un proveedor';
+
+  @override
+  String get cloudPageChangeProvider => 'Cambiar proveedor';
+
+  @override
+  String get settingCloud => 'Nube';
+
+  @override
+  String get sectionSync => 'Sincronización';
+
+  @override
+  String get cloudPageProviderNotSelected =>
+      'No hay ningún proveedor de nube seleccionado.';
+
+  @override
+  String get cloudPageProviderUnavailable =>
+      'El proveedor de nube seleccionado no está disponible.';
+
+  @override
+  String get cloudPageLoadingConnecting => 'Conectando…';
+
+  @override
+  String get cloudPageLoadingAuthenticating => 'Autenticando…';
+
+  @override
+  String get cloudPageLoadingSynchronizing => 'Sincronizando…';
+
+  @override
+  String get cloudPageLoadingDeactivating => 'Desactivando…';
+
+  @override
+  String get cloudPageStatus => 'Estado';
+
+  @override
+  String get cloudPageStatusActive => 'Activo';
+
+  @override
+  String get cloudPageStatusInactive => 'Inactivo';
+
+  @override
+  String get cloudPageAuthSection => 'Autenticación';
+
+  @override
+  String get cloudPageAuthSignedIn => 'Con sesión iniciada';
+
+  @override
+  String get cloudPageAuthSignedOut => 'Sin sesión';
+
+  @override
+  String get cloudPageAuthSuccess => 'Sesión iniciada.';
+
+  @override
+  String get cloudPageAuthFailed => 'Error de autenticación.';
+
+  @override
+  String get cloudPageEmail => 'Correo electrónico';
+
+  @override
+  String get cloudPagePassword => 'Contraseña';
+
+  @override
+  String get cloudPageSignIn => 'Iniciar sesión';
+
+  @override
+  String get cloudPageSignInAnonymously => 'Entrar anónimamente';
+
+  @override
+  String get cloudPageSignOut => 'Cerrar sesión';
+
+  @override
+  String get cloudPageActivate => 'Activar';
+
+  @override
+  String get cloudPageActivationSuccess => 'Nube activada.';
+
+  @override
+  String get cloudPageActivationFailed =>
+      'La activación falló. Inicia sesión en el proveedor primero.';
+
+  @override
+  String get cloudPageDeactivate => 'Desactivar';
+
+  @override
+  String get cloudPageDeactivationSuccess => 'Nube desactivada.';
+
+  @override
+  String get cloudPageDeactivationFailed => 'No se pudo desactivar.';
+
+  @override
+  String get cloudPageServerUrl => 'URL del servidor';
+
+  @override
+  String get cloudPageLoginName => 'Usuario';
+
+  @override
+  String get cloudPagePasswordHint =>
+      'Usa una contraseña de aplicación (recomendado) o la contraseña de tu cuenta. La contraseña de aplicación se crea en Ajustes personales → Seguridad → Contraseñas de aplicación.';
+
+  @override
+  String get cloudPageServerUrlInvalid =>
+      'Introduce una URL de servidor válida.';
+
+  @override
+  String get cloudPageFieldRequired => 'Obligatorio.';
+
+  @override
   String get settingThemeMode => 'Tema';
 
   @override

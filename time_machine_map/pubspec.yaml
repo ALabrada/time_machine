@@ -31,8 +31,6 @@ dependencies:
   flutter_map_compass: ^1.1.0
   flutter_map_location_marker: any
   flutter_map_marker_cluster_plus: any
-  vector_map_tiles: any
-  vector_tile_renderer: any
   geolocator: ^14.0.0
   go_router: any
   intl: any
@@ -46,6 +44,8 @@ dependencies:
   shared_preferences: ^2.3.5
   sliding_up_panel: ^2.0.0+1
   url_launcher: ^6.3.1
+  vector_map_tiles: any
+  vector_tile_renderer: any
 
 dev_dependencies:
   flutter_test:

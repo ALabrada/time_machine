@@ -101,5 +101,36 @@ void main() {
       expect(results.length, 1);
       expect(results.first.provider, 'pastvu');
     });
+
+    test('findUpdatedPictures returns pictures visited after since', () async {
+      final now = DateTime.now();
+      final newer = Picture(
+        id: 'u1', url: 'u1', latitude: 0, longitude: 0,
+        visitedAt: now.subtract(const Duration(hours: 1)),
+      );
+      final older = Picture(
+        id: 'u2', url: 'u2', latitude: 0, longitude: 0,
+        visitedAt: now.subtract(const Duration(days: 1)),
+      );
+      await picRepo.insert(newer);
+      await picRepo.insert(older);
+      final since = now.subtract(const Duration(hours: 2));
+      final results = await picRepo.findUpdatedPictures(since: since);
+      expect(results.length, 1);
+      expect(results.first.id, 'u1');
+    });
+
+    test('findUpdatedPictures returns all visited when since is null', () async {
+      final pic1 = Picture(
+        id: 'u3', url: 'u1', latitude: 0, longitude: 0, visitedAt: DateTime.now(),
+      );
+      final pic2 = Picture(
+        id: 'u4', url: 'u2', latitude: 0, longitude: 0, visitedAt: DateTime.now(),
+      );
+      await picRepo.insert(pic1);
+      await picRepo.insert(pic2);
+      final results = await picRepo.findUpdatedPictures();
+      expect(results.length, 2);
+    });
   });
 }

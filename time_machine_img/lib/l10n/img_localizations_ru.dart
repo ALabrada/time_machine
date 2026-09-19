@@ -190,4 +190,16 @@ class ImgLocalizationsRu extends ImgLocalizations {
   String uploadPage(Object site) {
     return 'Загрузить на $site';
   }
+
+  @override
+  String get syncInProgress => 'Синхронизация...';
+
+  @override
+  String get syncError => 'Ошибка синхронизации';
+
+  @override
+  String get recordDeleted => 'Реплика была удалена';
+
+  @override
+  String get pictureDeleted => 'Фотография была удалена';
 }

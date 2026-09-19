@@ -1,48 +1,44 @@
+import 'dart:async';
 import 'dart:isolate';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_compare_2/image_compare_2.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_img/controllers/sync_record_controller.dart';
 import 'package:time_machine_img/services/database_service.dart';
 import 'package:time_machine_img/services/telegram_service.dart';
 import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
-class ComparisonController with TaskManager {
+class ComparisonController with TaskManager, SyncRecordController {
   ComparisonController({
     required this.cacheService,
     this.databaseService,
     this.networkService,
     this.telegramService,
-    this.record,
+    this.cloudSyncService,
   });
 
   final CacheService cacheService;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
   final TelegramService? telegramService;
-  Record? record;
+  final CloudSyncService? cloudSyncService;
   double? similarity;
 
-  Future<Record?> loadRecord(int? id) async {
-    if (id == null) {
-      return null;
-    }
-    final record = await databaseService?.loadRecord(id);
-    if (record == null) {
-      return null;
-    }
+  void watchRecord(int? id) {
+    watchSyncRecord(
+      cloudSyncService: cloudSyncService,
+      databaseService: databaseService,
+      entityId: id,
+    );
+  }
 
-    this.record = record;
-    record.picture = await databaseService?.createRepository<Picture>().getById(record.pictureId);
-
-    final originalId = record.originalId;
-    if (originalId != null) {
-      record.original = await databaseService?.createRepository<Picture>().getById(originalId);
-    }
-
-    return record;
+  @override
+  void dispose() {
+    disposeSyncRecord();
+    super.dispose();
   }
 
   Future<bool> removeRecord() async {

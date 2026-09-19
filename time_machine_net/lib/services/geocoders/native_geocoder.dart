@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:time_machine_db/domain/location.dart' as db;
 import 'package:time_machine_net/domain/place_info.dart';
 
-import 'network_service.dart';
+import '../network_service.dart';
 
 class NativeGeocoder implements GeocodingService {
   @override

@@ -1,0 +1,456 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'package:nextcloud/nextcloud.dart';
+import 'package:nextcloud/webdav.dart';
+import 'package:path/path.dart' as p;
+import 'package:time_machine_db/time_machine_db.dart';
+import 'package:time_machine_net/services/cloud/file_cloud_base.dart';
+import 'package:time_machine_net/services/cloud/nextcloud_token_store.dart';
+
+/// [FileCloudBase] implementation backed by a Nextcloud account, built on the
+/// third-party `nextcloud` package (OpenAPI + WebDAV clients) instead of
+/// hand-written HTTP requests.
+///
+/// All content lives under a dedicated root folder (`TimeMachine` by default)
+/// inside the signed-in user's home, mirroring the layout used by
+/// [GoogleDriveCloud] and [DropBoxCloud]:
+/// `TimeMachine/models/<collection>/<id>` and `TimeMachine/files/<name>`.
+/// Nextcloud's WebDAV has no convenient per-file custom metadata API here, so
+/// record metadata is stored inside the encrypted record body and decoded
+/// lazily by [FileCloudBase.listRecords].
+///
+/// Authentication uses an app password (HTTP Bearer app-password auth), which
+/// the `nextcloud` package recommends over plain user credentials. Change
+/// notifications are provided through the [EventfulFileCloud] mixin: after
+/// [initialize] the cloud snapshots every collection folder and polls them on
+/// a timer, publishing inserted/updated/deleted events whenever the
+/// server-side ETag of an entry changed or an entry disappeared.
+class NextCloudCloud extends FileCloudBase with EventfulFileCloud {
+  NextCloudCloud({
+    this.tokenStore = const SecureNextcloudTokenStore(),
+    this.appRootFolderName = 'TimeMachine',
+    this.pollInterval = const Duration(minutes: 1),
+    super.encryptionKey,
+    NextcloudClient? client,
+  }) : _injectedClient = client {
+    if (client != null) {
+      _connectClient();
+    }
+  }
+
+  /// Persists the session across launches so it can be restored without
+  /// re-entering credentials.
+  final NextcloudTokenStore tokenStore;
+
+  final String appRootFolderName;
+
+  /// How often the collection folders are polled for remote changes.
+  final Duration pollInterval;
+
+  NextcloudClient? _client;
+  WebDavClient? _webDav;
+
+  /// A client supplied at construction (e.g. in tests) and restored by
+  /// [_connectClient] after [logout] released the previous connection.
+  final NextcloudClient? _injectedClient;
+
+  NextcloudSession? _session;
+  bool _signedOut = false;
+
+  /// Credentials remembered by the most recent [authenticate] call so the
+  /// sign-in form can be repopulated even after a failed activation clears
+  /// the token store.
+  String? _lastServerUrl;
+  String? _lastLoginName;
+
+  /// Set to `true` by [authenticate] and cleared once [initialize] confirms
+  /// the session against the server. Lets [logout] discard a just-submitted
+  /// sign-in that was never validated.
+  bool _freshSession = false;
+
+  Timer? _pollTimer;
+  bool _polling = false;
+  bool _pollingStarted = false;
+
+  /// Last known ETag per entry name for every collection folder, used to
+  /// detect inserts, updates and deletions between two polls.
+  final Map<String, Map<String, String>> _snapshots = {};
+
+  final Set<String> _ensuredFolders = {};
+
+  /// Builds the WebDAV client. Called by the constructor and again by
+  /// [initialize] when [logout] had released it.
+  void _connectClient() {
+    if (_webDav != null) return;
+    final injected = _injectedClient;
+    if (injected != null) {
+      _client = injected;
+      _webDav = injected.webdav;
+      return;
+    }
+    final session = _session;
+    final client = NextcloudClient(
+      Uri.parse(session!.serverUrl),
+      loginName: session.loginName,
+      appPassword: session.password,
+      httpClient: NextcloudAuthFallbackClient(
+        inner: http.Client(),
+        loginName: session.loginName,
+        password: session.password,
+      ),
+    );
+    _client = client;
+    _webDav = client.webdav;
+  }
+
+  /// Drops the session client so its socket pool can be reclaimed.
+  void _releaseClient() {
+    _client?.close();
+    _client = null;
+    _webDav = null;
+  }
+
+  /// Runs no interactive login flow: the user enters either an app password or
+  /// the account password into a single field. An app password is created in
+  /// the Nextcloud web UI (Personal settings → Security → App passwords) and
+  /// is the recommended choice; the account password only authenticates via
+  /// HTTP Basic and fails on accounts with two-factor authentication enabled.
+  /// The resulting [NextcloudSession] is handed to [NextcloudTokenStore.write].
+  static Future<NextcloudSession> authorize({
+    required String serverUrl,
+    required String loginName,
+    required String password,
+  }) async {
+    if (Uri.tryParse(serverUrl) == null || serverUrl.isEmpty) {
+      throw ArgumentError('serverUrl must be a valid URL');
+    }
+    return NextcloudSession(
+      serverUrl: serverUrl,
+      loginName: loginName,
+      password: password,
+    );
+  }
+
+  /// Base URL of the Nextcloud instance. After a failed sign-in the value
+  /// falls back to the last attempted server URL so the form can be
+  /// repopulated.
+  String? get serverUrl => _session?.serverUrl ?? _lastServerUrl;
+
+  @override
+  Future<String> initialize() async {
+    final session = await tokenStore.read();
+    if (session == null ||
+        session.password.isEmpty ||
+        session.loginName.isEmpty) {
+      throw Exception('No Nextcloud session available');
+    }
+    try {
+      _signedOut = false;
+      _session = session;
+      _connectClient();
+
+      await _ensureRootFolder();
+      for (final collection in collectionNames.values) {
+        await _ensureFolderPath(p.join(FileCloudBase.modelsDir, collection));
+      }
+      await _ensureFolderPath(FileCloudBase.filesDir);
+      await _resetSnapshots();
+      _startPolling();
+      _freshSession = false;
+      publishEvent(const CloudReconnectedEvent());
+      return '${session.serverUrl}/${session.loginName}';
+    } catch (error) {
+      if (_freshSession) {
+        await logout();
+      }
+      rethrow;
+    }
+  }
+
+  /// Remembers the submitted credentials and persists the session so the
+  /// following [initialize] can validate it against the server.
+  Future<void> authenticate({
+    required String serverUrl,
+    required String loginName,
+    required String password,
+  }) async {
+    _lastServerUrl = serverUrl;
+    _lastLoginName = loginName;
+    _freshSession = true;
+    final session = await authorize(
+      serverUrl: serverUrl,
+      loginName: loginName,
+      password: password,
+    );
+    await tokenStore.write(session);
+  }
+
+  /// Clears the persisted session, releases the client connection, stops
+  /// polling and marks the cloud signed out. Every subsequent API call fails
+  /// until the cloud is re-authenticated; the same instance can be reused
+  /// after a new session was stored and [initialize] ran again.
+  ///
+  /// The same cleanup also undoes a fresh sign-in whose [initialize] never
+  /// confirmed it: the token store is discarded, but the remembered form
+  /// values survive so the user can retry the credentials they entered.
+  @override
+  Future<void> logout() async {
+    _signedOut = true;
+    _session = null;
+    _freshSession = false;
+    _releaseClient();
+    _snapshots.clear();
+    _stopPolling();
+    await tokenStore.clear();
+  }
+
+  /// The signed-in account, once [initialize] has persisted it. Mirrors
+  /// `DropBoxCloud.userEmail`. Falls back to the last attempted login name
+  /// after a failed sign-in so the form can show what the user entered.
+  String? get userEmail => _session?.loginName ?? _lastLoginName;
+
+  void _startPolling() {
+    if (_pollingStarted) return;
+    _pollingStarted = true;
+    _pollTimer = Timer.periodic(pollInterval, (_) => pollChanges());
+  }
+
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+    _pollingStarted = false;
+  }
+
+  @override
+  void dispose() {
+    _stopPolling();
+    super.dispose();
+  }
+
+  WebDavClient _requireWebDav() {
+    final webDav = _webDav;
+    if (_signedOut || webDav == null) {
+      throw Exception('Not signed in');
+    }
+    return webDav;
+  }
+
+  @override
+  Stream<CloudFileEntry> onList(String path, {DateTime? since}) async* {
+    for (final entry in await _listAll(path)) {
+      if (entry.isDirectory) continue;
+      if (since != null) {
+        final modified = entry.lastModified ?? entry.createdDate;
+        if (modified != null && since.isAfter(modified)) continue;
+      }
+      yield CloudFileEntry(name: entry.name);
+    }
+  }
+
+  @override
+  Future<void> onPush({
+    required String path,
+    required Uint8List fileData,
+    String? mimeType,
+    String? metadata,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) async {
+    await _ensureFolderPath(p.dirname(path));
+    await _requireWebDav().put(
+      fileData,
+      _path(path),
+      lastModified: updatedAt,
+      created: createdAt,
+    );
+  }
+
+  @override
+  Future<String> onDelete(String path) async {
+    try {
+      await _requireWebDav().delete(_path(path));
+    } on DynamiteStatusCodeException catch (error) {
+      // Deleting a missing file yields a 404; treat it as success.
+      if (error.statusCode != 404) {
+        rethrow;
+      }
+    }
+    return path;
+  }
+
+  @override
+  Future<Uint8List> onPull(String path) async {
+    try {
+      return await _requireWebDav().get(_path(path));
+    } on DynamiteStatusCodeException catch (error) {
+      if (error.statusCode == 404) {
+        throw Exception('Not found: $path');
+      }
+      rethrow;
+    }
+  }
+
+  /// Polls every collection folder and publishes change events for entries
+  /// whose ETag changed since the previous poll. Exposed for testing.
+  @visibleForTesting
+  Future<void> pollChanges() async {
+    if (_signedOut || _polling) return;
+    _polling = true;
+    try {
+      for (final collection in collectionNames.values) {
+        Map<String, String> current;
+        try {
+          current = await _snapshotFor(collection);
+        } catch (_) {
+          // Transient network/API error: retry on the next poll.
+          continue;
+        }
+        final previous = _snapshots[collection] ?? const {};
+        for (final name in current.keys) {
+          final oldEtag = previous[name];
+          final recordPath = _recordPath(collection, name);
+          if (oldEtag == null) {
+            await publishFileInserted(path: recordPath);
+          } else if (oldEtag != current[name]) {
+            await publishFileUpdated(path: recordPath);
+          }
+        }
+        for (final name
+            in previous.keys.where((n) => !current.containsKey(n))) {
+          await publishFileDeleted(path: _recordPath(collection, name));
+        }
+        _snapshots[collection] = current;
+      }
+    } finally {
+      _polling = false;
+    }
+  }
+
+  Future<Map<String, String>> _snapshotFor(String collection) async {
+    final entries = await _listAll(p.join(FileCloudBase.modelsDir, collection));
+    return {
+      for (final entry in entries.where((entry) => !entry.isDirectory))
+        entry.name: entry.etag ?? '',
+    };
+  }
+
+  Future<void> _resetSnapshots() async {
+    for (final collection in collectionNames.values) {
+      _snapshots[collection] = await _snapshotFor(collection);
+    }
+  }
+
+  Future<List<WebDavFile>> _listAll(String relativePath) async {
+    final result = await _requireWebDav().propfind(
+      _path(relativePath),
+      depth: WebDavDepth.one,
+    );
+    return result.toWebDavFiles();
+  }
+
+  Future<void> _ensureFolderPath(String folderPath) async {
+    if (folderPath == '' || folderPath == '.') {
+      await _ensureRootFolder();
+      return;
+    }
+    if (_ensuredFolders.contains(folderPath)) return;
+    final parent = p.dirname(folderPath);
+    await _ensureFolderPath(parent);
+    try {
+      await _requireWebDav().mkcol(_path(folderPath));
+    } on DynamiteStatusCodeException catch (error) {
+      // Creating an existing collection yields a 405; treat it as already
+      // there from a previous session.
+      if (error.statusCode != 405) {
+        rethrow;
+      }
+    }
+    _ensuredFolders.add(folderPath);
+  }
+
+  Future<void> _ensureRootFolder() async {
+    if (_ensuredFolders.contains('')) return;
+    // Nextcloud user homes expose `/remote.php/webdav` rooted at the user's
+    // home, which has no `Apps` folder out of the box; create the wrapper the
+    // app root lives under first, then the root folder itself.
+    for (final folder in ['Apps', 'Apps/$appRootFolderName']) {
+      await _ensureDavFolder(PathUri.parse(folder));
+    }
+    _ensuredFolders.add('');
+  }
+
+  Future<void> _ensureDavFolder(PathUri folder) async {
+    try {
+      await _requireWebDav().mkcol(folder);
+    } on DynamiteStatusCodeException catch (error) {
+      // Creating an existing collection yields a 405; treat it as already
+      // there from a previous session.
+      if (error.statusCode != 405) {
+        rethrow;
+      }
+    }
+  }
+
+  /// Turns a package-relative [FileCloudBase] path into a WebDAV [PathUri]
+  /// inside the app's `Apps/<name>` folder in the user's home, which is where
+  /// `/remote.php/webdav` is rooted (so `Apps/…` maps onto `/Apps/…` in the
+  /// web UI). Pass an empty string to address the root folder itself.
+  PathUri _path(String relativePath) =>
+      PathUri.parse('Apps/$appRootFolderName/$relativePath');
+
+  String _recordPath(String collection, String encodedId) =>
+      p.join(FileCloudBase.modelsDir, collection, encodedId);
+}
+
+/// Retries a failed (401) request once with HTTP Basic credentials, switching
+/// from the Bearer token sent by the `nextcloud` package when the credential
+/// is an app password to the account password variant.
+///
+/// The WebDAV client only ever attaches the first configured authentication
+/// (a Bearer token), but Nextcloud accepts the account password exclusively
+/// through HTTP Basic. This wrapper implements the fallback: the credential
+/// entered by the user is first tried as an app password (Bearer) and, if the
+/// server rejects it, again as the account password (Basic). The request
+/// fails only when both attempts are rejected.
+class NextcloudAuthFallbackClient extends http.BaseClient {
+  NextcloudAuthFallbackClient({
+    required this.inner,
+    required this.loginName,
+    required this.password,
+  });
+
+  /// The underlying client that performs the actual requests.
+  final http.Client inner;
+
+  final String loginName;
+  final String password;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    if (request is! http.Request) {
+      return inner.send(request);
+    }
+    // Capture the body before the first send: the underlying client consumes
+    // (finalizes) the request, so it cannot be reused afterwards.
+    final body = request.bodyBytes;
+    final headers = Map<String, String>.from(request.headers);
+    final response = await inner.send(request);
+    if (response.statusCode != 401) {
+      return response;
+    }
+    // The bearer attempt failed; drain it so the connection can be reused.
+    await response.stream.drain();
+    final retry = http.Request(request.method, request.url)
+      ..headers.addAll(headers)
+      ..bodyBytes = body;
+    retry.headers['Authorization'] =
+        'Basic ${base64Encode(utf8.encode('$loginName:$password'))}';
+    return inner.send(retry);
+  }
+
+  @override
+  void close() => inner.close();
+}

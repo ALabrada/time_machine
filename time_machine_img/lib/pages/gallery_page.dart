@@ -10,6 +10,7 @@ import 'package:time_machine_img/controllers/gallery_controller.dart';
 import 'package:time_machine_img/domain/gallery_section.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
 import 'package:time_machine_img/molecules/gallery_cell.dart';
+import 'package:time_machine_img/molecules/sync_banner.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
 import '../molecules/gallery_search_bar.dart';
@@ -23,17 +24,29 @@ class GalleryPage extends StatefulWidget {
 
 class GalleryPageState extends State<GalleryPage> {
   late GalleryController galleryController;
+  StreamSubscription? _syncFailedSubscription;
 
   @override
   void initState() {
     galleryController = GalleryController(
+      configurationService: context.read(),
+      cloudSyncService: context.read(),
+      networkService: context.read(),
       sharingService: context.read(),
     );
+    _syncFailedSubscription = galleryController.syncFailed.skip(1).listen((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(ImgLocalizations.of(context).syncError),
+        ));
+      }
+    });
     super.initState();
   }
 
   @override
   void dispose() {
+    _syncFailedSubscription?.cancel();
     galleryController.dispose();
     super.dispose();
   }
@@ -46,6 +59,9 @@ class GalleryPageState extends State<GalleryPage> {
           GallerySearchBar(
             controller: galleryController.searchController,
             hintText: ImgLocalizations.of(context).searchBarHint,
+          ),
+          SyncBanner(
+            syncInProgress: galleryController.syncInProgress,
           ),
           Expanded(
             child: Stack(
@@ -96,7 +112,9 @@ class GalleryPageState extends State<GalleryPage> {
                 onPressed: () {
                   unawaited(_deleteSelection());
                 },
-                child: Icon(Icons.delete_outline),
+                child: Icon(Icons.delete_outline,
+                  color: Colors.redAccent,
+                ),
               ),
             ),
             const SizedBox(height: 22),
