@@ -237,11 +237,13 @@ class MapPageState extends State<MapPage> {
       action: SnackBarAction(
         label: MapLocalizations.of(context).locationNotFoundAction,
         onPressed: () {
-          if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-            unawaited(Geolocator.openAppSettings());
-          } else {
-            unawaited(Geolocator.openLocationSettings());
-          }
+          final action = permission == LocationPermission.denied ||
+                  permission == LocationPermission.deniedForever
+              ? Geolocator.openAppSettings()
+              : Geolocator.openLocationSettings();
+          // Desktop platforms often cannot open location settings (geolocator
+          // throws UnimplementedError); ignore the failure.
+          unawaited(action.then((_) {}, onError: (_) {}));
         },
       ),
     ));

@@ -14,7 +14,11 @@ on:
         options:
           - android
           - ios
+          - linux
+          - macos
+          - windows
           - both
+          - all
 
 jobs:
   get-release-url:
@@ -37,7 +41,7 @@ jobs:
       
   build-android:
     name: Build Android APK
-    if: github.event.inputs.platform == 'android' || github.event.inputs.platform == 'both'
+    if: github.event.inputs.platform == 'android' || github.event.inputs.platform == 'both' || github.event.inputs.platform == 'all'
     needs: get-release-url
     runs-on: self-hosted
     steps:
@@ -71,7 +75,7 @@ jobs:
 
   build-ios:
     name: Build iOS IPA (Unsigned)
-    if: github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both'
+    if: github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both' || github.event.inputs.platform == 'all'
     needs: get-release-url
     runs-on: [self-hosted, macOS]
     steps:
@@ -103,3 +107,103 @@ jobs:
           asset_path: build/Runner.ipa
           asset_name: iOS.ipa
           asset_content_type: application/octet-stream
+
+  build-macos:
+    name: Build macOS App (Unsigned)
+    if: github.event.inputs.platform == 'macos' || github.event.inputs.platform == 'both' || github.event.inputs.platform == 'all'
+    needs: get-release-url
+    runs-on: [self-hosted, macOS]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Create secrets file
+        run: |
+          cat << 'EOF' > lib/secrets.dart
+          ${{ secrets.LIB_SECRETS }}
+          EOF
+
+      - run: flutter pub get
+      - name: Build macOS (unsigned)
+        run: flutter build macos --release
+      - name: Package as ZIP
+        run: |
+          APP="$PWD/build/macos/Build/Products/Release/time_machine.app"
+          test -d "$APP"
+          cd "$(dirname "$APP")"
+          zip -r macOS.zip time_machine.app
+      - name: Upload App to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.get-release-url.outputs.upload_url }}
+          asset_path: build/macos/Build/Products/Release/macOS.zip
+          asset_name: macOS.zip
+          asset_content_type: application/zip
+
+  build-linux:
+    name: Build Linux App
+    if: github.event.inputs.platform == 'linux' || github.event.inputs.platform == 'both' || github.event.inputs.platform == 'all'
+    needs: get-release-url
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Create secrets file
+        run: |
+          cat << 'EOF' > lib/secrets.dart
+          ${{ secrets.LIB_SECRETS }}
+          EOF
+
+      - run: flutter pub get
+      - name: Build Linux
+        run: flutter build linux --release
+      - name: Package as TAR.GZ
+        run: tar -czf Linux.tar.gz -C build/linux/x64/release bundle
+      - name: Upload App to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.get-release-url.outputs.upload_url }}
+          asset_path: build/linux/x64/release/Linux.tar.gz
+          asset_name: Linux.tar.gz
+          asset_content_type: application/gzip
+
+  build-windows:
+    name: Build Windows App
+    if: github.event.inputs.platform == 'windows' || github.event.inputs.platform == 'both' || github.event.inputs.platform == 'all'
+    needs: get-release-url
+    runs-on: [self-hosted, windows]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Create secrets file
+        shell: bash
+        run: |
+          cat << 'EOF' > lib/secrets.dart
+          ${{ secrets.LIB_SECRETS }}
+          EOF
+
+      - run: flutter pub get
+      - name: Build Windows
+        run: flutter build windows --release
+      - name: Package as ZIP
+        run: |
+          cd build/windows/x64/runner
+          powershell -Command "Compress-Archive -Path Release -DestinationPath Windows.zip -Force"
+      - name: Upload App to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.get-release-url.outputs.upload_url }}
+          asset_path: build/windows/x64/runner/Windows.zip
+          asset_name: Windows.zip
+          asset_content_type: application/zip

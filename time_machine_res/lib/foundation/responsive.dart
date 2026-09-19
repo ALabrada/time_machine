@@ -40,7 +40,16 @@ Future<bool?> _queryOsTablet() async {
 /// which is also what controls whether orientations can be locked. Otherwise
 /// it falls back to the shortest side of the window, so small tablets are
 /// recognized regardless of orientation and phones keep the classic layout.
+///
+/// Desktop windows always count as tablets: they cannot be orientation-locked,
+/// and the navigation rail + [TabletCameraPage] are the right layout at any
+/// window size.
 bool isTabletLayout(BuildContext context) {
+  if (defaultTargetPlatform == TargetPlatform.linux ||
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.windows) {
+    return true;
+  }
   return MediaQuery.sizeOf(context).shortestSide >= tabletBreakpoint ||
       (_osTablet ?? false);
 }

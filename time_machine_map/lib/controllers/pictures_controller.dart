@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -162,6 +163,32 @@ class PicturesController {
     return true;
   }
 
+  static bool get _isDesktop =>
+      defaultTargetPlatform == TargetPlatform.linux ||
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.windows;
+
+  /// Whether [permission] is enough to read the location.
+  ///
+  /// Desktop platforms have no runtime permission dialog: geolocator reports
+  /// [LocationPermission.unableToDetermine] and `requestPermission` is not
+  /// implemented. Treating that as granted lets GeoClue (Linux) and the OS
+  /// location services (macOS, Windows) keep working.
+  static bool _hasLocationPermission(LocationPermission permission) {
+    if (permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse) {
+      return true;
+    }
+    // Desktop geolocator implementations have no runtime permission dialog and
+    // report `unableToDetermine`; treat that as usable so GeoClue (Linux) and
+    // the OS location services (macOS, Windows) are actually queried. On web
+    // `unableToDetermine` is kept as-is to avoid prompting on startup.
+    if (permission == LocationPermission.unableToDetermine && _isDesktop) {
+      return true;
+    }
+    return false;
+  }
+
   Future<bool> moveToCurrentLocation() async {
     final mapController = this.mapController;
     if (mapController == null) {
@@ -173,9 +200,13 @@ class PicturesController {
       var position = this.position.valueOrNull;
       if (position == null) {
         var permission = await Geolocator.checkPermission();
-        if (permission != LocationPermission.always && permission != LocationPermission.whileInUse) {
-          permission = await Geolocator.requestPermission();
-          if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        if (!_hasLocationPermission(permission)) {
+          try {
+            permission = await Geolocator.requestPermission();
+          } on UnimplementedError {
+            permission = LocationPermission.unableToDetermine;
+          }
+          if (!_hasLocationPermission(permission)) {
             return false;
           }
         }
@@ -188,9 +219,21 @@ class PicturesController {
           return false;
         }
 
-        position = await Geolocator.getCurrentPosition(
-          locationSettings: LocationSettings(accuracy: LocationAccuracy.best),
-        );
+        try {
+          final positionFuture = Geolocator.getCurrentPosition(
+            locationSettings:
+                LocationSettings(accuracy: LocationAccuracy.best),
+          );
+          // GeoClue (Linux) can block forever when no agent is available to
+          // authorize the client, so cap the wait on desktop platforms.
+          position = _isDesktop
+              ? await positionFuture.timeout(const Duration(seconds: 15))
+              : await positionFuture;
+        } on Exception {
+          // The platform exposed no usable position (e.g. the GeoClue agent
+          // is not running on Linux); degrade to "location not found".
+          return false;
+        }
       }
 
       final coord = LatLng(position.latitude, position.longitude);
@@ -207,7 +250,7 @@ class PicturesController {
 
   Future<bool> _subscribePositionIfAvailable() async {
     var permission = await Geolocator.checkPermission();
-    if (permission != LocationPermission.always && permission != LocationPermission.whileInUse) {
+    if (!_hasLocationPermission(permission)) {
       return false;
     }
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -217,7 +260,15 @@ class PicturesController {
 
   void _subscribePosition({bool serviceEnabled=false}) {
     _positionSubscription?.cancel();
-    _positionSubscription = Geolocator.getServiceStatusStream().mergeWith([
+    Stream<ServiceStatus> serviceStatus;
+    try {
+      serviceStatus = Geolocator.getServiceStatusStream();
+    } on UnimplementedError {
+      // Desktop geolocator implementations do not expose the service status
+      // stream; fall back to a single emission of the service state.
+      serviceStatus = const Stream.empty();
+    }
+    _positionSubscription = serviceStatus.mergeWith([
       Stream.value(serviceEnabled ? ServiceStatus.enabled : ServiceStatus.disabled),
     ])
       .flatMap((s) {
@@ -228,6 +279,9 @@ class PicturesController {
         }
         return Stream.value(null);
       })
-      .listen(position.add);
+      .listen(position.add, onError: (Object _) {
+        // The position source failed (e.g. GeoClue is unavailable on desktop);
+        // drop the sample instead of surfacing an unhandled stream error.
+      });
   }
 }

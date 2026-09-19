@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:time_machine/app.dart';
 import 'package:time_machine_res/time_machine_res.dart';
@@ -19,11 +20,26 @@ Future<void> main() async {
       OAuthDeepLinkObserver(oauthRedirectSchemes()),
     );
     await prefetchOsTabletStatus();
-    await FkUserAgent.init();
-    final userAgent = FkUserAgent.userAgent;
     final packageInfo = await PackageInfo.fromPlatform();
+    // fk_user_agent reads a real device/WebView user agent, which only exists
+    // on Android/iOS. Every other platform (including the web branch above)
+    // falls back to a synthetic UA so the desktop build boots without a
+    // native channel implementation.
+    var userAgent =
+        "HistoryLens/${packageInfo.version} ${defaultTargetPlatform.name}";
+    if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
+      try {
+        await FkUserAgent.init();
+        userAgent = "HistoryLens/${packageInfo.version} "
+            "${FkUserAgent.userAgent ?? defaultTargetPlatform.name}";
+      } on MissingPluginException {
+        userAgent =
+            "HistoryLens/${packageInfo.version} ${defaultTargetPlatform.name}";
+      }
+    }
     runApp(TimeMachineApp(
-      userAgent: "HistoryLens/${packageInfo.version} $userAgent",
+      userAgent: userAgent,
       packageInfo: packageInfo,
     ));
   }
