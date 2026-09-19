@@ -6,12 +6,17 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:select_dialog/select_dialog.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:time_machine_config/controllers/configuration_controller.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../l10n/config_localizations.dart';
 import '../controllers/selection_controller.dart';
 import '../domain/frame_size.dart';
+
+/// The application name shown on desktop, where [PackageInfo.appName] reports
+/// the Dart package name instead of the product name.
+const String _desktopApplicationName = 'History Lens';
 
 class ConfigurationPage extends StatefulWidget {
   const ConfigurationPage({
@@ -66,7 +71,10 @@ class ConfigurationPageState extends State<ConfigurationPage> {
         alignment: Alignment.center,
         color: Theme.of(context).colorScheme.surface,
         padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        child: packageInfo == null ? null : Text('${packageInfo.appName} v${packageInfo.version}'),
+        child: packageInfo == null
+            ? null
+            : Text(
+                '${isDesktopPlatform() ? _desktopApplicationName : packageInfo.appName} v${packageInfo.version}'),
       ),
     );
   }

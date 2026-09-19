@@ -4,10 +4,10 @@ project(runner LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "time_machine")
+set(BINARY_NAME "history_lens")
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "com.fakegem.time_machine")
+set(APPLICATION_ID "com.fakegem.historylens")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
@@ -120,6 +120,12 @@ install(CODE "
   " COMPONENT Runtime)
 install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
   DESTINATION "${INSTALL_BUNDLE_DATA_DIR}" COMPONENT Runtime)
+
+# Install the application icon so the runner can use it as the window icon.
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../assets/images/favicon.png"
+  DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
+  RENAME "app_icon.png"
+  COMPONENT Runtime)
 
 # Install the AOT library on non-Debug builds only.
 if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")

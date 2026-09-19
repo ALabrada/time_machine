@@ -7,6 +7,9 @@
 
 #include "flutter/generated_plugin_registrant.h"
 
+// The human-readable application name, shown in the window and header titles.
+static const gchar kApplicationName[] = "History Lens";
+
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
@@ -19,11 +22,34 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
+// Sets the window icon from the icon bundled next to the executable.
+static void set_window_icon(GtkWindow* window) {
+  g_autofree gchar* executable_path = g_file_read_link("/proc/self/exe", nullptr);
+  if (executable_path == nullptr) {
+    return;
+  }
+  g_autofree gchar* executable_dir = g_path_get_dirname(executable_path);
+  g_autofree gchar* icon_path =
+      g_build_filename(executable_dir, "data", "app_icon.png", nullptr);
+  // Scale down: a full-size icon exceeds the maximum X11 request size, which
+  // would make _NET_WM_ICON silently fail to be set.
+  g_autoptr(GError) error = nullptr;
+  g_autoptr(GdkPixbuf) pixbuf =
+      gdk_pixbuf_new_from_file_at_scale(icon_path, 256, 256, TRUE, &error);
+  if (pixbuf == nullptr) {
+    g_warning("Unable to load application icon from '%s': %s", icon_path,
+              error != nullptr ? error->message : "unknown error");
+    return;
+  }
+  gtk_window_set_icon(window, pixbuf);
+}
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
+  set_window_icon(window);
 
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu
@@ -45,11 +71,11 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "time_machine");
+    gtk_header_bar_set_title(header_bar, kApplicationName);
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "time_machine");
+    gtk_window_set_title(window, kApplicationName);
   }
 
   gtk_window_set_default_size(window, 1280, 720);
