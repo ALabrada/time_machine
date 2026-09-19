@@ -61,7 +61,19 @@ class ConfigLocalizationsEn extends ConfigLocalizations {
   }
 
   @override
+  String questionHowToSharePicturesBodyDesktop(
+    String telegramChannel,
+    String browserIcon,
+  ) {
+    return 'You can save a historic picture or its replica by opening it and pressing the corresponding button, or by selecting the option in the context menu. The context menu also allows exporting the data and publishing pictures in the [Re.Photos](https://www.re.photos) website or in our [Telegram channel]($telegramChannel). In order to publish to [Re.Photos](https://www.re.photos), you will be taken to their website and will have to complete the creation form, but first you will need to login to your account (or create an account if you don\'t have one). \n\nIt is better to save the original versions of the historic pictures, obtained from their website, to avoid watermarks. You can access the website by selecting the historical picture and pressing the $browserIcon **Browser** button.';
+  }
+
+  @override
   String get questionHowToSharePicturesTitle => 'How to share my pictures?';
+
+  @override
+  String get questionHowToSharePicturesTitleDesktop =>
+      'How to save my pictures?';
 
   @override
   String get questionHowToTakePictureBody =>

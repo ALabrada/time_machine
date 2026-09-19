@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:cross_file/cross_file.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
@@ -10,7 +11,6 @@ import 'package:flutter_map_compass/flutter_map_compass.dart';
 import 'package:flutter_map_marker_cluster_plus/flutter_map_marker_cluster_plus.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_map/controllers/pictures_controller.dart';
@@ -19,7 +19,7 @@ import 'package:time_machine_map/molecules/map_search_bar.dart';
 import 'package:time_machine_map/molecules/picture_marker_layer.dart';
 import 'package:time_machine_map/services/database_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
-import 'package:time_machine_res/molecules/context_menu.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
@@ -281,6 +281,9 @@ class MapPageState extends State<MapPage> {
     if (fetchedModel == null || !mounted) {
       return;
     }
+    final dialogTitle =
+        ResLocalizations.of(context).saveFileDialogTitle;
+    final userMessages = context.read<UserMessageService>();
     await context.showContextMenu(
         model: model,
         databaseService: context.read(),
@@ -291,11 +294,15 @@ class MapPageState extends State<MapPage> {
             context.go(url);
           }
         },
-        shareFile: (path) {
-          SharePlus.instance.share(ShareParams(
+        saveFile: (path) async {
+          final result = await saveFiles(
             files: [XFile(path)],
             text: model.text,
-          ));
+            dialogTitle: dialogTitle,
+          );
+          if (result is FileSaved) {
+            userMessages.savedToFile(result.path);
+          }
         }
     );
   }

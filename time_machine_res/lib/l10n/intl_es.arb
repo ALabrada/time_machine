@@ -5,5 +5,8 @@
   "menuActionImport": "Importar réplica de la foto",
   "menuActionOpenSource": "Abrir fuente",
   "menuActionShare": "Compartir foto",
-  "menuActionView": "Ver foto"
+  "menuActionSave": "Guardar foto",
+  "menuActionView": "Ver foto",
+  "saveFileDialogTitle": "Guardar archivo",
+  "savedToFile": "Guardado en {path}"
 }

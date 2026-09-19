@@ -3,11 +3,11 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' show Rectangle;
 
+import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/controllers/playback_controller.dart';
@@ -16,6 +16,7 @@ import 'package:time_machine_img/domain/timelapse_state.dart';
 import 'package:time_machine_img/services/timelapse_service.dart';
 import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_net/time_machine_net.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 
 import '../services/database_service.dart';
 
@@ -27,6 +28,7 @@ class TimelapseController extends ValueNotifier<TimelapseState>
     this.databaseService,
     this.cloudSyncService,
     this.playbackController,
+    this.userMessages,
     ConfigurationService? configurationService,
     int? frameSize,
     int? fps,
@@ -45,6 +47,7 @@ class TimelapseController extends ValueNotifier<TimelapseState>
   final CloudSyncService? cloudSyncService;
   final Duration duration;
   final PlaybackController? playbackController;
+  final UserMessageService? userMessages;
   final ConfigurationService? configurationService;
   int frameSize;
   int fps;
@@ -192,7 +195,7 @@ class TimelapseController extends ValueNotifier<TimelapseState>
     ));
   }
 
-  Future<void> shareGif() async {
+  Future<void> saveGif({String? dialogTitle}) async {
     final state = value;
     if (state is! FinishedState) {
       return;
@@ -202,9 +205,13 @@ class TimelapseController extends ValueNotifier<TimelapseState>
       '${dir.path}/timelapse_${DateTime.now().millisecondsSinceEpoch}.gif',
     );
     await file.writeAsBytes(state.data, flush: true);
-    await SharePlus.instance.share(ShareParams(
+    final result = await saveFiles(
       files: [XFile(file.path)],
-    ));
+      dialogTitle: dialogTitle,
+    );
+    if (result is FileSaved) {
+      userMessages?.savedToFile(result.path);
+    }
   }
 
   void setQuality({int? frameSize, int? fps}) {

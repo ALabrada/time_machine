@@ -136,11 +136,29 @@ abstract class ResLocalizations {
   /// **'Share picture'**
   String get menuActionShare;
 
+  /// No description provided for @menuActionSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save picture'**
+  String get menuActionSave;
+
   /// No description provided for @menuActionView.
   ///
   /// In en, this message translates to:
   /// **'Show picture'**
   String get menuActionView;
+
+  /// No description provided for @saveFileDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save file'**
+  String get saveFileDialogTitle;
+
+  /// No description provided for @savedToFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {path}'**
+  String savedToFile(String path);
 }
 
 class _ResLocalizationsDelegate

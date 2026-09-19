@@ -27,5 +27,16 @@ class ResLocalizationsEn extends ResLocalizations {
   String get menuActionShare => 'Share picture';
 
   @override
+  String get menuActionSave => 'Save picture';
+
+  @override
   String get menuActionView => 'Show picture';
+
+  @override
+  String get saveFileDialogTitle => 'Save file';
+
+  @override
+  String savedToFile(String path) {
+    return 'Saved to $path';
+  }
 }

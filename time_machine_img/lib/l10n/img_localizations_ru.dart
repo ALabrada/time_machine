@@ -69,6 +69,9 @@ class ImgLocalizationsRu extends ImgLocalizations {
   String get timelapseShare => 'Поделиться GIF';
 
   @override
+  String get timelapseShareDesktop => 'Сохранить GIF';
+
+  @override
   String get timelapseSettings => 'Настройки';
 
   @override

@@ -62,7 +62,19 @@ class ConfigLocalizationsEs extends ConfigLocalizations {
   }
 
   @override
+  String questionHowToSharePicturesBodyDesktop(
+    String telegramChannel,
+    String browserIcon,
+  ) {
+    return 'Puede guardar una foto histórica o su réplica abriéndola y presionando el botón correspondiente, o seleccionando la opción en el menú. El menú también permite exportar los datos y publicar las fotos en el sitio [Re.Photos](https://www.re.photos) o en nuestro [canal de Telegram]($telegramChannel). Para publicar en [Re.Photos](https://www.re.photos) se abrirá el sitio web y deberá completar el formulario de creación, pero primeramente deberá acceder a su cuenta (o crear una nueva si no tiene). \n\nEs mejor guardar las versiones originales de las fotos históricas, obtenidas desde sus sitios web, para evitar marcas de agua. Puede abrir el sitio web de origen, seleccionando la foto histórica y presionando el botón $browserIcon **Navegador**.';
+  }
+
+  @override
   String get questionHowToSharePicturesTitle => '¿Cómo compartir mis fotos?';
+
+  @override
+  String get questionHowToSharePicturesTitleDesktop =>
+      '¿Cómo guardar mis fotos?';
 
   @override
   String get questionHowToTakePictureBody =>

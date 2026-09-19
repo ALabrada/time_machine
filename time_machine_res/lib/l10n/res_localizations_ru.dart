@@ -27,5 +27,16 @@ class ResLocalizationsRu extends ResLocalizations {
   String get menuActionShare => 'Поделиться фотографией';
 
   @override
+  String get menuActionSave => 'Сохранить фотографию';
+
+  @override
   String get menuActionView => 'Посмотреть фотографию';
+
+  @override
+  String get saveFileDialogTitle => 'Сохранить файл';
+
+  @override
+  String savedToFile(String path) {
+    return 'Сохранено в $path';
+  }
 }

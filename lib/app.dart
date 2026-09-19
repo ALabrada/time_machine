@@ -277,6 +277,10 @@ class TimeMachineApp extends StatelessWidget {
         Provider<CloudSyncService>(
           create: (_) => CloudSyncService(),
         ),
+        Provider<UserMessageService>(
+          create: (_) => UserMessageService(),
+          dispose: (_, service) => service.dispose(),
+        ),
         Provider<CacheService>(
           create: (context) => CacheService(
             cacheManager: CachedNetworkImageProvider.defaultCacheManager,
@@ -325,6 +329,8 @@ class TimeMachineApp extends StatelessWidget {
       builder: (context, _) {
         return MaterialApp.router(
           title: context.read<PackageInfo?>()?.appName,
+          builder: (context, child) =>
+              UserMessageListener(child: child ?? const SizedBox.shrink()),
           localizationsDelegates: [
             AppLocalizations.delegate,
             CamLocalizations.delegate,

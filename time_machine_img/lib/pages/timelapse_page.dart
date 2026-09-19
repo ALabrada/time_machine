@@ -52,6 +52,7 @@ class TimelapsePageState extends State<TimelapsePage>
       duration: duration,
       playbackController: playbackController,
       cloudSyncService: context.read(),
+      userMessages: context.read(),
     );
     controller.watchRecord(widget.recordId);
     watchSyncRecord(

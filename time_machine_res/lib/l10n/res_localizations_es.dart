@@ -27,5 +27,16 @@ class ResLocalizationsEs extends ResLocalizations {
   String get menuActionShare => 'Compartir foto';
 
   @override
+  String get menuActionSave => 'Guardar foto';
+
+  @override
   String get menuActionView => 'Ver foto';
+
+  @override
+  String get saveFileDialogTitle => 'Guardar archivo';
+
+  @override
+  String savedToFile(String path) {
+    return 'Guardado en $path';
+  }
 }

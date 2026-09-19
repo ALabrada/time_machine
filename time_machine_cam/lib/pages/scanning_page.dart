@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:ar_location_view/ar_location_view.dart';
+import 'package:cross_file/cross_file.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_cam/services/database_service.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -12,7 +12,7 @@ import 'package:time_machine_cam/domain/picture_annotation.dart';
 import 'package:time_machine_cam/molecules/annotation_view.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:go_router/go_router.dart';
-import 'package:time_machine_res/molecules/context_menu.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../l10n/cam_localizations.dart';
@@ -158,6 +158,9 @@ class ScanningPageState extends State<ScanningPage> {
     if (fetchedModel == null || !mounted) {
       return;
     }
+    final dialogTitle =
+        ResLocalizations.of(context).saveFileDialogTitle;
+    final userMessages = context.read<UserMessageService>();
     await context.showContextMenu(
       model: model,
       databaseService: context.read(),
@@ -168,11 +171,15 @@ class ScanningPageState extends State<ScanningPage> {
           context.go(url);
         }
       },
-      shareFile: (path) async {
-        await SharePlus.instance.share(ShareParams(
+      saveFile: (path) async {
+        final result = await saveFiles(
           files: [XFile(path)],
           text: model.text,
-        ));
+          dialogTitle: dialogTitle,
+        );
+        if (result is FileSaved) {
+          userMessages.savedToFile(result.path);
+        }
       }
     );
   }

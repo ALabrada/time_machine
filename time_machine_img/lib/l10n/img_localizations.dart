@@ -214,6 +214,12 @@ abstract class ImgLocalizations {
   /// **'Share GIF'**
   String get timelapseShare;
 
+  /// No description provided for @timelapseShareDesktop.
+  ///
+  /// In en, this message translates to:
+  /// **'Save GIF'**
+  String get timelapseShareDesktop;
+
   /// No description provided for @timelapseSettings.
   ///
   /// In en, this message translates to:

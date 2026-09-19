@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:time_machine_img/controllers/playback_controller.dart';
 import 'package:time_machine_img/controllers/timelapse_controller.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 
 import 'settings_button.dart';
 import 'tool_bar.dart';
@@ -33,9 +34,14 @@ class PlaybackToolBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 24),
               children: [
                 IconButton(
-                  tooltip: ImgLocalizations.of(context).timelapseShare,
-                  onPressed: () => controller.shareGif(),
-                  icon: const Icon(Icons.share),
+                  tooltip: isDesktopPlatform()
+                      ? ImgLocalizations.of(context).timelapseShareDesktop
+                      : ImgLocalizations.of(context).timelapseShare,
+                  onPressed: () => controller.saveGif(
+                    dialogTitle:
+                        ResLocalizations.of(context).saveFileDialogTitle,
+                  ),
+                  icon: Icon(isDesktopPlatform() ? Icons.save_alt : Icons.share),
                 ),
                 AnimatedBuilder(
                   animation: playbackController,

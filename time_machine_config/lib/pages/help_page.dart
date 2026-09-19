@@ -69,8 +69,14 @@ class HelpPageState extends State<HelpPage> {
         ),
         QuestionCell(
           key: ValueKey(6),
-          title: localizations.questionHowToSharePicturesTitle,
-          body: localizations.questionHowToSharePicturesBody(telegramChannel, Icons.open_in_browser.md),
+          title: isDesktop
+              ? localizations.questionHowToSharePicturesTitleDesktop
+              : localizations.questionHowToSharePicturesTitle,
+          body: isDesktop
+              ? localizations.questionHowToSharePicturesBodyDesktop(
+                  telegramChannel, Icons.open_in_browser.md)
+              : localizations.questionHowToSharePicturesBody(
+                  telegramChannel, Icons.open_in_browser.md),
         ),
         QuestionCell(
           key: ValueKey(7),

@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_res/l10n/res_localizations.dart';
 
+import '../foundation/responsive.dart';
 import 'adaptive_action_sheet.dart';
 
 extension ContextMenu on BuildContext {
   Future<void> showContextMenu({
     required Picture model,
     required Function (String uri) navigateTo,
-    required Function (String uri) shareFile,
+    required Function (String uri) saveFile,
     DatabaseService? databaseService,
   }) async {
     final title = model.description;
@@ -63,16 +64,18 @@ extension ContextMenu on BuildContext {
           ),
         if (!kIsWeb)
           BottomSheetAction(
-            leading: Icon(Icons.share),
-            title: Text(ResLocalizations.of(this).menuActionShare),
+            leading: Icon(isDesktopPlatform() ? Icons.save_alt : Icons.share),
+            title: Text(isDesktopPlatform()
+                ? ResLocalizations.of(this).menuActionSave
+                : ResLocalizations.of(this).menuActionShare),
             onPressed: (context) {
               final uri = Uri.parse(model.url);
               if (uri.isScheme('file')) {
                 final path = databaseService?.expandPath(uri.path) ?? uri.path;
-                shareFile(path);
+                saveFile(path);
               } else {
                 CachedNetworkImageProvider.defaultCacheManager.getSingleFile(model.url).then((v) {
-                  shareFile(v.path);
+                  saveFile(v.path);
                 });
               }
               Navigator.of(context).pop();

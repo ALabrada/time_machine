@@ -25,6 +25,7 @@ dependencies:
   adaptive_action_sheet: 2.0.3
   cachette: ^1.0.0
   cached_network_image: ^3.4.1
+  cross_file: any
   dio: ^5.7.0
   flutter_map: ^8.3.1
   flutter_map_cancellable_tile_provider: ^3.1.0
@@ -40,7 +41,6 @@ dependencies:
   path_provider: ^2.1.2
   provider: ^6.1.2
   rxdart: ^0.28.0
-  share_plus: ^11.0.0
   shared_preferences: ^2.3.5
   sliding_up_panel: ^2.0.0+1
   url_launcher: ^6.3.1

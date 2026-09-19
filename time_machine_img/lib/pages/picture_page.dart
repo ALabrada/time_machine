@@ -44,6 +44,7 @@ class PicturePageState extends State<PicturePage>
       databaseService: context.read(),
       networkService: context.read(),
       cloudSyncService: context.read(),
+      userMessages: context.read(),
     );
     pictureController.watchPicture(widget.pictureId);
     watchSyncRecord(
@@ -147,9 +148,12 @@ class PicturePageState extends State<PicturePage>
             onPressed: widget.pictureId == null
                 ? null
                 : () {
-                    unawaited(pictureController.sharePicture());
+                    unawaited(pictureController.savePicture(
+                      dialogTitle:
+                          ResLocalizations.of(context).saveFileDialogTitle,
+                    ));
                   },
-            icon: Icon(Icons.share),
+            icon: Icon(isDesktopPlatform() ? Icons.save_alt : Icons.share),
           ),
         ],
       ),

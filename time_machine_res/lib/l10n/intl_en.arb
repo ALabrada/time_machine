@@ -5,5 +5,15 @@
   "menuActionImport": "Import replica of the picture",
   "menuActionOpenSource": "Open source",
   "menuActionShare": "Share picture",
-  "menuActionView": "Show picture"
+  "menuActionSave": "Save picture",
+  "menuActionView": "Show picture",
+  "saveFileDialogTitle": "Save file",
+  "savedToFile": "Saved to {path}",
+  "@savedToFile": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/services/database_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
+import 'package:time_machine_res/time_machine_res.dart';
 
 /// Keeps the [Picture] rendered by [PicturePage] in sync with the database,
 /// reacting to changes pushed by [CloudSyncService]. Only [Picture]s are
@@ -27,12 +27,14 @@ class PictureController {
     this.networkService,
     this.cloudSyncService,
     this.picture,
+    this.userMessages,
   });
 
   final CacheService cacheService;
   final DatabaseService? databaseService;
   final NetworkService? networkService;
   final CloudSyncService? cloudSyncService;
+  final UserMessageService? userMessages;
   Picture? picture;
 
   final _pictureChanges = BehaviorSubject<Picture?>();
@@ -89,7 +91,7 @@ class PictureController {
     _pictureChanges.close();
   }
 
-  Future<void> sharePicture() async {
+  Future<void> savePicture({String? dialogTitle}) async {
     final picture = this.picture;
     if (picture == null) {
       return;
@@ -97,10 +99,14 @@ class PictureController {
 
     final file = await cacheService.fetch(picture.url);
 
-    await SharePlus.instance.share(ShareParams(
+    final result = await saveFiles(
       files: [file],
       text: picture.text,
-    ));
+      dialogTitle: dialogTitle,
+    );
+    if (result is FileSaved) {
+      userMessages?.savedToFile(result.path);
+    }
   }
 
   Future<void> updateDescription(String description) async {

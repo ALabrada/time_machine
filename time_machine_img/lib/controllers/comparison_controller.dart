@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:isolate';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_compare_2/image_compare_2.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/controllers/sync_record_controller.dart';
 import 'package:time_machine_img/services/database_service.dart';
@@ -18,6 +17,7 @@ class ComparisonController with TaskManager, SyncRecordController {
     this.networkService,
     this.telegramService,
     this.cloudSyncService,
+    this.userMessages,
   });
 
   final CacheService cacheService;
@@ -25,6 +25,7 @@ class ComparisonController with TaskManager, SyncRecordController {
   final NetworkService? networkService;
   final TelegramService? telegramService;
   final CloudSyncService? cloudSyncService;
+  final UserMessageService? userMessages;
   double? similarity;
 
   void watchRecord(int? id) {
@@ -91,7 +92,7 @@ class ComparisonController with TaskManager, SyncRecordController {
     return true;
   }
 
-  Future<void> sharePictures() async {
+  Future<void> savePictures({String? dialogTitle}) async {
     final record = this.record;
     final picture = record?.picture;
     final original = record?.original;
@@ -102,14 +103,18 @@ class ComparisonController with TaskManager, SyncRecordController {
     final originalFile = original == null
         ? null
         : await execute(() => cacheService.fetch(original.url));
-    await SharePlus.instance.share(ShareParams(
+    final result = await saveFiles(
       files: [
         pictureFile,
         if (originalFile != null)
           originalFile,
       ],
       text: picture.description,
-    ));
+      dialogTitle: dialogTitle,
+    );
+    if (result is FileSaved) {
+      userMessages?.savedToFile(result.path);
+    }
   }
 
   Future<double?> comparePictures(Record? record) async {

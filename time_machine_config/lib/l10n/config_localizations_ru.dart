@@ -62,8 +62,20 @@ class ConfigLocalizationsRu extends ConfigLocalizations {
   }
 
   @override
+  String questionHowToSharePicturesBodyDesktop(
+    String telegramChannel,
+    String browserIcon,
+  ) {
+    return 'Вы можете сохранить историческую фотографию или ее реплику, открыв ее и нажав соответствующую кнопку, или выбрав пункт в контекстном меню. Контекстное меню также позволяет экспортировать данные и публиковать фотографии на веб-сайте [Re.Photos](https://www.re.photos) или в нашем [Telegram-канале]($telegramChannel). Чтобы опубликовать на [Re.Photos](https://www.re.photos), откроем их веб-сайт и надо будет заполнить форму создания, но сначала вам нужно будет войти в свой аккаунт (или создать аккаунт, если его нет). \n\nЛучше сохранять оригинальные версии исторических фотографий, полученных с их веб-сайта, чтобы избежать водяных знаков. Вы можете получить доступ к веб-сайту, выбрав историческую картинку и нажав кнопку $browserIcon **Браузер**.';
+  }
+
+  @override
   String get questionHowToSharePicturesTitle =>
       'Как поделиться своими фотографиями?';
+
+  @override
+  String get questionHowToSharePicturesTitleDesktop =>
+      'Как сохранить свои фотографии?';
 
   @override
   String get questionHowToTakePictureBody =>

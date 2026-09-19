@@ -70,6 +70,9 @@ class ImgLocalizationsEs extends ImgLocalizations {
   String get timelapseShare => 'Compartir GIF';
 
   @override
+  String get timelapseShareDesktop => 'Guardar GIF';
+
+  @override
   String get timelapseSettings => 'Configuración';
 
   @override

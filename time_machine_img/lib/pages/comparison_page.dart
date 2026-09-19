@@ -49,6 +49,7 @@ class ComparisonPageState extends State<ComparisonPage>
       networkService: context.read(),
       telegramService: context.read(),
       cloudSyncService: context.read(),
+      userMessages: context.read(),
     );
     comparisonController.watchRecord(widget.recordId);
     watchSyncRecord(
@@ -386,13 +387,14 @@ class ComparisonPageState extends State<ComparisonPage>
             context.pop();
           },
         ),
-        BottomSheetAction(
-          title: Text(ImgLocalizations.of(context).shareMenuImages),
-          onPressed: (context) {
-            unawaited(comparisonController.sharePictures());
-            context.pop();
-          },
-        ),
+        if (!isDesktopPlatform())
+          BottomSheetAction(
+            title: Text(ImgLocalizations.of(context).shareMenuImages),
+            onPressed: (context) {
+              unawaited(comparisonController.savePictures());
+              context.pop();
+            },
+          ),
       ],
     );
   }

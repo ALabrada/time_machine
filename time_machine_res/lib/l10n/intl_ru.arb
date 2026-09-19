@@ -5,5 +5,8 @@
   "menuActionImport": "Импортировать реплику фотографии",
   "menuActionOpenSource": "Открыть источник",
   "menuActionShare": "Поделиться фотографией",
-  "menuActionView": "Посмотреть фотографию"
+  "menuActionSave": "Сохранить фотографию",
+  "menuActionView": "Посмотреть фотографию",
+  "saveFileDialogTitle": "Сохранить файл",
+  "savedToFile": "Сохранено в {path}"
 }
