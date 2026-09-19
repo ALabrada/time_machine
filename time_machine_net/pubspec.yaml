@@ -15,10 +15,10 @@ dependencies:
     path: ../time_machine_db
 
   cachette: ^1.0.0
-  dropbox_api: ^0.0.6
-  cross_file: any
   collection: any
+  cross_file: any
   dio: ^5.7.0
+  dropbox_api: ^0.0.6
   flutter_cache_manager: any
   flutter_map_math: ^0.2.4
   flutter_secure_storage: ^9.2.2
@@ -29,16 +29,16 @@ dependencies:
   http: any
   intl: any
   latlong2: any
-  osm_nominatim: ^4.0.1
-  oauth2restclient: ^0.0.9
-  path: any
-  supabase: ^2.6.0
   meta: any
   nextcloud: ^9.0.0
   oauth2_client: ^3.3.0
-  uuid: any
-  url_launcher: ^6.3.1
+  oauth2restclient: ^0.0.9
+  osm_nominatim: ^4.0.1
+  path: any
   pointycastle: ^3.7.3
+  supabase: ^2.6.0
+  url_launcher: ^6.3.1
+  uuid: any
 
 dev_dependencies:
   flutter_test:
