@@ -133,7 +133,7 @@ class RecordSynchronizer {
     }
 
     final json = record.toJson();
-    final pictureRepository = databaseService.createRepository<Picture>();
+    final pictureRepository = _createRepository<Picture>();
     final original = record.original ?? (record.originalId == null
         ? null
         : await pictureRepository.getById(record.originalId!));
