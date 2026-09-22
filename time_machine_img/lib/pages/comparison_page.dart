@@ -358,7 +358,7 @@ class ComparisonPageState extends State<ComparisonPage>
       title: Text( ImgLocalizations.of(context).shareMenu),
       cancelAction: CancelAction(title: Text(ImgLocalizations.of(context).shareMenuCancel)),
       actions: [
-        if (!kIsWeb)
+        if (!kIsWeb && defaultTargetPlatform != TargetPlatform.linux)
           BottomSheetAction(
             title: Text(ImgLocalizations.of(context).shareMenuPublishTo('re.photos')),
             onPressed: (context) {
