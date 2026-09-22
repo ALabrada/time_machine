@@ -185,32 +185,13 @@ class TimeMachineApp extends StatelessWidget {
         Provider<AppLinks>(
           create: (_) => AppLinks(),
         ),
-        Provider<GoogleDriveSignIn?>(
+        Provider<NetworkService>(
           create: (context) {
-            final clientId =
+            final appLinks = context.read<AppLinks>();
+            final googleClientId =
                 defaultTargetPlatform == TargetPlatform.iOS
                     ? secrets.GOOGLE_DRIVE_CLIENT_ID_IOS
                     : secrets.GOOGLE_DRIVE_CLIENT_ID_ANDROID;
-            if (clientId.isEmpty) {
-              // Google Drive is an opt-in cloud provider: without an OAuth
-              // client id the consent flow cannot run, so do not register it.
-              return null;
-            }
-            final appLinks = context.read<AppLinks>();
-            return GoogleDriveSignIn(
-              clientId: auth.ClientId(clientId, null),
-              // Cold-start deep links (the app relaunched by the OAuth
-              // scheme) are only reported by `getInitialUri`; warm redirects
-              // arrive through `uriLinkStream`. Merge both into one stream.
-              redirectStream: _mergeDeepLinks(appLinks),
-              redirectUri: Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI),
-            );
-          },
-        ),
-        Provider<NetworkService>(
-          create: (context) {
-            final gdriveSignIn = context.read<GoogleDriveSignIn?>();
-            final appLinks = context.read<AppLinks>();
             return NetworkService(
               clouds: {
                 // Nextcloud needs no application credentials, so it is
@@ -220,14 +201,22 @@ class TimeMachineApp extends StatelessWidget {
                 'nextcloud': NextCloudCloud(
                   appRootFolderName: 'HistoryLens',
                 ),
-                if (gdriveSignIn != null)
+                if (googleClientId.isNotEmpty)
                   'gdrive': GoogleDriveCloud(
                     // No Google Play Services involved: OAuth runs through
                     // the system browser and a custom URL scheme delivered to
                     // the app as a deep link, so the cloud only needs the
                     // token store.
                     appRootFolderName: 'HistoryLens',
-                    signIn: gdriveSignIn,
+                    signIn: GoogleDriveSignIn(
+                      clientId: auth.ClientId(googleClientId, null),
+                      // Cold-start deep links (the app relaunched by the
+                      // OAuth scheme) are only reported by `getInitialUri`;
+                      // warm redirects arrive through `uriLinkStream`. Merge
+                      // both into one stream.
+                      redirectStream: _mergeDeepLinks(appLinks),
+                      redirectUri: Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI),
+                    ),
                   ),
                 if (secrets.DROPBOX_APP_KEY.isNotEmpty)
                   'dropbox': DropBoxCloud(
