@@ -46,4 +46,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-/lib/secrets.dart
+# Local secrets injected at build time (`--dart-define-from-file=config.json`).
+# Copy `config.example.json` to `config.json` and fill in the values.
+/config.json

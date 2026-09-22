@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import '../controllers/upload_controller.dart';
 import '../molecules/sync_record_page.dart';
 import '../molecules/tool_bar.dart';
+import '../services/telegram_service.dart';
 
 class ComparisonPage extends StatefulWidget {
   const ComparisonPage({
@@ -47,7 +48,7 @@ class ComparisonPageState extends State<ComparisonPage>
       cacheService: context.read(),
       databaseService: context.read(),
       networkService: context.read(),
-      telegramService: context.read(),
+      telegramService: context.read<TelegramService?>(),
       cloudSyncService: context.read(),
       userMessages: context.read(),
     );
@@ -370,7 +371,7 @@ class ComparisonPageState extends State<ComparisonPage>
               context.pop();
             },
           ),
-        if (!kIsWeb)
+        if (!kIsWeb && comparisonController.telegramService != null)
           BottomSheetAction(
             title: Text(ImgLocalizations.of(context).shareMenuPublishTo('Telegram')),
             onPressed: (context) {

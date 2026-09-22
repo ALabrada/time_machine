@@ -33,10 +33,10 @@ jobs:
         with:
           submodules: true
 
-      - name: Create secrets file
+      - name: Create config file
         run: |
-          cat << 'EOF' > lib/secrets.dart
-          ${{ secrets.LIB_SECRETS }}
+          cat << 'EOF' > config.json
+          ${{ secrets.CONFIG_JSON }}
           EOF
       
       - name: Create android key properties
@@ -48,7 +48,7 @@ jobs:
       - run: flutter pub get
       
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --dart-define-from-file=config.json
       
       - name: Upload APK to Release
         uses: actions/upload-release-asset@v1
@@ -69,16 +69,16 @@ jobs:
         with:
           submodules: true
 
-      - name: Create secrets file
+      - name: Create config file
         run: |
-          cat << 'EOF' > lib/secrets.dart
-          ${{ secrets.LIB_SECRETS }}
+          cat << 'EOF' > config.json
+          ${{ secrets.CONFIG_JSON }}
           EOF
       
       - run: flutter pub get
       
       - name: Build iOS (unsigned)
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --dart-define-from-file=config.json
       
       - name: Package as IPA
         run: |
@@ -106,16 +106,16 @@ jobs:
         with:
           submodules: true
 
-      - name: Create secrets file
+      - name: Create config file
         run: |
-          cat << 'EOF' > lib/secrets.dart
-          ${{ secrets.LIB_SECRETS }}
+          cat << 'EOF' > config.json
+          ${{ secrets.CONFIG_JSON }}
           EOF
 
       - run: flutter pub get
 
       - name: Build macOS (unsigned)
-        run: flutter build macos --release
+        run: flutter build macos --release --dart-define-from-file=config.json
 
       - name: Package as ZIP
         run: |
@@ -143,16 +143,16 @@ jobs:
         with:
           submodules: true
 
-      - name: Create secrets file
+      - name: Create config file
         run: |
-          cat << 'EOF' > lib/secrets.dart
-          ${{ secrets.LIB_SECRETS }}
+          cat << 'EOF' > config.json
+          ${{ secrets.CONFIG_JSON }}
           EOF
 
       - run: flutter pub get
 
       - name: Build Linux
-        run: flutter build linux --release
+        run: flutter build linux --release --dart-define-from-file=config.json
 
       - name: Package as TAR.GZ
         run: tar -czf Linux.tar.gz -C build/linux/x64/release bundle
@@ -176,17 +176,17 @@ jobs:
         with:
           submodules: true
 
-      - name: Create secrets file
+      - name: Create config file
         shell: bash
         run: |
-          cat << 'EOF' > lib/secrets.dart
-          ${{ secrets.LIB_SECRETS }}
+          cat << 'EOF' > config.json
+          ${{ secrets.CONFIG_JSON }}
           EOF
 
       - run: flutter pub get
 
       - name: Build Windows
-        run: flutter build windows --release
+        run: flutter build windows --release --dart-define-from-file=config.json
 
       - name: Package as ZIP
         run: |

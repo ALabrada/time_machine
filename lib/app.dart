@@ -185,16 +185,20 @@ class TimeMachineApp extends StatelessWidget {
         Provider<AppLinks>(
           create: (_) => AppLinks(),
         ),
-        Provider<GoogleDriveSignIn>(
+        Provider<GoogleDriveSignIn?>(
           create: (context) {
-            final appLinks = context.read<AppLinks>();
-            return GoogleDriveSignIn(
-              clientId: auth.ClientId(
+            final clientId =
                 defaultTargetPlatform == TargetPlatform.iOS
                     ? secrets.GOOGLE_DRIVE_CLIENT_ID_IOS
-                    : secrets.GOOGLE_DRIVE_CLIENT_ID_ANDROID,
-                null,
-              ),
+                    : secrets.GOOGLE_DRIVE_CLIENT_ID_ANDROID;
+            if (clientId.isEmpty) {
+              // Google Drive is an opt-in cloud provider: without an OAuth
+              // client id the consent flow cannot run, so do not register it.
+              return null;
+            }
+            final appLinks = context.read<AppLinks>();
+            return GoogleDriveSignIn(
+              clientId: auth.ClientId(clientId, null),
               // Cold-start deep links (the app relaunched by the OAuth
               // scheme) are only reported by `getInitialUri`; warm redirects
               // arrive through `uriLinkStream`. Merge both into one stream.
@@ -205,32 +209,40 @@ class TimeMachineApp extends StatelessWidget {
         ),
         Provider<NetworkService>(
           create: (context) {
-            final gdriveSignIn = context.read<GoogleDriveSignIn>();
+            final gdriveSignIn = context.read<GoogleDriveSignIn?>();
             final appLinks = context.read<AppLinks>();
             return NetworkService(
               clouds: {
-                // No Google Play Services involved: OAuth runs through the
-                // system browser and a custom URL scheme delivered to the app
-                // as a deep link, so the cloud only needs the token store.
-                'gdrive': GoogleDriveCloud(
-                  appRootFolderName: 'HistoryLens',
-                  signIn: gdriveSignIn,
-                ),
-                'dropbox': DropBoxCloud(
-                  clientId: secrets.DROPBOX_APP_KEY,
-                  redirectUri: secrets.DROPBOX_REDIRECT_URI,
-                ),
+                // Nextcloud needs no application credentials, so it is
+                // always offered. OAuth-based providers are only registered
+                // when their client credentials were configured at build
+                // time; the Cloud page lists exactly the available ones.
                 'nextcloud': NextCloudCloud(
                   appRootFolderName: 'HistoryLens',
                 ),
-                'yandex': YandexDiskCloud(
-                  clientId: secrets.YANDEX_CLIENT_ID,
-                  redirectUri: secrets.YANDEX_REDIRECT_URI,
-                  // Consent returns through the same deep-link pipeline as
-                  // Google: open the authorize URL in the system browser and
-                  // receive the redirect on app_links.
-                  redirectStream: _mergeDeepLinks(appLinks),
-                ),
+                if (gdriveSignIn != null)
+                  'gdrive': GoogleDriveCloud(
+                    // No Google Play Services involved: OAuth runs through
+                    // the system browser and a custom URL scheme delivered to
+                    // the app as a deep link, so the cloud only needs the
+                    // token store.
+                    appRootFolderName: 'HistoryLens',
+                    signIn: gdriveSignIn,
+                  ),
+                if (secrets.DROPBOX_APP_KEY.isNotEmpty)
+                  'dropbox': DropBoxCloud(
+                    clientId: secrets.DROPBOX_APP_KEY,
+                    redirectUri: secrets.DROPBOX_REDIRECT_URI,
+                  ),
+                if (secrets.YANDEX_CLIENT_ID.isNotEmpty)
+                  'yandex': YandexDiskCloud(
+                    clientId: secrets.YANDEX_CLIENT_ID,
+                    redirectUri: secrets.YANDEX_REDIRECT_URI,
+                    // Consent returns through the same deep-link pipeline as
+                    // Google: open the authorize URL in the system browser
+                    // and receive the redirect on app_links.
+                    redirectStream: _mergeDeepLinks(appLinks),
+                  ),
               },
               userAgent: userAgent,
               geocoders: {
@@ -238,10 +250,11 @@ class TimeMachineApp extends StatelessWidget {
                   'OSM': OsmSearchEngine(
                     userAgent: userAgent!,
                   ),
-                'VKMaps': VKMapsGeocoder(
-                  userAgent: userAgent,
-                  apiKey: secrets.VK_MAPS_API_KEY,
-                ),
+                if (secrets.VK_MAPS_API_KEY.isNotEmpty)
+                  'VKMaps': VKMapsGeocoder(
+                    userAgent: userAgent,
+                    apiKey: secrets.VK_MAPS_API_KEY,
+                  ),
                 'Geonames': GeonamesGeocoder(
                   userAgent: userAgent,
                   userName: 'historylens',
@@ -312,12 +325,21 @@ class TimeMachineApp extends StatelessWidget {
             configurationService: context.read(),
           ),
         ),
-        Provider<TelegramService>(
-          create: (_) => TelegramService(
-            apiKey: secrets.TELEGRAM_BOT_TOKEN,
-            channelId: secrets.TELEGRAM_CHANNEL_ID,
-            channelName: 'history_lens_app',
-          ),
+        Provider<TelegramService?>(
+          create: (_) {
+            final apiKey = secrets.telegramBotToken;
+            final channelId = secrets.telegramChannelId;
+            if (apiKey == null || channelId == null) {
+              // No Telegram bot configured at build time: the share-to-
+              // Telegram option is hidden from the sharing menu.
+              return null;
+            }
+            return TelegramService(
+              apiKey: apiKey,
+              channelId: channelId,
+              channelName: 'history_lens_app',
+            );
+          },
         ),
         Provider<VectorService>(
           create: (_) => VectorService(
