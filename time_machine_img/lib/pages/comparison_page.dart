@@ -371,7 +371,7 @@ class ComparisonPageState extends State<ComparisonPage>
               context.pop();
             },
           ),
-        if (!kIsWeb && comparisonController.telegramService != null)
+        if (!kIsWeb && comparisonController.isTelegramSupported)
           BottomSheetAction(
             title: Text(ImgLocalizations.of(context).shareMenuPublishTo('Telegram')),
             onPressed: (context) {

@@ -28,6 +28,10 @@ class ComparisonController with TaskManager, SyncRecordController {
   final UserMessageService? userMessages;
   double? similarity;
 
+  /// Whether the Share-to-Telegram option is available (a Telegram bot token
+  /// was configured at build time).
+  bool get isTelegramSupported => telegramService != null;
+
   void watchRecord(int? id) {
     watchSyncRecord(
       cloudSyncService: cloudSyncService,
