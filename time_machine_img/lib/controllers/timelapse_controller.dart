@@ -200,13 +200,19 @@ class TimelapseController extends ValueNotifier<TimelapseState>
     if (state is! FinishedState) {
       return;
     }
-    final dir = await getTemporaryDirectory();
-    final file = File(
-      '${dir.path}/timelapse_${DateTime.now().millisecondsSinceEpoch}.gif',
-    );
-    await file.writeAsBytes(state.data, flush: true);
+    final name = 'timelapse_${DateTime.now().millisecondsSinceEpoch}.gif';
+    final XFile file;
+    if (kIsWeb) {
+      // No dart:io File on the web — share the in-memory GIF bytes directly.
+      file = XFile.fromData(state.data, mimeType: 'image/gif', name: name);
+    } else {
+      final dir = await getTemporaryDirectory();
+      final path = '${dir.path}/$name';
+      await File(path).writeAsBytes(state.data, flush: true);
+      file = XFile(path);
+    }
     final result = await saveFiles(
-      files: [XFile(file.path)],
+      files: [file],
       dialogTitle: dialogTitle,
     );
     if (result is FileSaved) {
