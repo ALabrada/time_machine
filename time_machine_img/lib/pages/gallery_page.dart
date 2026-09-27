@@ -11,6 +11,7 @@ import 'package:time_machine_img/domain/gallery_section.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
 import 'package:time_machine_img/molecules/gallery_cell.dart';
 import 'package:time_machine_img/molecules/sync_banner.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
 import '../molecules/gallery_search_bar.dart';
@@ -261,9 +262,7 @@ class GalleryPageState extends State<GalleryPage> {
 
   Widget _buildPictureCell(Picture? picture) {
     return GalleryCell(
-      image: picture == null ? null : PictureFrame.imageFor(picture.url,
-        databaseService: context.read(),
-      ),
+      image: picture == null ? null : context.read<CacheService>().imageProvider(picture.url),
       onTap: picture == null ? null : () => _selectPicture(picture),
     );
   }
@@ -282,9 +281,7 @@ class GalleryPageState extends State<GalleryPage> {
           builder: (context, snapshot) {
             final isSelected = snapshot.data;
             return GalleryCell(
-              image: picture == null ? null : PictureFrame.imageFor(picture.url,
-                databaseService: context.read(),
-              ),
+              image: picture == null ? null : context.read<CacheService>().imageProvider(picture.url),
               isSelected: isSelected,
               onTap: () => _selectRecord(record),
               onLongPress: () => galleryController.toggleSelection(record),

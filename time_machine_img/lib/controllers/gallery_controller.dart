@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -79,12 +81,18 @@ class GalleryController with TaskManager {
   Future<void> importRecords({
     DatabaseService? databaseService,
   }) async {
-    final selection = await FilePicker.platform.pickFiles();
+    final selection = await FilePicker.platform.pickFiles(withData: true);
     if (selection == null) {
       return;
     }
+    final files = kIsWeb
+        ? [
+            for (final file in selection.files)
+              XFile.fromData(file.bytes ?? Uint8List(0), name: file.name),
+          ]
+        : selection.xFiles;
     await sharingService?.import(
-      files: selection.xFiles.nonNulls,
+      files: files,
       databaseService: databaseService,
     );
     await _reloadElements();

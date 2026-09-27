@@ -3,10 +3,10 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 import 'package:path/path.dart' as p;
-import 'package:time_machine_db/time_machine_db.dart';
-import 'package:time_machine_net/services/cloud/cloud_base.dart';
-import 'package:time_machine_net/services/cloud/file_cloud_base.dart';
+import 'package:time_machine_cloud/services/cloud_base.dart';
+import 'package:time_machine_cloud/services/cloud/file_cloud_base.dart';
 
 class InMemoryFileCloud extends FileCloudBase with EventlessCloud {
   InMemoryFileCloud({super.encryptionKey});

@@ -144,18 +144,14 @@ class TabletCameraPageState extends State<TabletCameraPage>
   }
 
   Widget _buildContent({Picture? picture}) {
-    if (kIsWeb) {
-      return Center(
-        child: Text(
-          CamLocalizations.of(context).cameraNotSupported,
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-      );
-    }
     return ListenableBuilder(
       listenable: cameraController,
       builder: (context, _) {
         if (!cameraController.isInitialized) {
+          final error = cameraController.initError;
+          if (error != null) {
+            return _buildCameraError(error);
+          }
           return const Center(child: CircularProgressIndicator());
         }
         final camera = cameraController.controller!;
@@ -164,6 +160,38 @@ class TabletCameraPageState extends State<TabletCameraPage>
           builder: (context, _, __) => _buildPreview(picture: picture),
         );
       },
+    );
+  }
+
+  Widget _buildCameraError(TabletCameraInitializationError error) {
+    final l10n = CamLocalizations.of(context);
+    final message = switch (error) {
+      TabletCameraInitializationError.permissionDenied =>
+        l10n.arCameraAuthorizationDenied,
+      TabletCameraInitializationError.initializationFailed =>
+        l10n.arCameraInitializationError,
+    };
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            IconButton.filled(
+              onPressed: () => unawaited(cameraController.retry()),
+              icon: const Icon(Icons.refresh),
+              iconSize: 28,
+              padding: const EdgeInsets.all(12),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -274,7 +302,7 @@ class TabletCameraPageState extends State<TabletCameraPage>
                 ],
               ),
             ),
-            if (!isDesktop)
+            if (!isDesktop && !kIsWeb)
               Container(
                 alignment: Alignment.topLeft,
                 padding: EdgeInsets.only(top: 16, left: 16),

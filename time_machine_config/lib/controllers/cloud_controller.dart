@@ -12,7 +12,9 @@ final class CloudController extends ValueNotifier<CloudState> {
     required this.configurationService,
     required this.networkService,
     required this.cloudSyncService,
-  }) : super(const NotSelectedState()) {
+    OAuthConsentBrowser Function()? consentBrowserFactory,
+  })  : _consentBrowserFactory = consentBrowserFactory,
+        super(const NotSelectedState()) {
     unawaited(_load());
   }
 
@@ -26,6 +28,11 @@ final class CloudController extends ValueNotifier<CloudState> {
   final ConfigurationService configurationService;
   final NetworkService networkService;
   final CloudSyncService cloudSyncService;
+
+  /// Supplies the platform browser that hosts the OAuth consent page (the
+  /// system-browser browser from `time_machine_net` in the Flutter shell).
+  /// Built per activation so its context is the page that triggered sign-in.
+  final OAuthConsentBrowser Function()? _consentBrowserFactory;
 
   String? get cloudName => configurationService.cloud;
 
@@ -195,6 +202,7 @@ final class CloudController extends ValueNotifier<CloudState> {
   /// provider exposes its own `authenticate`/`signIn` variant; Nextcloud
   /// additionally carries the submitted credentials on the event.
   Future<void> _authenticate(CloudBase cloud, CloudActivateEvent event) async {
+    final consentBrowser = _consentBrowserFactory?.call();
     if (event is NextCloudSignInEvent) {
       if (cloud is! NextCloudCloud) {
         throw StateError(
@@ -212,11 +220,11 @@ final class CloudController extends ValueNotifier<CloudState> {
     // Providers whose session needs no extra credentials here (Supabase fills
     // its own session through its client) need no authentication step.
     if (cloud is DropBoxCloud) {
-      await cloud.authenticate();
+      await cloud.authenticate(consentBrowser: consentBrowser);
     } else if (cloud is GoogleDriveCloud) {
-      await cloud.authenticate();
+      await cloud.authenticate(consentBrowser: consentBrowser);
     } else if (cloud is YandexDiskCloud) {
-      await cloud.authenticate();
+      await cloud.authenticate(consentBrowser: consentBrowser);
     }
   }
 

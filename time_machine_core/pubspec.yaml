@@ -1,0 +1,24 @@
+name: time_machine_core
+description: "Pure-Dart models and network services shared by the app and the proxy server."
+version: 1.1.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  cachette: ^1.0.0
+  collection: any
+  dio: ^5.7.0
+  html: any
+  intl: any
+  json_annotation: ^4.8.1
+  latlong2: any
+  osm_nominatim: ^4.0.1
+  path: any
+
+dev_dependencies:
+  build_runner: ^2.3.3
+  json_serializable: ^6.7.1
+  lints: ^5.0.0
+  test: ^1.25.0

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:isolate';
+import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_compare_2/image_compare_2.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/controllers/sync_record_controller.dart';
@@ -134,33 +136,49 @@ class ComparisonController with TaskManager, SyncRecordController {
     final originalFile = await cacheService.fetch(original.url);
     final ownFile = await cacheService.fetch(picture.url);
 
-    similarity = await Isolate.run(() async {
-      final originalViewPort = Record.tryParseViewPort(record.originalViewPort);
-      final pictureViewPort = Record.tryParseViewPort(record.pictureViewPort);
-      final intersection = originalViewPort == null || pictureViewPort == null
-          ? null
-          : originalViewPort.intersection(pictureViewPort);
-
-      final originalImage = await cropImageFile(
-        file: originalFile,
-        viewPort: originalViewPort,
-        intersection: intersection,
-      );
-      final ownImage = await cropImageFile(
-        file: ownFile,
-        viewPort: pictureViewPort,
-        intersection: intersection,
-      );
-      if (originalImage == null || ownImage == null) {
-        return null;
-      }
-
-      return 1.0 - await compareImages(
-        src1: originalImage,
-        src2: ownImage,
-        algorithm: MedianHash(),
-      );
-    });
+    similarity = kIsWeb
+        ? await _comparePicturesInCurrentIsolate(
+            record: record, originalFile: originalFile, ownFile: ownFile)
+        : await Isolate.run(() => _comparePicturesInCurrentIsolate(
+            record: record, originalFile: originalFile, ownFile: ownFile));
     return similarity;
+  }
+
+  /// Digests both crops and computes the perceptual similarity. Runs on a
+  /// background isolate on native platforms; on the web isolates do not exist,
+  /// so it executes inline on the UI isolate (the crop/compare awaits keep the
+  /// event loop yielding between steps). Only the sendable [Record] and file
+  /// handles are captured.
+  Future<double?> _comparePicturesInCurrentIsolate({
+    required Record record,
+    required XFile originalFile,
+    required XFile ownFile,
+  }) async {
+    final originalViewPort = Record.tryParseViewPort(record.originalViewPort);
+    final pictureViewPort = Record.tryParseViewPort(record.pictureViewPort);
+    final intersection = originalViewPort == null || pictureViewPort == null
+        ? null
+        : originalViewPort.intersection(pictureViewPort);
+
+    final originalImage = await cropImageFile(
+      file: originalFile,
+      viewPort: originalViewPort,
+      intersection: intersection,
+    );
+    final ownImage = await cropImageFile(
+      file: ownFile,
+      viewPort: pictureViewPort,
+      intersection: intersection,
+    );
+    if (originalImage == null || ownImage == null) {
+      return null;
+    }
+
+    return 1.0 -
+        await compareImages(
+          src1: originalImage.convert(numChannels: 3),
+          src2: ownImage.convert(numChannels: 3),
+          algorithm: MedianHash(),
+        );
   }
 }

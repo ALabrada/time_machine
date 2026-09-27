@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show MethodChannel;
 import 'package:native_device_orientation/native_device_orientation.dart';
 
+enum TabletCameraInitializationError { permissionDenied, initializationFailed }
+
 class TabletCameraController extends ChangeNotifier {
   static const MethodChannel _displayRotationChannel =
       MethodChannel('com.fakegem.historylens/orientation');
@@ -18,6 +20,7 @@ class TabletCameraController extends ChangeNotifier {
   double _maxZoom = 1.0;
   FlashMode _flashMode = FlashMode.auto;
   bool _disposed = false;
+  TabletCameraInitializationError? _initError;
 
   CameraController? get controller => _controller;
   List<CameraDescription> get cameras => _cameras;
@@ -28,6 +31,7 @@ class TabletCameraController extends ChangeNotifier {
   FlashMode get flashMode => _flashMode;
   bool get isInitialized => _controller?.value.isInitialized ?? false;
   bool get canSwitchCamera => _cameras.length > 1;
+  TabletCameraInitializationError? get initError => _initError;
 
   /// Quarter turns (0-3) of the Android default-display rotation, read natively
   /// via the `com.fakegem.historylens/orientation` channel. Only used on
@@ -87,11 +91,17 @@ class TabletCameraController extends ChangeNotifier {
 
   Future<void> init() async {
     try {
+      _initError = null;
+      notifyListeners();
       final cameras = await availableCameras();
       if (_disposed) {
         return;
       }
       _cameras = cameras;
+      if (cameras.isEmpty) {
+        _failInit(TabletCameraInitializationError.initializationFailed);
+        return;
+      }
       _currentCamera = cameras.firstWhere(
         (c) => c.lensDirection == CameraLensDirection.back,
         orElse: () => cameras.first,
@@ -99,7 +109,38 @@ class TabletCameraController extends ChangeNotifier {
       await selectCamera(_currentCamera);
     } catch (e) {
       debugPrint('TabletCameraController error: $e');
+      _failInit(_mapInitError(e));
     }
+  }
+
+  TabletCameraInitializationError _mapInitError(Object error) {
+    if (error is CameraException) {
+      switch (error.code) {
+        case 'CameraAccessDenied':
+        case 'CameraAccessDeniedWithoutPrompt':
+        case 'CameraAccessRestricted':
+        case 'PermissionDeniedError':
+        case 'NotAllowedError':
+        case 'SecurityError':
+          return TabletCameraInitializationError.permissionDenied;
+      }
+    }
+    return TabletCameraInitializationError.initializationFailed;
+  }
+
+  void _failInit(TabletCameraInitializationError error) {
+    if (_disposed) {
+      return;
+    }
+    _initError = error;
+    notifyListeners();
+  }
+
+  Future<void> retry() async {
+    if (_disposed) {
+      return;
+    }
+    await init();
   }
 
   Future<void> selectCamera(CameraDescription? description) async {
@@ -121,18 +162,28 @@ class TabletCameraController extends ChangeNotifier {
     );
     try {
       await camera.initialize();
+      try {
+        _minZoom = await camera.getMinZoomLevel();
+        _maxZoom = await camera.getMaxZoomLevel();
+      } catch (e) {
+        // Zoom is optional (e.g. web or desktop cameras without optical/digital
+        // zoom report zoomLevelNotSupported); fall back to a single zoom level.
+        debugPrint('TabletCameraController zoom levels unavailable: $e');
+        _minZoom = 1.0;
+        _maxZoom = 1.0;
+      }
+      _zoomLevel = _minZoom.clamp(1.0, _maxZoom).toDouble();
     } catch (e) {
       debugPrint('TabletCameraController init error: $e');
       await camera.dispose();
+      _failInit(_mapInitError(e));
       return;
     }
     if (_disposed) {
       await camera.dispose();
       return;
     }
-    _minZoom = await camera.getMinZoomLevel();
-    _maxZoom = await camera.getMaxZoomLevel();
-    _zoomLevel = _minZoom.clamp(1.0, _maxZoom).toDouble();
+    _initError = null;
     _controller = camera;
     notifyListeners();
   }

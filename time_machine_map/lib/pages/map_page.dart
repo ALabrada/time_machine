@@ -22,8 +22,8 @@ import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart';
 
+import '../domain/tile_offset.dart';
 import '../molecules/adaptive_tile_layer.dart';
 
 class MapPage extends StatefulWidget {

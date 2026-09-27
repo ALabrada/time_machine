@@ -49,3 +49,6 @@ app.*.map.json
 # Local secrets injected at build time (`--dart-define-from-file=config.json`).
 # Copy `config.example.json` to `config.json` and fill in the values.
 /config.json
+# Local web-test build: same secrets, but `BACKEND_URL` points at a local
+# `server/` instance (see `server/bin/server.dart`).
+/config.web.json

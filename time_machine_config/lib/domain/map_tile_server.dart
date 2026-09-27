@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -36,13 +37,14 @@ final class MapTileServer {
       attributionLogo: (_) => 'assets/images/2gis_logo.png',
       attributionUrl: (_) => 'https://law.2gis.ru/privacy',
     ),
-    MapTileServer(
-      id: 'VK Maps',
-      url: (context) => Theme.of(context).brightness == Brightness.dark ? 'mmr://api/styles/dark_style.json' : 'mmr://api/styles/main_style.json',
-      format: TileFormat.vector,
-      attributionLogo: (_) => 'assets/images/vk_logo.png',
-      attributionUrl: (_) => 'https://help.mail.ru/legal/terms/common/ua/',
-    ),
+    if (!kIsWeb)
+      MapTileServer(
+        id: 'VK Maps',
+        url: (context) => Theme.of(context).brightness == Brightness.dark ? 'mmr://api/styles/dark_style.json' : 'mmr://api/styles/main_style.json',
+        format: TileFormat.vector,
+        attributionLogo: (_) => 'assets/images/vk_logo.png',
+        attributionUrl: (_) => 'https://help.mail.ru/legal/terms/common/ua/',
+      ),
   ];
 
   const MapTileServer({

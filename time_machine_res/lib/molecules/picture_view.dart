@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:time_machine_db/time_machine_db.dart';
-import 'package:time_machine_res/molecules/picture_frame.dart';
+import 'package:time_machine_core/time_machine_core.dart';
 
 class PictureView extends StatelessWidget {
   const PictureView({
@@ -19,11 +18,12 @@ class PictureView extends StatelessWidget {
     VoidCallback? onLongPress,
     VoidCallback? onTap,
     VoidCallback? onTapImage,
+    required ImageProvider Function(String url) imageFor,
   }) : this(
     key: key,
     time: model?.time,
     title: model?.description,
-    image: model == null ? null : PictureFrame.imageFor(model.previewUrl ?? model.url),
+    image: model == null ? null : imageFor(model.previewUrl ?? model.url),
     onLongPress: onLongPress,
     onTap: onTap,
     onTapImage: onTapImage,

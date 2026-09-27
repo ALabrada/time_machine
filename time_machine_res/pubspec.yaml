@@ -13,6 +13,8 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  time_machine_core:
+    path: ../time_machine_core
   time_machine_db:
     path: ../time_machine_db
 

@@ -32,6 +32,12 @@ const String TELEGRAM_CHANNEL_ID =
 
 const String VK_MAPS_API_KEY = String.fromEnvironment('VK_MAPS_API_KEY');
 
+/// URL of the proxy backend (the `server/` package). When non-empty and the
+/// app runs on the web, outbound photo/geocoding traffic is routed through it
+/// (the browser itself cannot talk to provider servers due to CORS); on
+/// native platforms the direct providers are used regardless.
+const String BACKEND_URL = String.fromEnvironment('BACKEND_URL');
+
 /// OAuth consent return URIs. Registered in the OAuth provider apps and in
 /// the platform URL schemes; public application configuration, not secrets.
 const String GOOGLE_DRIVE_REDIRECT_URI =

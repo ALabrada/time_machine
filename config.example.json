@@ -11,5 +11,6 @@
   "VK_IOS_APP_KEY": "",
   "VK_BOT_TOKEN": "",
   "VK_GROUP_ID": "",
-  "VK_MAPS_API_KEY": ""
+  "VK_MAPS_API_KEY": "",
+  "BACKEND_URL": ""
 }

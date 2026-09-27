@@ -1,0 +1,148 @@
+import 'package:cachette/cachette.dart';
+import 'package:dio/dio.dart';
+import 'package:html/parser.dart';
+import 'package:time_machine_core/domain/area.dart';
+
+import 'package:time_machine_core/domain/location.dart';
+import 'package:time_machine_core/domain/picture.dart';
+import '../geo_math.dart';
+import '../network_service.dart';
+
+class HistoryPinProvider implements DataProvider {
+  final cache = Cachette<String, Picture>(1000);
+  final dio = Dio(
+    BaseOptions(baseUrl: 'https://www.historypin.org'),
+  );
+  String? userAgent;
+
+  HistoryPinProvider({this.userAgent, bool logRequests = false}) {
+    if (logRequests) {
+      dio.interceptors.add(
+        LogInterceptor(
+          request: true,
+          requestBody: true,
+          responseBody: true,
+          error: true,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<List<Picture>> findIn({
+    required Area area,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final userAgent = this.userAgent;
+    final response = await dio.get('/pins.json',
+      queryParameters: {
+        'nelat': area.maxLat,
+        'nelng': area.maxLng,
+        'swlat': area.minLat,
+        'swlng': area.minLng,
+        'page': 1,
+        'page_size': 10000,
+        'primary_media_type': 'image',
+        if (startDate != null)
+          'start_date': _format(startDate),
+        if (endDate != null)
+          'end_date': _format(endDate),
+      },
+      options: Options(
+        headers: {
+          if (userAgent != null)
+            userAgentHeader: userAgent,
+          acceptHeader: 'application/json',
+        },
+      ),
+    );
+    return [
+      for (final obj in response.data['pins'])
+        _decodeJson(obj),
+    ];
+  }
+
+  @override
+  Future<List<Picture>> findNear({
+    required Location location,
+    required double radius,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final area = areaAround(location: location, radius: radius);
+    final result = await findIn(area: area, startDate: startDate, endDate: endDate);
+    result.removeWhere((e) => !isWithinRadius(
+      location: location,
+      radius: radius,
+      latitude: e.latitude,
+      longitude: e.longitude,
+    ));
+    return result;
+  }
+
+  @override
+  Future<Picture> fetch(Picture original) async {
+    final userAgent = this.userAgent;
+    final id = original.id;
+    final cached = cache[id];
+    if (cached != null) {
+      return cached;
+    }
+    final response = await dio.get('/pins/map',
+      queryParameters: {
+        'pin_card': id,
+      },
+      options: Options(
+        headers: {
+          if (userAgent != null)
+            userAgentHeader: userAgent,
+        },
+      ),
+    );
+    final item = _decodeHtml(html: response.data, original: original);
+    cache[id] = item;
+    return item;
+  }
+
+  String _format(DateTime d) {
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  Picture _decodeHtml({required String? html, required Picture original}) {
+    final id = original.id;
+
+    final document = parse(html);
+
+    final sitePath = document.getElementsByClassName('pin-card-link').firstOrNull?.attributes['href'] ?? '/pins/$id';
+    final imgUrl = document.getElementsByClassName('pin-card-image').firstOrNull?.getElementsByTagName('img').firstOrNull?.attributes['src'];
+    final title = document.getElementsByClassName('pin-card-title').firstOrNull?.text;
+    final date = document.getElementsByClassName('pin-card-date').firstOrNull?.text;
+
+    return Picture(
+      id: id,
+      description: title,
+      time: date,
+      url: imgUrl ?? '',
+      site: '${dio.options.baseUrl}$sitePath',
+      latitude: original.latitude,
+      longitude: original.longitude,
+    );
+  }
+
+  Picture _decodeJson(dynamic json) {
+    final id = json['id'].toString();
+
+    final cached = cache[id];
+    if (cached != null) {
+      return cached;
+    }
+
+    return Picture(
+      id: id,
+      url: '',
+      latitude: json['latitude'] as double,
+      longitude: json['longitude'] as double,
+    );
+  }
+}

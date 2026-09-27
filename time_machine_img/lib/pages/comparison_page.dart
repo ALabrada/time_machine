@@ -9,6 +9,7 @@ import 'package:time_machine_img/controllers/comparison_controller.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/l10n/img_localizations.dart';
 import 'package:time_machine_img/molecules/comparison_description.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -116,12 +117,8 @@ class ComparisonPageState extends State<ComparisonPage>
       return null;
     }
     return ImageCompareSlider(
-      itemOne: Image(image: PictureFrame.imageFor(original.url,
-        databaseService: context.read(),
-      )),
-      itemTwo: Image(image: PictureFrame.imageFor(picture.url,
-        databaseService: context.read(),
-      )),
+      itemOne: Image(image: context.read<CacheService>().imageProvider(original.url)),
+      itemTwo: Image(image: context.read<CacheService>().imageProvider(picture.url)),
       itemOneBuilder: (child, context) => PictureFrame(
         aspectRatio: aspectRatio,
         child: child,

@@ -15,6 +15,8 @@ dependencies:
 
   time_machine_config:
     path: ../time_machine_config
+  time_machine_cloud:
+    path: ../time_machine_cloud
   time_machine_db:
     path: ../time_machine_db
   time_machine_net:

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:time_machine_map/services/vector_service.dart';
 import 'package:time_machine_map/time_machine_map.dart';
 
 void main() {

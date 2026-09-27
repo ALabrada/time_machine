@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_config/services/configuration_service.dart';
-import 'package:time_machine_net/domain/place_info.dart';
-import 'package:time_machine_net/services/network_service.dart';
+import 'package:time_machine_core/domain/place_info.dart';
+import 'package:time_machine_cloud/services/network_service.dart';
 
 class MapSearchController {
   MapSearchController({

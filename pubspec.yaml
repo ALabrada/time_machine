@@ -35,6 +35,10 @@ dependencies:
 
   time_machine_cam:
     path: ./time_machine_cam
+  time_machine_cloud:
+    path: ./time_machine_cloud
+  time_machine_core:
+    path: ./time_machine_core
   time_machine_config:
     path: ./time_machine_config
   time_machine_db:

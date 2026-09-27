@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster_plus/flutter_map_marker_cluster_plus.dart';
+import 'package:provider/provider.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_map/molecules/picture_marker.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
 class PictureMarkerLayer extends StatefulWidget {
@@ -92,6 +95,7 @@ class PictureMarkerLayerState extends State<PictureMarkerLayer> {
                 model: picture,
                 onLongPress: picture == null || widget.onLongPress == null ? null : () => widget.onLongPress!(picture),
                 onTapImage: picture == null || widget.onTap == null ? null : () => widget.onTap!(picture),
+                imageFor: (url) => context.read<CacheService>().imageProvider(url),
               ),
             );
           },
@@ -159,8 +163,15 @@ class PictureMarkerLayerState extends State<PictureMarkerLayer> {
   }
 
   void _updateMarkers(BuildContext context) {
+    // A provider may return the same picture id more than once (e.g. an
+    // aggregated grid endpoint); marker cluster children require unique keys,
+    // so collapse duplicates by provider/id before building markers.
+    final unique = LinkedHashMap<String, Picture>();
+    for (final picture in widget.pictures ?? <Picture>[]) {
+      unique.putIfAbsent('${picture.provider}/${picture.id}', () => picture);
+    }
     _markers = [
-      for (final picture in widget.pictures ?? <Picture>[])
+      for (final picture in unique.values)
         _buildMarker(context, picture),
     ];
   }

@@ -1,5 +1,5 @@
-import 'package:app_links/app_links.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +19,9 @@ import 'package:time_machine_db/services/database_service.dart';
 import 'package:time_machine_img/services/telegram_service.dart';
 import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_map/time_machine_map.dart';
+import 'package:time_machine_map/services/vector_service_web.dart'
+    if (dart.library.io) 'package:time_machine_map/services/vector_service.dart'
+    as vs;
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'l10n/app_localizations.dart';
@@ -86,7 +89,8 @@ class TimeMachineApp extends StatelessWidget {
                     routes: [
                       GoRoute(
                         path: 'camera',
-                        builder: (context, state) => isTabletLayout(context)
+                        builder: (context, state) =>
+                            (isTabletLayout(context) || kIsWeb)
                             ? FixedOrientationView(
                                 orientations: DeviceOrientation.values,
                                 child: TabletCameraPage(
@@ -185,87 +189,109 @@ class TimeMachineApp extends StatelessWidget {
         Provider<AppLinks>(
           create: (_) => AppLinks(),
         ),
-        Provider<NetworkService>(
+        // Opens the OAuth authorize page in the system browser and receives
+        // the consent return as a deep link on the app's custom URL scheme.
+        // A single instance is shared by every cloud provider; each consent
+        // builds its own waiting stream on `redirectStream()`.
+        Provider<SystemBrowserOAuthConsentBrowser>(
           create: (context) {
             final appLinks = context.read<AppLinks>();
+            return SystemBrowserOAuthConsentBrowser(
+              redirectStream: () => _mergeDeepLinks(appLinks),
+            );
+          },
+        ),
+        Provider<NetworkService>(
+          create: (context) {
             final googleClientId =
                 defaultTargetPlatform == TargetPlatform.iOS
                     ? secrets.GOOGLE_DRIVE_CLIENT_ID_IOS
                     : secrets.GOOGLE_DRIVE_CLIENT_ID_ANDROID;
-            return NetworkService(
-              clouds: {
-                // Nextcloud needs no application credentials, so it is
-                // always offered. OAuth-based providers are only registered
-                // when their client credentials were configured at build
-                // time; the Cloud page lists exactly the available ones.
-                'nextcloud': NextCloudCloud(
+            final clouds = <String, CloudBase>{
+              // Nextcloud needs no application credentials, so it is always
+              // offered — including on web, where its login (server URL +
+              // credentials) needs no OAuth/browser deep links. OAuth-based
+              // providers are only registered on native platforms because the
+              // consent return is delivered as a deep link on the app's custom
+              // URL scheme, which a browser cannot route back to a web app.
+              'nextcloud': NextCloudCloud(
+                appRootFolderName: 'HistoryLens',
+                tokenStore: SecureNextcloudTokenStore(),
+              ),
+              if (!kIsWeb && googleClientId.isNotEmpty)
+                'gdrive': GoogleDriveCloud(
+                  // OAuth runs in the system browser and returns through the
+                  // app's custom URL scheme as a deep link, so no Google Play
+                  // Services are involved.
                   appRootFolderName: 'HistoryLens',
+                  signIn: GoogleDriveSignIn(
+                    clientId: auth.ClientId(googleClientId, null),
+                    redirectUri: Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI),
+                  ),
+                  tokenStore: SecureGoogleDriveTokenStore(),
                 ),
-                if (googleClientId.isNotEmpty)
-                  'gdrive': GoogleDriveCloud(
-                    // No Google Play Services involved: OAuth runs through
-                    // the system browser and a custom URL scheme delivered to
-                    // the app as a deep link, so the cloud only needs the
-                    // token store.
-                    appRootFolderName: 'HistoryLens',
-                    signIn: GoogleDriveSignIn(
-                      clientId: auth.ClientId(googleClientId, null),
-                      // Cold-start deep links (the app relaunched by the
-                      // OAuth scheme) are only reported by `getInitialUri`;
-                      // warm redirects arrive through `uriLinkStream`. Merge
-                      // both into one stream.
-                      redirectStream: _mergeDeepLinks(appLinks),
-                      redirectUri: Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI),
-                    ),
-                  ),
-                if (secrets.DROPBOX_APP_KEY.isNotEmpty)
-                  'dropbox': DropBoxCloud(
-                    clientId: secrets.DROPBOX_APP_KEY,
-                    redirectUri: secrets.DROPBOX_REDIRECT_URI,
-                  ),
-                if (secrets.YANDEX_CLIENT_ID.isNotEmpty)
-                  'yandex': YandexDiskCloud(
-                    clientId: secrets.YANDEX_CLIENT_ID,
-                    redirectUri: secrets.YANDEX_REDIRECT_URI,
-                    // Consent returns through the same deep-link pipeline as
-                    // Google: open the authorize URL in the system browser
-                    // and receive the redirect on app_links.
-                    redirectStream: _mergeDeepLinks(appLinks),
-                  ),
-              },
+              if (!kIsWeb && secrets.DROPBOX_APP_KEY.isNotEmpty)
+                'dropbox': DropBoxCloud(
+                  clientId: secrets.DROPBOX_APP_KEY,
+                  redirectUri: secrets.DROPBOX_REDIRECT_URI,
+                  tokenStore: SecureDropboxTokenStore(),
+                ),
+              if (!kIsWeb && secrets.YANDEX_CLIENT_ID.isNotEmpty)
+                'yandex': YandexDiskCloud(
+                  clientId: secrets.YANDEX_CLIENT_ID,
+                  redirectUri: secrets.YANDEX_REDIRECT_URI,
+                  tokenStore: SecureYandexDiskTokenStore(),
+                ),
+            };
+            final geocoders = {
+              if (userAgent != null)
+                'OSM': OsmSearchEngine(
+                  userAgent: userAgent!,
+                ),
+              if (secrets.VK_MAPS_API_KEY.isNotEmpty)
+                'VKMaps': VKMapsGeocoder(
+                  userAgent: userAgent,
+                  apiKey: secrets.VK_MAPS_API_KEY,
+                ),
+              'Geonames': GeonamesGeocoder(
+                userAgent: userAgent,
+                userName: 'historylens',
+              ),
+            };
+            final providers = {
+              'pastvu': PastVuProvider(
+                userAgent: userAgent,
+              ),
+              'russiainphoto': RussiaInPhotoProvider(
+                userAgent: userAgent,
+              ),
+              're.photos': RetroPhotosProvider(
+                userAgent: userAgent,
+              ),
+              'historypin': HistoryPinProvider(
+                userAgent: userAgent,
+              ),
+              'sepiatown': SepiaTownProvider(
+                userAgent: userAgent,
+              ),
+            };
+            // Outbound provider/geocoder requests cannot reach their servers
+            // from the browser (CORS); route them through the proxy backend
+            // when one is configured.
+            if (kIsWeb && secrets.BACKEND_URL.isNotEmpty) {
+              return ProxyNetworkService(
+                backendUrl: secrets.BACKEND_URL,
+                clouds: clouds,
+                geocoders: geocoders,
+                providers: providers,
+                userAgent: userAgent,
+              );
+            }
+            return NetworkService(
+              clouds: clouds,
               userAgent: userAgent,
-              geocoders: {
-                if (userAgent != null)
-                  'OSM': OsmSearchEngine(
-                    userAgent: userAgent!,
-                  ),
-                if (secrets.VK_MAPS_API_KEY.isNotEmpty)
-                  'VKMaps': VKMapsGeocoder(
-                    userAgent: userAgent,
-                    apiKey: secrets.VK_MAPS_API_KEY,
-                  ),
-                'Geonames': GeonamesGeocoder(
-                  userAgent: userAgent,
-                  userName: 'historylens',
-                ),
-              },
-              providers: {
-                'pastvu': PastVuProvider(
-                  userAgent: userAgent,
-                ),
-                'russiainphoto': RussiaInPhotoProvider(
-                  userAgent: userAgent,
-                ),
-                're.photos': RetroPhotosProvider(
-                  userAgent: userAgent,
-                ),
-                'historypin': HistoryPinProvider(
-                  userAgent: userAgent,
-                ),
-                'sepiatown': SepiaTownProvider(
-                  userAgent: userAgent,
-                ),
-              },
+              geocoders: geocoders,
+              providers: providers,
             );
           },
         ),
@@ -284,16 +310,32 @@ class TimeMachineApp extends StatelessWidget {
           dispose: (_, service) => service.dispose(),
         ),
         Provider<CacheService>(
-          create: (context) => CacheService(
-            cacheManager: CachedNetworkImageProvider.defaultCacheManager,
-            databaseService: () => context.read(),
-          ),
+          create: (context) {
+            final cacheManager = CachedNetworkImageProvider.defaultCacheManager;
+            // On the web the browser cannot load provider images directly
+            // (CORS); fetch them through the proxy backend instead.
+            if (kIsWeb && secrets.BACKEND_URL.isNotEmpty) {
+              return ProxyCacheService(
+                backendUrl: secrets.BACKEND_URL,
+                userAgent: userAgent,
+                cacheManager: cacheManager,
+              );
+            }
+            return CacheService(
+              cacheManager: cacheManager,
+              pathExpander: (path) {
+                final databaseService = context.read<DatabaseService?>();
+                return databaseService == null
+                    ? path
+                    : databaseService.expandPath(path);
+              },
+            );
+          },
         ),
         Provider<SharingService>(
           create: (_) => SharingService(
-            // The OAuth consent return arrives on Android as an ACTION_VIEW
-            // intent that the sharing plugin also sees; do not try to import
-            // the `...:/oauth2redirect` URL as a shared file.
+            // OAuth consent returns arrive as custom-scheme deep links while
+            // the app is running; do not treat them as file shares.
             ignoreUriSchemes: oauthRedirectSchemes(),
           ),
         ),
@@ -330,12 +372,13 @@ class TimeMachineApp extends StatelessWidget {
             );
           },
         ),
-        Provider<VectorService>(
-          create: (_) => VectorService(
-            userAgent: userAgent,
-            vkApiKey: secrets.VK_MAPS_API_KEY,
+        if (!kIsWeb)
+          Provider<vs.VectorService>(
+            create: (_) => vs.VectorService(
+              userAgent: userAgent,
+              vkApiKey: secrets.VK_MAPS_API_KEY,
+            ),
           ),
-        ),
       ],
       builder: (context, _) {
         return MaterialApp.router(
@@ -392,11 +435,8 @@ Set<String> oauthRedirectSchemes() => {
 /// This is a cold-start safety net: [OAuthDeepLinkObserver] swallows warm
 /// redirects before they reach GoRouter, and GoRouter starts on '/', so only
 /// an unexpected platform push ever gets here.
-String? oauthDeepLinkRedirect(
-  Uri uri, {
-  Set<String>? redirectSchemes,
-}) {
-  if ((redirectSchemes ?? oauthRedirectSchemes()).contains(uri.scheme)) {
+String? oauthDeepLinkRedirect(Uri uri) {
+  if (oauthRedirectSchemes().contains(uri.scheme)) {
     return '/';
   }
   return null;
@@ -407,10 +447,10 @@ String? oauthDeepLinkRedirect(
 /// Flutter's Android embedding forwards the custom-scheme intent of a warm
 /// OAuth return to every `WidgetsBindingObserver` via
 /// `didPushRouteInformation` (in registration order, until one returns true).
-/// Registering this first means GoRouter never tries to "navigate" to
-  /// a provider's redirect (e.g. `com.fakegem.historylens:/oauth2redirect-yandex?...`),
-  /// so the page the user initiated the sign-in from (e.g. the Cloud page)
-  /// stays put — the URI is consumed by the app_links stream instead.
+/// Registering this first means GoRouter never tries to "navigate" to a
+/// provider's redirect (e.g. `com.fakegem.historylens:/oauth2redirect-yandex?...`),
+/// so the page the user initiated the sign-in from (e.g. the Cloud page)
+/// stays put — the URI is consumed by the app_links stream instead.
 class OAuthDeepLinkObserver extends WidgetsBindingObserver {
   OAuthDeepLinkObserver(this.redirectSchemes);
 

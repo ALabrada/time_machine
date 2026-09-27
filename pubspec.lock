@@ -839,14 +839,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.1.0"
-  flutter_map_math:
-    dependency: transitive
-    description:
-      name: flutter_map_math
-      sha256: "86c442a946d4695fa3e5d9c53c802344160d8db1745b067b528df3813820eb85"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.4"
   flutter_markdown_plus:
     dependency: transitive
     description:
@@ -2181,10 +2173,24 @@ packages:
       relative: true
     source: path
     version: "1.1.0"
+  time_machine_cloud:
+    dependency: "direct main"
+    description:
+      path: time_machine_cloud
+      relative: true
+    source: path
+    version: "1.0.0"
   time_machine_config:
     dependency: "direct main"
     description:
       path: time_machine_config
+      relative: true
+    source: path
+    version: "1.1.0"
+  time_machine_core:
+    dependency: "direct main"
+    description:
+      path: time_machine_core
       relative: true
     source: path
     version: "1.1.0"
@@ -2215,7 +2221,7 @@ packages:
       path: time_machine_net
       relative: true
     source: path
-    version: "1.1.0"
+    version: "1.0.0"
   time_machine_res:
     dependency: "direct main"
     description:
