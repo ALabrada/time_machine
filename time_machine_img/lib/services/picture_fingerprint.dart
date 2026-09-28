@@ -45,6 +45,112 @@ class SimilarityCrop {
       width < fingerprintSize || height < fingerprintSize;
 }
 
+/// Reduces a row-major RGB buffer to the [fingerprintSize] x [fingerprintSize]
+/// block every backend feeds to [StructuralFingerprint.fromRgbBlock], returning
+/// [fingerprintSamples] * 3 bytes.
+///
+/// This is an exact area average, and it is deliberately the *only* place that
+/// arithmetic exists:
+///
+/// * native hands it the full-resolution crop;
+/// * web hands it a modestly-downscaled intermediate, having let the canvas
+///   rasterizer do a single gentle reduction first.
+///
+/// Both then execute the identical code, so the two platforms cannot drift
+/// apart the way two hand-written downscalers did. That drift was not subtle:
+/// reducing a ~4000 px crop straight to [fingerprintSize] in one filtered step
+/// sampled a few source pixels per cell instead of the ~16000 a cell covers, and
+/// the resulting scores differed by up to 0.2 — worst on exactly the pictures
+/// this metric exists for, the fine hatching of an engraving and the grain of a
+/// faded scan.
+///
+/// Cell `k` spans `[k / n, (k + 1) / n)` of the buffer, and each source pixel
+/// contributes in proportion to the area it shares with a cell, so edge cells
+/// are partial rather than clipped and the whole buffer tiles exactly.
+///
+/// Averages are rounded, not truncated: `copyResize` truncates through
+/// `toInt()`, but a systematic half-LSB bias is not noise and there is no
+/// reason to introduce one.
+Uint8List areaAverageRgbBlock(
+  Uint8List rgb, {
+  required int width,
+  required int height,
+}) {
+  const n = fingerprintSize;
+  final block = Uint8List(fingerprintSamples * 3);
+  final sums = Float64List(fingerprintSamples * 3);
+  final weights = Float64List(fingerprintSamples);
+
+  if (width <= 0 || height <= 0) {
+    return block;
+  }
+  // The grid divides the buffer exactly, so every pixel falls inside it and
+  // needs no clamping against the buffer; only the cell index needs bounds
+  // checking, including a boundary landing exactly on the trailing edge.
+  final cellWidth = width / n;
+  final cellHeight = height / n;
+
+  int cellIndex(double offset, double cellSize) {
+    final index = (offset / cellSize).floor();
+    return index < 0 ? 0 : (index > n - 1 ? n - 1 : index);
+  }
+
+  for (var y = 0; y < height; y++) {
+    final rowBottom = y + 1.0;
+    // A pixel row overlaps at most two cell rows; a boundary row contributes a
+    // fraction to each of them.
+    final firstRow = cellIndex(y.toDouble(), cellHeight);
+    final lastRow =
+        cellIndex(rowBottom, cellHeight).clamp(firstRow, n - 1).toInt();
+
+    for (var x = 0; x < width; x++) {
+      final colRight = x + 1.0;
+      final firstCol = cellIndex(x.toDouble(), cellWidth);
+      final lastCol =
+          cellIndex(colRight, cellWidth).clamp(firstCol, n - 1).toInt();
+
+      final source = (y * width + x) * 3;
+      final r = rgb[source];
+      final g = rgb[source + 1];
+      final b = rgb[source + 2];
+
+      for (var row = firstRow; row <= lastRow; row++) {
+        final weightY = min(rowBottom, (row + 1) * cellHeight) -
+            max(y.toDouble(), row * cellHeight);
+        if (weightY <= 0) {
+          continue;
+        }
+        for (var column = firstCol; column <= lastCol; column++) {
+          final weightX = min(colRight, (column + 1) * cellWidth) -
+              max(x.toDouble(), column * cellWidth);
+          if (weightX <= 0) {
+            continue;
+          }
+          final weight = weightX * weightY;
+          final cell = row * n + column;
+          final offset = cell * 3;
+          sums[offset] += r * weight;
+          sums[offset + 1] += g * weight;
+          sums[offset + 2] += b * weight;
+          weights[cell] += weight;
+        }
+      }
+    }
+  }
+
+  for (var cell = 0; cell < fingerprintSamples; cell++) {
+    final weight = weights[cell];
+    if (weight <= 0) {
+      continue;
+    }
+    final offset = cell * 3;
+    block[offset] = (sums[offset] / weight).round().clamp(0, 255);
+    block[offset + 1] = (sums[offset + 1] / weight).round().clamp(0, 255);
+    block[offset + 2] = (sums[offset + 2] / weight).round().clamp(0, 255);
+  }
+  return block;
+}
+
 /// Structural similarity: how alike two pictures are in the *arrangement* of
 /// their light and dark, regardless of colour, exposure or contrast.
 ///
