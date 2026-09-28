@@ -1,14 +1,11 @@
 import 'dart:async';
-import 'dart:isolate';
-import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:image_compare_2/image_compare_2.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/controllers/sync_record_controller.dart';
 import 'package:time_machine_img/services/database_service.dart';
+import 'package:time_machine_img/services/similarity_service.dart';
 import 'package:time_machine_img/services/telegram_service.dart';
-import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
@@ -28,13 +25,37 @@ class ComparisonController with TaskManager, SyncRecordController {
   final TelegramService? telegramService;
   final CloudSyncService? cloudSyncService;
   final UserMessageService? userMessages;
-  double? similarity;
+
+  /// The similarity of the record currently being watched, republished whenever
+  /// it changes so the page can rebuild from a stream instead of building a
+  /// fresh [Future] on every frame.
+  final similarityChanges = StreamController<double?>.broadcast();
+
+  double? _similarity;
+
+  /// The last computed similarity, or `null` if the record could not be
+  /// compared (or has not been compared yet).
+  double? get similarity => _similarity;
+
+  int? _similarityRecordId;
+  Future<double?>? _pendingComparison;
 
   /// Whether the Share-to-Telegram option is available (a Telegram bot token
   /// was configured at build time).
   bool get isTelegramSupported => telegramService != null;
 
   void watchRecord(int? id) {
+    // A different record invalidates whatever was computed for the previous
+    // one; without this a late-arriving result could be attributed to the
+    // wrong picture.
+    if (_similarityRecordId != id) {
+      _similarityRecordId = id;
+      _similarity = null;
+      _pendingComparison = null;
+      if (!similarityChanges.isClosed) {
+        similarityChanges.add(null);
+      }
+    }
     watchSyncRecord(
       cloudSyncService: cloudSyncService,
       databaseService: databaseService,
@@ -45,6 +66,7 @@ class ComparisonController with TaskManager, SyncRecordController {
   @override
   void dispose() {
     disposeSyncRecord();
+    similarityChanges.close();
     super.dispose();
   }
 
@@ -123,62 +145,56 @@ class ComparisonController with TaskManager, SyncRecordController {
     }
   }
 
-  Future<double?> comparePictures(Record? record) async {
-    if (similarity != null) {
-      return similarity;
+  /// The similarity of [record]'s picture against its original.
+  ///
+  /// The work itself is off the UI isolate on every platform — an
+  /// [Isolate.run] on native, the browser's own decoder and rasterizer on the
+  /// web — so the returned [Future] can be awaited freely; the only main-thread
+  /// cost is handing over two byte buffers.
+  ///
+  /// The future is memoized per record, so calling this from `build` is safe
+  /// and does not restart the computation. Results are published on
+  /// [similarityChanges].
+  Future<double?> comparePictures(Record? record) {
+    if (record == null || record != this.record) {
+      return Future.value(_similarity);
     }
-
-    final picture = record?.picture;
-    final original = record?.original;
-    if (record == null || picture == null || original == null) {
-      return null;
+    if (_similarityRecordId != record.localId) {
+      watchRecord(record.localId);
     }
-    final originalFile = await cacheService.fetch(original.url);
-    final ownFile = await cacheService.fetch(picture.url);
-
-    similarity = kIsWeb
-        ? await _comparePicturesInCurrentIsolate(
-            record: record, originalFile: originalFile, ownFile: ownFile)
-        : await Isolate.run(() => _comparePicturesInCurrentIsolate(
-            record: record, originalFile: originalFile, ownFile: ownFile));
-    return similarity;
+    return _pendingComparison ??= _comparePictures(record);
   }
 
-  /// Digests both crops and computes the perceptual similarity. Runs on a
-  /// background isolate on native platforms; on the web isolates do not exist,
-  /// so it executes inline on the UI isolate (the crop/compare awaits keep the
-  /// event loop yielding between steps). Only the sendable [Record] and file
-  /// handles are captured.
-  Future<double?> _comparePicturesInCurrentIsolate({
-    required Record record,
-    required XFile originalFile,
-    required XFile ownFile,
-  }) async {
-    final originalViewPort = Record.tryParseViewPort(record.originalViewPort);
-    final pictureViewPort = Record.tryParseViewPort(record.pictureViewPort);
-    final intersection = originalViewPort == null || pictureViewPort == null
-        ? null
-        : originalViewPort.intersection(pictureViewPort);
+  Future<double?> _comparePictures(Record record) async {
+    try {
+      final picture = record.picture;
+      final original = record.original;
+      if (picture == null || original == null) {
+        return _publish(null);
+      }
 
-    final originalImage = await cropImageFile(
-      file: originalFile,
-      viewPort: originalViewPort,
-      intersection: intersection,
-    );
-    final ownImage = await cropImageFile(
-      file: ownFile,
-      viewPort: pictureViewPort,
-      intersection: intersection,
-    );
-    if (originalImage == null || ownImage == null) {
-      return null;
+      // Read the bytes here, on the UI isolate: this is I/O, and it yields.
+      // Everything after it is either a background isolate or a browser
+      // decoder, so no full-resolution image is decoded on the UI isolate.
+      final originalFile = await cacheService.fetch(original.url);
+      final ownFile = await cacheService.fetch(picture.url);
+
+      return _publish(await SimilarityService.computeSimilarity(
+        record: record,
+        originalBytes: await originalFile.readAsBytes(),
+        ownBytes: await ownFile.readAsBytes(),
+      ));
+    } catch (error) {
+      debugPrint('comparePictures error: $error');
+      return _publish(null);
     }
+  }
 
-    return 1.0 -
-        await compareImages(
-          src1: originalImage.convert(numChannels: 3),
-          src2: ownImage.convert(numChannels: 3),
-          algorithm: MedianHash(),
-        );
+  double? _publish(double? value) {
+    _similarity = value;
+    if (!similarityChanges.isClosed) {
+      similarityChanges.add(value);
+    }
+    return value;
   }
 }

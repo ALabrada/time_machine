@@ -84,16 +84,19 @@ class ComparisonPageState extends State<ComparisonPage>
       stream: comparisonController.recordChanges,
       builder: (context, snapshot) {
         final record = snapshot.data;
+        // Kick the comparison off once per record; the controller memoizes it,
+        // so rebuilding never restarts the work. The result arrives on
+        // `similarityChanges` below.
+        unawaited(comparisonController.comparePictures(record));
         return Scaffold(
           appBar: _buildAppBar(),
-          body: FutureBuilder(
-            future: comparisonController.comparePictures(record).onError((e, _) {
-              debugPrint("comparePictures error: $e");
-              return null;
-            }),
-            builder: (context, snapshot) {
-              return _buildContent(record: record, match: snapshot.data);
-            },
+          body: StreamBuilder<double?>(
+            stream: comparisonController.similarityChanges.stream,
+            initialData: comparisonController.similarity,
+            builder: (context, similarity) => _buildContent(
+              record: record,
+              match: similarity.data,
+            ),
           ),
           bottomNavigationBar: _buildToolbar(),
         );
