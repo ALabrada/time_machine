@@ -195,13 +195,17 @@ void main() {
         final mapper = ExtendedStyleUriMapper(key: 'test_key');
         final sprites =
             mapper.mapSprite('mmr://style/light', 'mmr://sprites/default');
-        expect(sprites, hasLength(1));
-        expect(sprites[0].json, contains('.json'));
+        expect(sprites, hasLength(2));
+        expect(sprites[0].json, contains('@2x.json'));
         expect(sprites[0].json, contains('api_key=test_key'));
         expect(sprites[0].json, contains('t='));
-        expect(sprites[0].image, contains('.png'));
+        expect(sprites[0].image, contains('@2x.png'));
         expect(sprites[0].image, contains('api_key=test_key'));
         expect(sprites[0].image, contains('t='));
+        expect(sprites[1].json, contains('.json'));
+        expect(sprites[1].json, isNot(contains('@2x')));
+        expect(sprites[1].image, contains('.png'));
+        expect(sprites[1].image, isNot(contains('@2x')));
       });
     });
 

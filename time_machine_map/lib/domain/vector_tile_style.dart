@@ -1,9 +1,7 @@
-import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:latlong2/latlong.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:vector_tile_renderer/vector_tile_renderer.dart';
 
 class VectorTileStyle {
@@ -13,6 +11,7 @@ class VectorTileStyle {
   final VectorSpriteStyle? sprites;
   final LatLng? center;
   final double? zoom;
+  Theme? _parsedTheme;
 
   VectorTileStyle(
     {this.name,
@@ -22,6 +21,38 @@ class VectorTileStyle {
       this.center,
       this.zoom,
     });
+
+  /// Reads the theme, caching the result so that the (relatively expensive)
+  /// parse only happens once per style.
+  Theme readTheme() => _parsedTheme ??= _readTheme();
+
+  Theme _readTheme() {
+    // Patch style JSON: replace unsupported boolean & feature-state expressions
+    final patched = Map<String, dynamic>.from(theme);
+    patched['layers'] = (patched['layers'] as List<dynamic>)
+        .map((layer) {
+          var patched = _patchUnsupported(layer);
+          if (patched is Map<String, dynamic>) {
+            // Ensure all symbol layers have a paint section
+            if (patched['type'] == 'symbol' && patched['paint'] == null) {
+              patched['paint'] = <String, dynamic>{};
+            }
+            // FillRenderer doesn't convert pixel widths to tile space,
+            // so the default 0.1 tile-unit outline width (~0.006px) is invisible.
+            // Set to 16 tile units (~1px at 256/4096) when outline color exists.
+            if (patched['type'] == 'fill' && patched['paint'] is Map) {
+              final paint = patched['paint'] as Map;
+              if (paint['fill-outline-color'] != null &&
+                  paint['fill-outline-width'] == null) {
+                paint['fill-outline-width'] = 16;
+              }
+            }
+          }
+          return patched;
+        })
+        .toList(growable: false);
+    return ThemeReader().read(patched);
+  }
 }
 
 class VectorSpriteStyle {
@@ -89,56 +120,6 @@ bool _hasColorOutputs(List node) {
 
 bool _isColorString(String s) {
   return s.startsWith('#') || s.startsWith('rgb') || s.startsWith('hsl');
-}
-
-
-extension StyleExtensions on VectorTileStyle {
-  Theme readTheme() {
-    // Patch style JSON: replace unsupported boolean & feature-state expressions
-    final patched = Map<String, dynamic>.from(theme);
-    patched['layers'] = (patched['layers'] as List<dynamic>)
-        .map((layer) {
-          var patched = _patchUnsupported(layer);
-          if (patched is Map<String, dynamic>) {
-            // Ensure all symbol layers have a paint section
-            if (patched['type'] == 'symbol' && patched['paint'] == null) {
-              patched['paint'] = <String, dynamic>{};
-            }
-            // FillRenderer doesn't convert pixel widths to tile space,
-            // so the default 0.1 tile-unit outline width (~0.006px) is invisible.
-            // Set to 16 tile units (~1px at 256/4096) when outline color exists.
-            if (patched['type'] == 'fill' && patched['paint'] is Map) {
-              final paint = patched['paint'] as Map;
-              if (paint['fill-outline-color'] != null &&
-                  paint['fill-outline-width'] == null) {
-                paint['fill-outline-width'] = 16;
-              }
-            }
-          }
-          return patched;
-        })
-        .toList(growable: false);
-    return ThemeReader().read(patched);
-  }
-
-  Style toStyle() => Style(
-    theme: readTheme(),
-    providers: TileProviders({
-      for (final entry in sources.entries)
-        entry.key: NetworkVectorTileProvider(
-          type: TileProviderType.values.firstWhere((v) => v.name == entry.value.type),
-          urlTemplate: entry.value.urlTemplate,
-          maximumZoom: entry.value.minimumZoom,
-          minimumZoom: entry.value.maximumZoom,
-        ),
-    }),
-    center: center,
-    zoom: zoom,
-    sprites: sprites == null ? null : SpriteStyle(
-      atlasProvider: () async => sprites!.atlas,
-      index: sprites!.readContent(),
-    )
-  );
 }
 
 extension SpriteExtensions on VectorSpriteStyle {

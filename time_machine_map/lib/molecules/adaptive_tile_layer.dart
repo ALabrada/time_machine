@@ -1,9 +1,6 @@
-import 'dart:async';
-import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:provider/provider.dart';
@@ -12,32 +9,17 @@ import 'package:time_machine_map/l10n/map_localizations.dart';
 import 'package:time_machine_map/domain/vector_tile_style.dart';
 import 'package:time_machine_map/services/vector_service.dart';
 import 'package:time_machine_res/molecules/loading_container.dart';
-import 'package:vector_map_tiles/src/cache/cache.dart';
-import 'package:vector_map_tiles/src/model/map_properties.dart';
-import 'package:vector_map_tiles/src/provider/network_vector_tile_provider.dart';
-import 'package:vector_map_tiles/src/tile_providers.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart';
-import 'package:vector_tile_renderer/vector_tile_renderer.dart' hide TileLayer;
+import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 
-import 'sprite_map_tiles_layer.dart';
+import 'rendered_vector_tile_provider.dart';
 
 class AdaptiveTileLayer extends StatelessWidget {
   final MapTileServer tileServer;
-  final TileOffset tileOffset;
-  final int concurrency;
-  final Duration fileCacheTtl;
-  final int fileCacheMaximumSizeInBytes;
-  final Future<Directory> Function()? cacheFolder;
   final String userAgent;
 
   const AdaptiveTileLayer({
     super.key,
     required this.tileServer,
-    required this.tileOffset,
-    this.concurrency = 4,
-    this.fileCacheTtl = const Duration(days: 30),
-    this.fileCacheMaximumSizeInBytes = 50 * 1024 * 1024,
-    this.cacheFolder,
     this.userAgent = 'com.example.app',
   });
 
@@ -75,14 +57,9 @@ class AdaptiveTileLayer extends StatelessWidget {
         if (style == null) {
           return const SizedBox.shrink();
         }
-        return _VectorTileCanvasLayer(
+        return _VectorTileLayer(
           serverId: url,
           style: style,
-          tileOffset: tileOffset,
-          concurrency: concurrency,
-          fileCacheTtl: fileCacheTtl,
-          fileCacheMaximumSizeInBytes: fileCacheMaximumSizeInBytes,
-          cacheFolder: cacheFolder,
           vectorService: vectorService,
         );
       },
@@ -90,85 +67,87 @@ class AdaptiveTileLayer extends StatelessWidget {
   }
 }
 
-class _VectorTileCanvasLayer extends StatelessWidget {
+class _VectorTileLayer extends StatefulWidget {
   final String serverId;
   final VectorTileStyle style;
-  final TileOffset tileOffset;
-  final int concurrency;
-  final Duration fileCacheTtl;
-  final int fileCacheMaximumSizeInBytes;
-  final Future<Directory> Function()? cacheFolder;
   final VectorService vectorService;
 
-  const _VectorTileCanvasLayer({
+  const _VectorTileLayer({
     required this.serverId,
     required this.style,
-    required this.tileOffset,
-    this.concurrency = 4,
-    this.fileCacheTtl = const Duration(days: 30),
-    this.fileCacheMaximumSizeInBytes = 50 * 1024 * 1024,
-    this.cacheFolder,
     required this.vectorService,
   });
 
-  Future<(SpriteIndex?, ui.Image?)> _loadSprites() async {
+  @override
+  State<_VectorTileLayer> createState() => _VectorTileLayerState();
+}
+
+class _VectorTileLayerState extends State<_VectorTileLayer> {
+  late Future<_PreparedStyle> _preparedStyle;
+
+  @override
+  void initState() {
+    super.initState();
+    _preparedStyle = _prepare(widget.style);
+  }
+
+  @override
+  void didUpdateWidget(covariant _VectorTileLayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.style, widget.style)) {
+      _preparedStyle = _prepare(widget.style);
+    }
+  }
+
+  Future<_PreparedStyle> _prepare(VectorTileStyle style) async {
+    final theme = style.readTheme();
     final sprites = style.sprites;
-    if (sprites == null) return (null, null);
-    final index = sprites.readContent();
-    final image = await sprites.readImage();
-    return (index, image);
+    if (sprites == null) {
+      return _PreparedStyle(theme);
+    }
+    try {
+      final spriteIndex = sprites.readContent();
+      final spriteAtlas = await sprites.readImage();
+      return _PreparedStyle(theme, spriteIndex: spriteIndex, spriteAtlas: spriteAtlas);
+    } catch (e) {
+      debugPrint('Error loading sprites: $e');
+      return _PreparedStyle(theme);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasSprites = style.sprites != null;
-    final future = hasSprites
-        ? _loadSprites()
-        : Future<(SpriteIndex?, ui.Image?)>.value((null, null));
-
-    return FutureBuilder<(SpriteIndex?, ui.Image?)>(
-      future: future,
+    return FutureBuilder<_PreparedStyle>(
+      future: _preparedStyle,
       builder: (context, snapshot) {
-        if (hasSprites && snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const LoadingView();
         }
-
-        final spriteIndex = snapshot.data?.$1;
-        final spriteAtlas = snapshot.data?.$2;
-
-        final theme = style.readTheme();
-        final tileProviders = TileProviders({
-          for (final entry in style.sources.entries)
-            entry.key: NetworkVectorTileProvider(
-              type: TileProviderType.values.firstWhere(
-                (v) => v.name == entry.value.type,
-              ),
-              urlTemplate: entry.value.urlTemplate,
-              maximumZoom: entry.value.maximumZoom,
-              minimumZoom: entry.value.minimumZoom,
-            ),
-        });
-
-        return MobileLayerTransformer(
-          child: SpriteMapTilesLayer(
-            serverId: serverId,
-            mapProperties: MapProperties(
-              tileProviders: tileProviders,
-              theme: theme,
-              tileOffset: tileOffset,
-              concurrency: concurrency,
-              cacheProperties: CacheProperties(
-                fileCacheTtl: fileCacheTtl,
-                fileCacheMaximumSizeInBytes: fileCacheMaximumSizeInBytes,
-                cacheFolder: cacheFolder,
-              ),
-            ),
-            spriteIndex: spriteIndex,
-            spriteAtlas: spriteAtlas,
-            vectorService: vectorService,
+        final prepared = snapshot.data;
+        if (prepared == null) {
+          return const SizedBox.shrink();
+        }
+        final scale = MediaQuery.devicePixelRatioOf(context).clamp(1.0, 4.0);
+        return TileLayer(
+          tileProvider: RenderedVectorTileProvider(
+            serverId: widget.serverId,
+            style: widget.style,
+            vectorService: widget.vectorService,
+            theme: prepared.theme,
+            spriteIndex: prepared.spriteIndex,
+            spriteAtlas: prepared.spriteAtlas,
+            scale: scale,
           ),
         );
       },
     );
   }
+}
+
+class _PreparedStyle {
+  final vtr.Theme theme;
+  final vtr.SpriteIndex? spriteIndex;
+  final ui.Image? spriteAtlas;
+
+  _PreparedStyle(this.theme, {this.spriteIndex, this.spriteAtlas});
 }

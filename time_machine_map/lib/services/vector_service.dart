@@ -1,11 +1,10 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart';
-import 'package:vector_map_tiles/src/style/uri_mapper.dart';
 import 'package:vector_tile_renderer/vector_tile_renderer.dart';
 
 import '../domain/vector_tile_style.dart';
@@ -131,8 +130,8 @@ class VectorService {
           source = entry.value;
         }
         final entryTiles = source['tiles'];
-        final maxzoom = source['maxzoom'] as int? ?? 14;
-        final minzoom = source['minzoom'] as int? ?? 1;
+        final maxzoom = (source['maxzoom'] as num?)?.toInt() ?? 14;
+        final minzoom = (source['minzoom'] as num?)?.toInt() ?? 1;
         if (entryTiles is List && entryTiles.isNotEmpty) {
           final tileUri = entryTiles[0] as String;
           final tileUrl = ExtendedStyleUriMapper(key: vkApiKey).mapTiles(tileUri);
@@ -156,6 +155,159 @@ class VectorService {
     );
   }
 
+  /// Loads the source tiles for [style] and renders the tile at [z]/[x]/[y].
+  ///
+  /// Sources are fetched at their native maximum zoom and translated to the
+  /// requested zoom when necessary.
+  Future<ui.Image> renderStyledTile({
+    required String serverId,
+    required int z,
+    required int x,
+    required int y,
+    required VectorTileStyle style,
+    required Theme theme,
+    SpriteIndex? spriteIndex,
+    ui.Image? spriteAtlas,
+    double scale = 1.0,
+  }) async {
+    final cached = await cachingService.tileImage(serverId, z, x, y);
+    if (cached != null) return cached;
+
+    final tilesBySource = <String, Tile>{};
+    final rasterTiles = <String, RasterTile>{};
+    final rasterTileset = RasterTileset(tiles: rasterTiles);
+    final sources = style.sources.entries
+        .where((entry) => theme.tileSources.contains(entry.key))
+        .toList(growable: false);
+
+    try {
+      final results = await Future.wait(sources.map((entry) => _loadSourceTile(
+            name: entry.key,
+            source: entry.value,
+            z: z,
+            x: x,
+            y: y,
+            theme: theme,
+            tiles: tilesBySource,
+            rasters: rasterTiles,
+          )));
+
+      final renderer = ImageRenderer(theme: theme, scale: scale);
+      final image = await renderer.render(
+        TileSource(
+          tileset: Tileset(tilesBySource),
+          rasterTileset: rasterTileset,
+          spriteIndex: spriteIndex,
+          spriteAtlas: spriteAtlas,
+        ),
+        zoom: z.toDouble(),
+      );
+
+      // Avoid persisting a partial/blank tile if a source failed for a reason
+      // that may be transient (e.g. a network error).
+      if (!results.contains(false)) {
+        unawaited(cachingService.storeTile(serverId, z, x, y, image));
+      }
+      return image;
+    } finally {
+      rasterTileset.dispose();
+    }
+  }
+
+  Future<bool> _loadSourceTile({
+    required String name,
+    required VectorTileSource source,
+    required int z,
+    required int x,
+    required int y,
+    required Theme theme,
+    required Map<String, Tile> tiles,
+    required Map<String, RasterTile> rasters,
+  }) async {
+    if (z < source.minimumZoom) return true;
+
+    final translation = _TileTranslation.forZoom(z, x, y, source.maximumZoom);
+    final url = _tileUrl(
+      source.urlTemplate,
+      translation.translatedZ,
+      translation.translatedX,
+      translation.translatedY,
+    );
+
+    try {
+      final bytes = await _fetchTile(url);
+      if (source.type == 'vector') {
+        final vectorTile = VectorTileReader().read(bytes);
+        var tileData =
+            TileFactory(theme, const Logger.noop()).createTileData(vectorTile);
+        if (translation.isTranslated) {
+          tileData = _translateTileData(tileData, translation);
+        }
+        tiles[name] = tileData.toTile();
+      } else if (source.type == 'raster' || source.type == 'raster-dem') {
+        final image = await _decodeImage(bytes);
+        var scope = ui.Rect.fromLTWH(
+          0,
+          0,
+          image.width.toDouble(),
+          image.height.toDouble(),
+        );
+        if (translation.isTranslated) {
+          scope = _translatedScope(scope, translation);
+        }
+        rasters[name] = RasterTile(image: image, scope: scope);
+      }
+      return true;
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 404 || status == 204) {
+        return true;
+      }
+      debugPrint('Error loading source $name for tile $z/$x/$y: $e');
+      return false;
+    } catch (e) {
+      debugPrint('Error loading source $name for tile $z/$x/$y: $e');
+      return false;
+    }
+  }
+
+  Future<Uint8List> _fetchTile(String url) async {
+    final response = await dio.get<List<int>>(
+      url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final data = response.data;
+    if (data == null) {
+      throw StateError('Empty response for $url');
+    }
+    return data is Uint8List ? data : Uint8List.fromList(data);
+  }
+
+  Future<ui.Image> _decodeImage(Uint8List bytes) async {
+    final codec = await ui.instantiateImageCodec(bytes);
+    try {
+      final frame = await codec.getNextFrame();
+      return frame.image;
+    } finally {
+      codec.dispose();
+    }
+  }
+
+  String _tileUrl(String template, int z, int x, int y) {
+    return template.replaceAllMapped(RegExp(r'\{(x|y|z)\}'), (match) {
+      switch (match.group(1)) {
+        case 'x':
+          return x.toString();
+        case 'y':
+          return y.toString();
+        case 'z':
+          return z.toString();
+        default:
+          throw Exception('unsupported tile URL token: ${match.group(1)}');
+      }
+    });
+  }
+
   Future<ui.Image> renderTileImage({
     required String serverId,
     required int z,
@@ -172,12 +324,11 @@ class VectorService {
     if (cached != null) return cached;
 
     final renderer = ImageRenderer(theme: theme, scale: scale);
-    final adjustedSpriteIndex = _adjustedSpriteIndex(spriteIndex, scale);
     final image = await renderer.render(
       TileSource(
         tileset: tileset,
         rasterTileset: rasterTileset,
-        spriteIndex: adjustedSpriteIndex,
+        spriteIndex: spriteIndex,
         spriteAtlas: spriteAtlas,
       ),
       zoom: z.toDouble(),
@@ -188,59 +339,100 @@ class VectorService {
   }
 }
 
+TileData _translateTileData(TileData tileData, _TileTranslation translation) {
+  const tileSize = 256.0;
+  final clipSize = tileSize / translation.fraction;
+  final paddingSize = clipSize * 0.25;
+  final halfPaddingSize = paddingSize / 2;
+  final totalSize = clipSize + paddingSize;
+  final dx = (translation.xOffset * clipSize) - halfPaddingSize;
+  final dy = (translation.yOffset * clipSize) - halfPaddingSize;
+  final clip = math.Rectangle<double>(dx, dy, totalSize, totalSize);
+  final clipped = TileClip(bounds: clip).clip(tileData);
+  return TileTranslate(
+    math.Point<double>(-clip.left - halfPaddingSize, -clip.top - halfPaddingSize),
+    scale: translation.fraction.toDouble(),
+  ).translate(clipped);
+}
+
+ui.Rect _translatedScope(ui.Rect scope, _TileTranslation translation) {
+  final xDimension = scope.width / translation.fraction;
+  final yDimension = scope.height / translation.fraction;
+  return ui.Rect.fromLTWH(
+    xDimension * translation.xOffset,
+    yDimension * translation.yOffset,
+    xDimension,
+    yDimension,
+  );
+}
+
+class _TileTranslation {
+  final int fraction;
+  final int xOffset;
+  final int yOffset;
+  final int translatedZ;
+  final int translatedX;
+  final int translatedY;
+
+  bool get isTranslated => fraction > 1;
+
+  const _TileTranslation({
+    required this.fraction,
+    required this.xOffset,
+    required this.yOffset,
+    required this.translatedZ,
+    required this.translatedX,
+    required this.translatedY,
+  });
+
+  factory _TileTranslation.forZoom(int z, int x, int y, int maximumZoom) {
+    if (z <= maximumZoom) {
+      return _TileTranslation(
+        fraction: 1,
+        xOffset: 0,
+        yOffset: 0,
+        translatedZ: z,
+        translatedX: x,
+        translatedY: y,
+      );
+    }
+    final divisor = 1 << (z - maximumZoom);
+    return _TileTranslation(
+      fraction: divisor,
+      xOffset: x % divisor,
+      yOffset: y % divisor,
+      translatedZ: maximumZoom,
+      translatedX: x ~/ divisor,
+      translatedY: y ~/ divisor,
+    );
+  }
+}
+
 String _invalidStyle(String url) =>
     'Uri does not appear to be a valid style: $url';
 
-SpriteIndex? _adjustedSpriteIndex(SpriteIndex? index, double scale) {
-  if (index == null) return null;
-  final target = scale.ceil();
-  if (index.spriteByName.values.every((s) => s.pixelRatio >= target)) {
-    return index;
-  }
-  return SpriteIndex(Map.fromEntries(
-    index.spriteByName.entries.map((e) {
-      final s = e.value;
-      if (s.pixelRatio >= target) return e;
-      return MapEntry(e.key, Sprite(
-        name: s.name,
-        width: s.width,
-        height: s.height,
-        x: s.x,
-        y: s.y,
-        pixelRatio: target,
-        content: s.content,
-        stretchX: s.stretchX,
-        stretchY: s.stretchY,
-      ));
-    }),
-  ));
-}
-
-class ExtendedStyleUriMapper extends StyleUriMapper {
+class ExtendedStyleUriMapper {
   static const vkScheme = 'mmr';
   final String _key;
 
-  ExtendedStyleUriMapper({required String key}) : _key = key, super(key: key);
+  ExtendedStyleUriMapper({required String key}) : _key = key;
 
-  @override
   String map(String uri) {
     final parsed = Uri.parse(uri);
     if (parsed.scheme == vkScheme) {
       return _toVKUri(_authenticate(parsed));
     }
-    return super.map(uri);
+    return _replaceKey(uri);
   }
 
-  @override
   String mapSource(String styleUri, String sourceUri) {
     final parsed = Uri.parse(sourceUri);
     if (parsed.scheme == vkScheme) {
       return _toVKUri(_authenticate(parsed, timestamp: true));
     }
-    return super.mapSource(styleUri, sourceUri);
+    return _replaceKey(sourceUri);
   }
 
-  @override
   List<SpriteUri> mapSprite(String styleUri, String spriteUri) {
     final parsed = Uri.parse(spriteUri);
     if (parsed.scheme == vkScheme) {
@@ -259,16 +451,42 @@ class ExtendedStyleUriMapper extends StyleUriMapper {
         ),
       ];
     }
-    return super.mapSprite(styleUri, spriteUri);
+    final parameters = Uri.parse(map(styleUri)).queryParameters;
+    return [
+      _toSpriteUri(spriteUri, parameters, '@2x'),
+      _toSpriteUri(spriteUri, parameters, ''),
+    ];
   }
 
-  @override
   String mapTiles(String tileUri) {
-    final mapped = tileUri.replaceFirst('$vkScheme://', 'https://tiles.maps.vk.com/');
-    return _authenticateString(mapped);
+    final parsed = Uri.parse(tileUri);
+    if (parsed.scheme == vkScheme) {
+      final mapped =
+          tileUri.replaceFirst('$vkScheme://', 'https://tiles.maps.vk.com/');
+      return _authenticateString(mapped);
+    }
+    return _replaceKey(tileUri);
   }
 
-  String _toVKUri(String source) => source.replaceFirst('$vkScheme://', 'https://maps.vk.com/');
+  SpriteUri _toSpriteUri(
+    String spriteUri,
+    Map<String, String> parameters,
+    String suffix,
+  ) {
+    final query = parameters.entries
+        .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')
+        .join('&');
+    return SpriteUri(
+      json: '$spriteUri$suffix.json?secure&$query',
+      image: '$spriteUri$suffix.png?secure&$query',
+    );
+  }
+
+  String _replaceKey(String url) =>
+      url.replaceAll('{key}', Uri.encodeQueryComponent(_key));
+
+  String _toVKUri(String source) =>
+      source.replaceFirst('$vkScheme://', 'https://maps.vk.com/');
 
   String _authenticateString(String url, {bool timestamp = false}) {
     final buffer = StringBuffer(url);
@@ -290,9 +508,9 @@ class ExtendedStyleUriMapper extends StyleUriMapper {
   }
 }
 
-class StyleWithRaw {
-  final Style style;
-  final Map<String, dynamic> raw;
+class SpriteUri {
+  final String json;
+  final String image;
 
-  StyleWithRaw({required this.style, required this.raw});
+  SpriteUri({required this.json, required this.image});
 }
