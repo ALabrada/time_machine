@@ -19,9 +19,7 @@ import 'package:time_machine_db/services/database_service.dart';
 import 'package:time_machine_img/services/telegram_service.dart';
 import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_map/time_machine_map.dart';
-import 'package:time_machine_map/services/vector_service_web.dart'
-    if (dart.library.io) 'package:time_machine_map/services/vector_service.dart'
-    as vs;
+import 'package:time_machine_map/services/vector_service.dart' as vs;
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'l10n/app_localizations.dart';
@@ -372,13 +370,12 @@ class TimeMachineApp extends StatelessWidget {
             );
           },
         ),
-        if (!kIsWeb)
-          Provider<vs.VectorService>(
-            create: (_) => vs.VectorService(
-              userAgent: userAgent,
-              vkApiKey: secrets.VK_MAPS_API_KEY,
-            ),
+        Provider<vs.VectorService>(
+          create: (_) => vs.VectorService(
+            userAgent: userAgent,
+            vkApiKey: secrets.VK_MAPS_API_KEY,
           ),
+        ),
       ],
       builder: (context, _) {
         return MaterialApp.router(

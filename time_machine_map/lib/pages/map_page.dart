@@ -23,7 +23,6 @@ import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-import '../domain/tile_offset.dart';
 import '../molecules/adaptive_tile_layer.dart';
 
 class MapPage extends StatefulWidget {
@@ -166,7 +165,6 @@ class MapPageState extends State<MapPage> {
         children: [
           AdaptiveTileLayer(
             tileServer: _tileServer,
-            tileOffset: const TileOffset(zoomOffset: 0),
             userAgent: _picturesController.networkService?.userAgent ?? 'com.example.app',
           ),
           CurrentLocationLayer(
