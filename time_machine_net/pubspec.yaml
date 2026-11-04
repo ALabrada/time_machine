@@ -29,7 +29,6 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
 
-  dropbox_api: ^0.0.6
   googleapis_auth: ^2.3.3
   http: any
   nextcloud: ^9.0.0

@@ -1,17 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:time_machine_cloud/services/cloud_sync_provider.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:dropbox_api/dropbox_api.dart' as dropbox;
-// The concrete REST transport is not exported by `dropbox_api`; this is the
-// package's own HTTP implementation of its `OAuth2RestClient` interface.
-// ignore: implementation_imports
-import 'package:oauth2restclient/src/rest_client/http_oauth2_rest_client.dart';
 import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
+import 'package:time_machine_cloud/services/cloud_sync_provider.dart';
+import 'package:time_machine_cloud/services/cloud/dropbox_api.dart';
 import 'package:time_machine_cloud/services/cloud/memory_token_stores.dart';
 import 'package:time_machine_cloud/services/cloud/oauth_consent_browser.dart';
 import 'package:time_machine_cloud/services/cloud/oauth_pkce.dart';
@@ -19,7 +15,7 @@ import 'package:time_machine_cloud/services/cloud/dropbox_token_store.dart';
 import 'package:time_machine_cloud/services/cloud/file_cloud_base.dart';
 
 /// [FileCloudBase] implementation backed by a Dropbox account, built on the
-/// third-party `dropbox_api` package instead of hand-written HTTP requests.
+/// pure-Dart [HttpDropboxApi] client instead of a Flutter-dependent package.
 ///
 /// The app is configured with scoped ("app folder") access, so Dropbox already
 /// roots every path at the application's dedicated folder (`/Apps/<name>`).
@@ -41,12 +37,10 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     String? redirectUri,
     this.consentBrowser,
     super.encryptionKey,
-    HttpOAuth2RestClient? client,
-    dropbox.DropboxApi? api,
+    DropboxApi? api,
   })  : tokenStore = tokenStore ?? MemoryDropboxTokenStore(),
         redirectUri = redirectUri ?? defaultRedirectUri,
-        _injectedApi = api,
-        _externalClient = client {
+        _injectedApi = api {
     _connectApi();
   }
 
@@ -76,13 +70,11 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
       'https://www.dropbox.com/oauth2/authorize';
   static const _tokenEndpoint = 'https://api.dropboxapi.com/oauth2/token';
 
-  dropbox.DropboxApi? _api;
-  HttpOAuth2RestClient? _restClient;
+  DropboxApi? _api;
 
-  /// Dependencies supplied at construction; restored by [_connectApi] after
+  /// Dependency supplied at construction; restored by [_connectApi] after
   /// [logout] released the previous connection.
-  final dropbox.DropboxApi? _injectedApi;
-  final HttpOAuth2RestClient? _externalClient;
+  final DropboxApi? _injectedApi;
 
   DropboxSession? _session;
   bool _signedOut = false;
@@ -101,21 +93,16 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
   /// [initialize] when [logout] had released it.
   void _connectApi() {
     if (_api != null) return;
-    final injected = _injectedApi;
-    if (injected != null) {
-      _api = injected;
-      return;
-    }
-    _restClient = _externalClient ??
-        HttpOAuth2RestClient(refreshToken: _refreshAccessToken);
-    _api = dropbox.DropboxRestApi(_restClient!);
+    _api = _injectedApi ??
+        HttpDropboxApi(
+          accessToken: _session?.accessToken ?? '',
+          refreshAccessToken: _refreshAccessToken,
+        );
   }
 
-  /// Drops the REST transport so its socket pool can be reclaimed. The
-  /// package's client exposes no close method, so releasing is by reference.
+  /// Drops the REST transport so its socket pool can be reclaimed.
   void _releaseApi() {
     _api = null;
-    _restClient = null;
   }
 
   /// Runs the Dropbox OAuth consent flow inside an [OAuthConsentBrowser] and
@@ -217,10 +204,7 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     if (_signedOut) return;
     _session = DropboxSession(accessToken: accessToken, refreshToken: '', accountEmail: accountEmail);
     _connectApi();
-    final restClient = _restClient;
-    if (restClient != null) {
-      restClient.accessToken = accessToken;
-    }
+    _api?.setAccessToken(accessToken);
     _signedOut = false;
     if (accountEmail != null) {
       await _persistAccount(accountEmail);
@@ -236,10 +220,7 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     _signedOut = false;
     _session = session;
     _connectApi();
-    final restClient = _restClient;
-    if (restClient != null) {
-      restClient.accessToken = session.accessToken;
-    }
+    _api?.setAccessToken(session.accessToken);
 
     final account = await _requireApi().getCurrentAccount();
     await _persistAccount(account.email);
@@ -303,23 +284,36 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     if (_signedOut || refreshToken == null || refreshToken.isEmpty) {
       return null;
     }
-    final provider = dropbox.Dropbox(
-      clientId: clientId,
-      redirectUri: redirectUri,
-    );
-    final token = await provider.refreshToken(refreshToken);
-    if (token == null || token.accessToken.isEmpty) {
+    final client = http.Client();
+    try {
+      final response = await client.post(
+        Uri.parse(_tokenEndpoint),
+        headers: const {'content-type': 'application/x-www-form-urlencoded'},
+        body: <String, String>{
+          'grant_type': 'refresh_token',
+          'refresh_token': refreshToken,
+          'client_id': clientId,
+        },
+      );
+      if (response.statusCode != 200) {
+        return null;
+      }
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final accessToken = json['access_token'] as String?;
+      if (accessToken == null || accessToken.isEmpty) {
+        return null;
+      }
+      _session = _session!.copy(accessToken: accessToken);
+      await tokenStore.write(_session!);
+      return accessToken;
+    } catch (_) {
       return null;
+    } finally {
+      client.close();
     }
-    _session = _session!.copy(
-      accessToken: token.accessToken,
-      refreshToken: token.refreshToken.isEmpty ? null : token.refreshToken,
-    );
-    await tokenStore.write(_session!);
-    return token.accessToken;
   }
 
-  dropbox.DropboxApi _requireApi() {
+  DropboxApi _requireApi() {
     final api = _api;
     if (_signedOut || api == null) {
       throw Exception('Not signed in');
@@ -430,7 +424,7 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     }
   }
 
-  Future<List<dropbox.DropboxFile>> _listAll(String relativePath) async {
+  Future<List<DropboxFile>> _listAll(String relativePath) async {
     var response = await _requireApi().listFolder(_absolute(relativePath));
     final entries = [...response.entries];
     while (response.hasMore && response.cursor != null) {

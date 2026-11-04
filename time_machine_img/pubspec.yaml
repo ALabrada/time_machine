@@ -25,6 +25,8 @@ dependencies:
     path: ../flutter_inappwebview/flutter_inappwebview_macos
   flutter_inappwebview_windows:
     path: ../flutter_inappwebview/flutter_inappwebview_windows
+  flutter_inappwebview_linux:
+    path: ../flutter_inappwebview/flutter_inappwebview_linux
 
   time_machine_config:
     path: ../time_machine_config
@@ -81,6 +83,8 @@ dependency_overrides:
     path: ../flutter_inappwebview/flutter_inappwebview_macos
   flutter_inappwebview_windows:
     path: ../flutter_inappwebview/flutter_inappwebview_windows
+  flutter_inappwebview_linux:
+    path: ../flutter_inappwebview/flutter_inappwebview_linux
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -13,7 +13,6 @@ dependencies:
   cachette: ^1.0.0
   collection: any
   dio: ^5.7.0
-  dropbox_api: ^0.0.6
   googleapis: ^16.0.0
   googleapis_auth: ^2.3.3
   html: any
@@ -22,8 +21,6 @@ dependencies:
   latlong2: any
   meta: any
   nextcloud: ^9.0.0
-  oauth2_client: ^3.3.0
-  oauth2restclient: ^0.0.9
   osm_nominatim: ^4.0.1
   path: any
   pointycastle: ^3.7.3

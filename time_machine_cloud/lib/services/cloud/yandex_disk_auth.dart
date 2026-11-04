@@ -1,10 +1,6 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
-import 'package:oauth2_client/access_token_response.dart';
-import 'package:oauth2_client/oauth2_client.dart';
-// Not exported by `oauth2_client`; imported so tests can substitute their own
-// browser lock-in for the authorization-code flow.
-// ignore: implementation_imports
-import 'package:oauth2_client/src/base_web_auth.dart';
 import 'package:time_machine_cloud/services/cloud/oauth_consent_browser.dart';
 import 'package:time_machine_cloud/services/cloud/oauth_pkce.dart';
 import 'package:time_machine_cloud/services/cloud/yandex_disk_token_store.dart';
@@ -12,20 +8,15 @@ import 'package:time_machine_cloud/services/cloud/yandex_disk_token_store.dart';
 /// OAuth 2 client prewired to the Yandex OAuth endpoints
 /// (`https://oauth.yandex.ru/`), ready for the authorization-code flow with
 /// PKCE that Yandex supports without a client secret.
-class YandexDiskAuth extends OAuth2Client {
-  YandexDiskAuth({String? redirectUri}) : super(
-          authorizeUrl: 'https://oauth.yandex.ru/authorize',
-          tokenUrl: 'https://oauth.yandex.ru/token',
-          redirectUri: redirectUri ?? defaultRedirectUri,
-          // The callback scheme always mirrors the redirect URI's scheme, so
-          // Yandex can share the common `com.fakegem.historylens` deep-link
-          // scheme and stay unambiguous by redirect path instead.
-          customUriScheme:
-              Uri.parse(redirectUri ?? defaultRedirectUri).scheme,
-          // Yandex expects the client id in the token request body; there is
-          // no client secret when PKCE is in use.
-          credentialsLocation: CredentialsLocation.body,
-        );
+///
+/// This is a pure-Dart implementation (no `oauth2_client`), so the proxy server
+/// can host [YandexDiskCloud] without pulling in Flutter.
+class YandexDiskAuth {
+  YandexDiskAuth({String? redirectUri})
+      : redirectUri = redirectUri ?? defaultRedirectUri;
+
+  static const _authorizeUrl = 'https://oauth.yandex.ru/authorize';
+  static const _tokenUrl = 'https://oauth.yandex.ru/token';
 
   /// App-scoped access to the application's own folder on Yandex Disk
   /// (`/apps/<name>`), allowing read/write exclusively inside it.
@@ -36,68 +27,11 @@ class YandexDiskAuth extends OAuth2Client {
 
   static const defaultRedirectUri = 'yandexauth://oauth';
 
-  /// Runs the authorization-code consent flow and maps the response to a
-  /// persistable [YandexDiskSession]. Throws when the user cancelled the
-  /// dialog or the server denied the request.
-  Future<YandexDiskSession> authorize({
-    required String clientId,
-    List<String> scopes = const [
-      cloudApiDiskAppFolderScope,
-      cloudApiDiskInfoScope,
-    ],
-    http.Client? httpClient,
-    BaseWebAuth? webAuthClient,
-  }) async {
-    return _toSession(
-      await getTokenWithAuthCodeFlow(
-        clientId: clientId,
-        scopes: scopes,
-        httpClient: httpClient,
-        webAuthClient: webAuthClient,
-        // Yandex would otherwise silently skip the consent screen for a
-        // previously authorized app+account pair and redirect back
-        // immediately; force it to always display the page so a fresh
-        // authorization is a real login.
-        authCodeParams: const {'force_confirm': '1'},
-        // Ephemeral Custom Tab on Android (FLAG_ACTIVITY_NO_HISTORY): the tab
-        // is not kept in the browser's back stack, so it disappears instead of
-        // reopening with an animation after the redirect, and every login
-        // runs in a clean browser session with no leftover cookies.
-        webAuthOpts: const {'preferEphemeral': true},
-      ),
-    );
-  }
-
-  /// Exchanges a stored refresh token for a fresh session. Returns `null`
-  /// when the server rejected the refresh (revoked/expired refresh token).
-  Future<YandexDiskSession?> refresh(
-    String refreshToken, {
-    required String clientId,
-    http.Client? httpClient,
-  }) async {
-    final response = await super.refreshToken(
-      refreshToken,
-      clientId: clientId,
-      httpClient: httpClient,
-    );
-    if (!response.isValid() || response.accessToken == null) {
-      return null;
-    }
-    return _toSession(response);
-  }
-
-  YandexDiskSession _toSession(AccessTokenResponse response) {
-    if (!response.isValid() ||
-        response.accessToken == null ||
-        response.accessToken!.isEmpty) {
-      throw Exception('Yandex authorization failed');
-    }
-    return YandexDiskSession(
-      accessToken: response.accessToken!,
-      refreshToken: response.refreshToken ?? '',
-      expiresAt: response.expirationDate,
-    );
-  }
+  /// Redirect URI of the registered Yandex OAuth app. The callback scheme
+  /// mirrors the redirect URI's scheme, so Yandex can share the common
+  /// `com.fakegem.historylens` deep-link scheme and stay unambiguous by
+  /// redirect path instead.
+  final String redirectUri;
 
   /// Runs the Yandex OAuth consent flow inside an [OAuthConsentBrowser] (the
   /// system-browser browser from `time_machine_net` in the Flutter shell) and
@@ -142,12 +76,80 @@ class YandexDiskAuth extends OAuth2Client {
     }
 
     return _toSession(
-      await requestAccessToken(
-        code: code,
-        clientId: clientId,
-        codeVerifier: codeVerifier,
+      await _requestToken(
+        body: <String, String>{
+          'grant_type': 'authorization_code',
+          'code': code,
+          'client_id': clientId,
+          'code_verifier': codeVerifier,
+        },
         httpClient: httpClient,
       ),
+    );
+  }
+
+  /// Exchanges a stored refresh token for a fresh session. Returns `null`
+  /// when the server rejected the refresh (revoked/expired refresh token).
+  Future<YandexDiskSession?> refresh(
+    String refreshToken, {
+    required String clientId,
+    http.Client? httpClient,
+  }) async {
+    try {
+      final json = await _requestToken(
+        body: <String, String>{
+          'grant_type': 'refresh_token',
+          'refresh_token': refreshToken,
+          'client_id': clientId,
+        },
+        httpClient: httpClient,
+      );
+      return _toSession(json);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>> _requestToken({
+    required Map<String, String> body,
+    http.Client? httpClient,
+  }) async {
+    final client = httpClient ?? http.Client();
+    try {
+      final response = await client.post(
+        Uri.parse(_tokenUrl),
+        headers: const {'content-type': 'application/x-www-form-urlencoded'},
+        body: body,
+      );
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception(
+          'Yandex token request failed: HTTP ${response.statusCode}',
+        );
+      }
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception('Yandex token response is not a JSON object');
+      }
+      return decoded;
+    } finally {
+      if (httpClient == null) {
+        client.close();
+      }
+    }
+  }
+
+  YandexDiskSession _toSession(Map<String, dynamic> json) {
+    final accessToken = json['access_token'] as String?;
+    if (accessToken == null || accessToken.isEmpty) {
+      throw Exception('Yandex authorization failed');
+    }
+    final expiresIn = (json['expires_in'] as num?)?.toInt();
+    return YandexDiskSession(
+      accessToken: accessToken,
+      refreshToken: json['refresh_token'] as String? ?? '',
+      expiresAt: expiresIn == null
+          ? null
+          : DateTime.now().add(Duration(seconds: expiresIn)),
     );
   }
 
@@ -171,6 +173,6 @@ class YandexDiskAuth extends OAuth2Client {
       // real authorization.
       'force_confirm': '1',
     };
-    return Uri.parse(authorizeUrl).replace(queryParameters: queries);
+    return Uri.parse(_authorizeUrl).replace(queryParameters: queries);
   }
 }

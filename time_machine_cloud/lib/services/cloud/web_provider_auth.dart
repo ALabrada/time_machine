@@ -1,8 +1,3 @@
-import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-
 import 'provider_auth.dart';
 
 class WebProviderSession implements ProviderSession {
@@ -25,6 +20,11 @@ class WebProviderSession implements ProviderSession {
       };
 }
 
+/// Placeholder for a browser-based provider session.
+///
+/// The real implementation needs `dart:html` (via `package:web`) and is
+/// supplied by the Flutter web shell; the pure-Dart package keeps a
+/// behaviourally inert default so it can be imported by the proxy server.
 class WebProviderAuth implements ProviderAuth {
   WebProviderAuth({
     required this.providerId,
@@ -35,20 +35,13 @@ class WebProviderAuth implements ProviderAuth {
   final String providerId;
   final Uri backendUrl;
   final String webAppCallbackUrl;
-  static const _storageKey = 'time_machine_web_session';
 
   @override
-  Future<ProviderSession?> restore() async {
-    if (!kIsWeb) return null;
-    throw UnsupportedError('Web implementation requires dart:html - use platform-specific');
-  }
+  Future<ProviderSession?> restore() async => null;
 
   @override
   Future<ProviderSession> authenticate() async {
-    if (!kIsWeb) {
-      throw UnsupportedError('Web auth only supported on web');
-    }
-    throw UnsupportedError('Web implementation requires dart:html');
+    throw UnsupportedError('Web auth requires dart:html');
   }
 
   @override
