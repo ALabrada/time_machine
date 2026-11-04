@@ -212,6 +212,21 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     await tokenStore.write(session);
   }
 
+  /// Authenticates using an access token (server-side use case).
+  Future<void> authenticateWithAccessToken({required String accessToken, String? accountEmail}) async {
+    if (_signedOut) return;
+    _session = DropboxSession(accessToken: accessToken, refreshToken: '', accountEmail: accountEmail);
+    _connectApi();
+    final restClient = _restClient;
+    if (restClient != null) {
+      restClient.accessToken = accessToken;
+    }
+    _signedOut = false;
+    if (accountEmail != null) {
+      await _persistAccount(accountEmail);
+    }
+  }
+
   @override
   Future<String> initialize() async {
     final session = await tokenStore.read();

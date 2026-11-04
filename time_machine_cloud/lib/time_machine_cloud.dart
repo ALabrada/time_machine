@@ -28,3 +28,6 @@ export 'services/providers/pastvu_provider.dart';
 export 'services/providers/retro_photos_provider.dart';
 export 'services/providers/russia_in_photo_provider.dart';
 export 'services/providers/sepia_town_provider.dart';
+export 'services/cloud/provider_auth.dart';
+export 'services/cloud/web_provider_auth.dart';
+export 'services/cloud/backend_proxy_cloud.dart';

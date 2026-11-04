@@ -98,6 +98,31 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     await tokenStore.write(session);
   }
 
+  /// Authenticates using an access token (server-side use case).
+  Future<void> authenticateWithAccessToken({
+    required String accessToken,
+    String? clientId,
+    String? userEmail,
+  }) async {
+    if (_signedOut) {
+      return;
+    }
+    final authClient = auth_io.authenticatedClient(
+      _baseClient,
+      auth.AccessCredentials(
+        auth.AccessToken('Bearer', accessToken, DateTime.now().add(const Duration(hours: 1))),
+        null,
+        const [appDataScope],
+      ),
+    );
+    _sessionClient = authClient;
+    _drive = drive.DriveApi(authClient);
+    _signedOut = false;
+    if (userEmail != null) {
+      await _persistUserEmail(userEmail);
+    }
+  }
+
   /// Restores a previously signed-in session from the saved refresh token
   /// when no credentials were supplied at construction.
   Future<void> _restoreSession() async {

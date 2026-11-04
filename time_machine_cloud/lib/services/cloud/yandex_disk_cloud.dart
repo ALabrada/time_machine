@@ -132,6 +132,17 @@ class YandexDiskCloud extends FileCloudBase with EventfulFileCloud {
     await tokenStore.write(session);
   }
 
+  Future<void> authenticateWithAccessToken({required String accessToken, String? userName}) async {
+    if (_signedOut) return;
+    _session = YandexDiskSession(accessToken: accessToken, refreshToken: '');
+    _connect(accessToken);
+    final transport = _transport;
+    if (transport is RestYandexDiskTransport) {
+      // transport stores token internally via its Dio client; recreate is easier - but we can also set
+    }
+    _signedOut = false;
+  }
+
   @override
   Future<String> initialize() async {
     final session = await tokenStore.read();
