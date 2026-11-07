@@ -12,6 +12,7 @@ abstract interface class CancellableProviderAuth {
 
 abstract class ProviderSession {
   String get accountId;
+  String get accessToken;
   bool get isExpired;
   Map<String, String> get headers;
 }

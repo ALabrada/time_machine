@@ -188,30 +188,56 @@ class TimeMachineApp extends StatelessWidget {
         Provider<AppLinks>(
           create: (_) => AppLinks(),
         ),
-        // Opens the OAuth authorize page in the system browser and receives
-        // the consent return as a deep link on the app's custom URL scheme.
-        // A single instance is shared by every cloud provider; each consent
-        // builds its own waiting stream on `redirectStream()`.
-        Provider<SystemBrowserOAuthConsentBrowser>(
+        // Opens the OAuth authorize page in the system browser. Custom-scheme
+        // providers return through the app's deep link; Google's desktop
+        // client uses a loopback redirect instead.
+        Provider<OAuthConsentBrowser>(
           create: (context) {
             final appLinks = context.read<AppLinks>();
-            return SystemBrowserOAuthConsentBrowser(
-              redirectStream: () => _mergeDeepLinks(appLinks),
+            return createPlatformOAuthConsentBrowser(
+              system: SystemBrowserOAuthConsentBrowser(
+                redirectStream: () => _mergeDeepLinks(appLinks),
+              ),
             );
           },
         ),
         Provider<NetworkService>(
           create: (context) {
-            final googleClientId =
-                defaultTargetPlatform == TargetPlatform.iOS
-                    ? secrets.GOOGLE_DRIVE_CLIENT_ID_IOS
-                    : secrets.GOOGLE_DRIVE_CLIENT_ID_ANDROID;
+            final googleClientId = kIsWeb
+                ? ''
+                : switch (defaultTargetPlatform) {
+                    TargetPlatform.iOS =>
+                      secrets.GOOGLE_DRIVE_CLIENT_ID_IOS,
+                    TargetPlatform.android =>
+                      secrets.GOOGLE_DRIVE_CLIENT_ID_ANDROID,
+                    _ => secrets.GOOGLE_DRIVE_CLIENT_ID_DESKTOP,
+                  };
+            final googleClientSecret =
+                !kIsWeb &&
+                    defaultTargetPlatform != TargetPlatform.iOS &&
+                    defaultTargetPlatform != TargetPlatform.android &&
+                    secrets.GOOGLE_DRIVE_CLIENT_SECRET_DESKTOP.isNotEmpty
+                ? secrets.GOOGLE_DRIVE_CLIENT_SECRET_DESKTOP
+                : null;
+            final googleRedirectUri = !kIsWeb &&
+                    defaultTargetPlatform != TargetPlatform.iOS &&
+                    defaultTargetPlatform != TargetPlatform.android
+                ? Uri.parse(secrets.GOOGLE_DRIVE_DESKTOP_REDIRECT_URI)
+                : Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI);
             // OAuth providers keep their native implementation (system browser
             // + custom-scheme deep link) except on the web, where the proxy
             // backend mediates the flow and hosts the provider API calls.
             final backendUrl = Uri.tryParse(secrets.BACKEND_URL);
             final useBackendAuth =
                 kIsWeb && backendUrl != null && backendUrl.hasAuthority;
+            final configuredBackendProviders = secrets.BACKEND_PROVIDERS
+                .split(',')
+                .map((provider) => provider.trim())
+                .where((provider) => provider.isNotEmpty)
+                .toSet();
+            bool providerEnabled(String provider) =>
+                configuredBackendProviders.isEmpty ||
+                configuredBackendProviders.contains(provider);
             final clouds = <String, CloudBase>{
               // Nextcloud needs no application credentials, so it is always
               // offered — including on web, where its login (server URL +
@@ -220,58 +246,60 @@ class TimeMachineApp extends StatelessWidget {
                 appRootFolderName: 'HistoryLens',
                 tokenStore: SecureNextcloudTokenStore(),
               ),
-              if (!kIsWeb && googleClientId.isNotEmpty)
+              if (!kIsWeb &&
+                  providerEnabled('gdrive') &&
+                  googleClientId.isNotEmpty)
                 'gdrive': GoogleDriveCloud(
-                  // OAuth runs in the system browser and returns through the
-                  // app's custom URL scheme as a deep link, so no Google Play
-                  // Services are involved.
+                  // Mobile uses the custom-scheme deep link; the desktop OAuth
+                  // client uses Google's loopback redirect.
                   appRootFolderName: 'HistoryLens',
                   signIn: GoogleDriveSignIn(
-                    clientId: auth.ClientId(googleClientId, null),
-                    redirectUri: Uri.parse(secrets.GOOGLE_DRIVE_REDIRECT_URI),
+                    clientId: auth.ClientId(googleClientId, googleClientSecret),
+                    redirectUri: googleRedirectUri,
                   ),
                   tokenStore: SecureGoogleDriveTokenStore(),
                 ),
-              if (!kIsWeb && secrets.DROPBOX_APP_KEY.isNotEmpty)
+              if (!kIsWeb &&
+                  providerEnabled('dropbox') &&
+                  secrets.DROPBOX_APP_KEY.isNotEmpty)
                 'dropbox': DropBoxCloud(
                   clientId: secrets.DROPBOX_APP_KEY,
                   redirectUri: secrets.DROPBOX_REDIRECT_URI,
                   tokenStore: SecureDropboxTokenStore(),
                 ),
-              if (!kIsWeb && secrets.YANDEX_CLIENT_ID.isNotEmpty)
+              if (!kIsWeb &&
+                  providerEnabled('yandex') &&
+                  secrets.YANDEX_CLIENT_ID.isNotEmpty)
                 'yandex': YandexDiskCloud(
                   clientId: secrets.YANDEX_CLIENT_ID,
                   redirectUri: secrets.YANDEX_REDIRECT_URI,
                   tokenStore: SecureYandexDiskTokenStore(),
                 ),
-              if (useBackendAuth && googleClientId.isNotEmpty)
+              if (useBackendAuth && providerEnabled('gdrive'))
                 'gdrive': BackendProxyCloud(
                   providerId: 'gdrive',
                   backendUrl: backendUrl,
                   auth: web_auth.createWebProviderAuth(
                     providerId: 'gdrive',
                     backendUrl: backendUrl,
-                    clientId: googleClientId,
                   ),
                 ),
-              if (useBackendAuth && secrets.DROPBOX_APP_KEY.isNotEmpty)
+              if (useBackendAuth && providerEnabled('dropbox'))
                 'dropbox': BackendProxyCloud(
                   providerId: 'dropbox',
                   backendUrl: backendUrl,
                   auth: web_auth.createWebProviderAuth(
                     providerId: 'dropbox',
                     backendUrl: backendUrl,
-                    clientId: secrets.DROPBOX_APP_KEY,
                   ),
                 ),
-              if (useBackendAuth && secrets.YANDEX_CLIENT_ID.isNotEmpty)
+              if (useBackendAuth && providerEnabled('yandex'))
                 'yandex': BackendProxyCloud(
                   providerId: 'yandex',
                   backendUrl: backendUrl,
                   auth: web_auth.createWebProviderAuth(
                     providerId: 'yandex',
                     backendUrl: backendUrl,
-                    clientId: secrets.YANDEX_CLIENT_ID,
                   ),
                 ),
             };

@@ -52,3 +52,5 @@ app.*.map.json
 # Local web-test build: same secrets, but `BACKEND_URL` points at a local
 # `server/` instance (see `server/bin/server.dart`).
 /config.web.json
+# Local backend configuration: provider client ids/secrets live only here.
+/server/config.json

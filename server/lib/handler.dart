@@ -14,8 +14,10 @@ import 'package:time_machine_core/domain/cloud_metadata.dart';
 import 'package:time_machine_cloud/services/image_cache.dart';
 import 'package:time_machine_cloud/services/network_service.dart';
 
+import 'cloud_cache.dart';
 import 'network.dart';
 import 'rate_limit.dart';
+import 'server_config.dart';
 import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:async';
@@ -33,7 +35,6 @@ class AuthAttempt {
     required this.redirectTo,
     required this.callbackUri,
     required this.expiresAt,
-    this.clientId,
   });
   final String provider;
   final String codeVerifier;
@@ -43,7 +44,6 @@ class AuthAttempt {
   /// started so the token exchange uses exactly the same value.
   final String callbackUri;
   final DateTime expiresAt;
-  final String? clientId;
 }
 /// Builds the proxy handler.
 ///
@@ -59,7 +59,9 @@ Handler createHandler({
   RateLimiter? rateLimiter,
   Directory? webBuildDir,
   int maxBodyBytes = 1 << 20,
+  ServerConfig? config,
 }) {
+  final settings = config ?? ServerConfig.fromEnvironment();
   final cached = imageFetcher ?? CachedImageFetcher();
   final limiter = rateLimiter ?? RateLimiter();
 
@@ -68,6 +70,18 @@ Handler createHandler({
     final now = DateTime.now();
     _authAttempts.removeWhere((_, a) => a.expiresAt.isBefore(now));
   }
+
+  // Cloud instances cached for the lifetime of a client's changes websocket.
+  // HTTP-only clients get a short-lived instance that is disposed when the
+  // request finishes, so idle sessions never accumulate in memory.
+  final cloudCache = CloudCache(
+    (provider, token, {startPolling = false}) => _createAndInitCloudFull(
+      provider,
+      token,
+      settings: settings,
+      startPolling: startPolling,
+    ),
+  );
 
   String _randomState() {
     final random = Random.secure();
@@ -117,63 +131,70 @@ Handler createHandler({
       cached,
       maxBodyBytes,
     ))
-    ..get('/auth/<provider>/start', (Request request) => _authStart(request, _authAttempts, _pruneAttempts, _randomState))
-    ..get('/auth/<provider>/callback', (Request request) => _authCallback(request, _authAttempts, _pruneAttempts))
-    ..post('/auth/<provider>/refresh', (Request request) => _authRefresh(request, maxBodyBytes))
-    ..get('/api/<provider>/me', (Request request) => _apiMe(request))
-    ..get('/api/<provider>/records/get', (Request request) => _apiRecordGet(request))
-    ..get('/api/<provider>/records/list', (Request request) => _apiRecordList(request))
-    ..post('/api/<provider>/records/save', (Request request) => _apiRecordSave(request, maxBodyBytes))
-    ..post('/api/<provider>/records/delete', (Request request) => _apiRecordDelete(request, maxBodyBytes))
-    ..post('/api/<provider>/files/upload', (Request request) => _apiFileUpload(request))
-    ..get('/api/<provider>/files/download', (Request request) => _apiFileDownload(request))
-    ..post('/api/<provider>/files/delete', (Request request) => _apiFileDelete(request, maxBodyBytes))
+    ..get('/auth/<provider>/start', (Request request) => _authStart(request, _authAttempts, _pruneAttempts, _randomState, settings))
+    ..get('/auth/<provider>/callback', (Request request) => _authCallback(request, _authAttempts, _pruneAttempts, settings))
+    ..post('/auth/<provider>/refresh', (Request request) => _authRefresh(request, maxBodyBytes, settings))
+    ..get('/api/<provider>/me', (Request request) => _apiMe(request, cloudCache))
+    ..get('/api/<provider>/records/get', (Request request) => _apiRecordGet(request, cloudCache))
+    ..get('/api/<provider>/records/list', (Request request) => _apiRecordList(request, cloudCache))
+    ..post('/api/<provider>/records/save', (Request request) => _apiRecordSave(request, maxBodyBytes, cloudCache))
+    ..post('/api/<provider>/records/delete', (Request request) => _apiRecordDelete(request, maxBodyBytes, cloudCache))
+    ..post('/api/<provider>/files/upload', (Request request) => _apiFileUpload(request, cloudCache))
+    ..get('/api/<provider>/files/download', (Request request) => _apiFileDownload(request, cloudCache))
+    ..post('/api/<provider>/files/delete', (Request request) => _apiFileDelete(request, maxBodyBytes, cloudCache))
     ..get('/api/<provider>/changes', (Request request) {
       final token = _extractToken(request);
       final provider = request.params['provider'] ?? '';
-      return webSocketHandler((WebSocketChannel socket, _) async {
-        if (token == null) {
-          await socket.sink.close();
-          return;
-        }
-        try {
-          // The changes stream lives as long as the socket, so this cloud is
-          // the one exception that keeps its provider polling enabled. It is
-          // disposed when the client disconnects.
-          final cloud = (await _createAndInitCloudFull(
-            provider,
-            token,
-            startPolling: true,
-          )).cloud;
-          StreamSubscription? sub;
-          var stopped = false;
-          void stop() {
-            if (stopped) return;
-            stopped = true;
-            sub?.cancel();
-            cloud.dispose();
+      return webSocketHandler(
+        (WebSocketChannel socket, _) async {
+          if (token == null) {
+            await socket.sink.close();
+            return;
           }
+          try {
+            // The browser's changes socket anchors a cached cloud: it stays
+            // initialized and polling until this socket closes, and HTTP
+            // requests from the same browser reuse it.
+            final lease = await cloudCache.acquire(
+              provider,
+              token,
+              anchor: true,
+            );
+            print('WS /api/$provider/changes connected');
+            StreamSubscription? sub;
+            var stopped = false;
+            void stop() {
+              if (stopped) return;
+              stopped = true;
+              sub?.cancel();
+              print('WS /api/$provider/changes closed');
+              lease.release();
+            }
 
-          sub = cloud.changes.listen((event) {
-            socket.sink.add(json.encode({'type': event.runtimeType.toString()}));
-          });
-          socket.stream.listen(
-            (_) {},
-            onDone: stop,
-            onError: (_) => stop(),
-          );
-        } catch (_) {
-          await socket.sink.close();
-        }
-      })(request);
+            sub = lease.cloud.changes.listen((event) {
+              socket.sink.add(json.encode({'type': event.runtimeType.toString()}));
+            });
+            socket.stream.listen(
+              (_) {},
+              onDone: stop,
+              onError: (_) => stop(),
+            );
+          } catch (_) {
+            await socket.sink.close();
+          }
+        },
+        // Detect dead browser connections so their cached cloud is released
+        // instead of polling forever.
+        pingInterval: const Duration(seconds: 30),
+      )(request);
     });
 
-  // Providers whose app registration uses a different callback path (for
-  // example Dropbox's `/oauth2redirect-dropbox`) get an extra route that feeds
-  // the same callback handler as `/auth/<provider>/callback`.
+  // Providers whose app registration uses a different callback path get an
+  // extra route that feeds the same callback handler as
+  // `/auth/<provider>/callback`.
   final callbackRoutes = <String, String>{};
   for (final provider in _authProviders) {
-    final path = _providerCallbackPath(provider);
+    final path = _providerCallbackPath(provider, settings);
     if (path != '/auth/$provider/callback') {
       callbackRoutes[path] = provider;
     }
@@ -185,6 +206,7 @@ Handler createHandler({
         request,
         _authAttempts,
         _pruneAttempts,
+        settings,
         routeProvider: entry.value,
       ),
     );
@@ -455,6 +477,10 @@ Middleware _errors() {
     return (Request request) async {
       try {
         return await inner(request);
+      } on HijackException {
+        // WebSocket upgrades escape the pipeline as a HijackException; shelf_io
+        // handles it. Converting it to 500 breaks the upgrade.
+        rethrow;
       } on FormatException catch (error) {
         return Response.badRequest(
           body: json.encode({'error': error.message}),
@@ -469,7 +495,8 @@ Middleware _errors() {
       } on StateError catch (error) {
         return Response.forbidden(json.encode({'error': error.message}),
           headers: _jsonHeaders);
-      } catch (_) {
+      } catch (error, stack) {
+        print('Unhandled request error: $error\n$stack');
         return Response.internalServerError(
           body: json.encode({'error': 'internal error'}),
           headers: _jsonHeaders,
@@ -496,43 +523,38 @@ const _authProviders = ['gdrive', 'dropbox', 'yandex'];
 
 /// Callback path registered in the provider's app settings, when it differs
 /// from the default `/auth/<provider>/callback`.
-String _providerCallbackPath(String provider) {
+String _providerCallbackPath(String provider, ServerConfig config) {
   final configured =
-      (Platform.environment['${provider.toUpperCase()}_REDIRECT_URI'] ?? '')
-          .trim();
+      config['${provider.toUpperCase()}_REDIRECT_URI'].trim();
   if (configured.isNotEmpty) {
     final path = Uri.tryParse(configured)?.path;
     if (path != null && path.isNotEmpty) {
       return path;
     }
   }
-  return switch (provider) {
-    // Dropbox app registrations commonly use a short callback path instead of
-    // the API-shaped one.
-    'dropbox' => '/oauth2redirect-dropbox',
-    _ => '/auth/$provider/callback',
-  };
+  return '/auth/$provider/callback';
 }
 
 /// The exact redirect URI to send to the provider. It must match one of the
 /// URIs registered in the provider's app settings.
-String _providerCallbackUri(String provider, Request request) {
+String _providerCallbackUri(
+  String provider,
+  Request request,
+  ServerConfig config,
+) {
   final configured =
-      (Platform.environment['${provider.toUpperCase()}_REDIRECT_URI'] ?? '')
-          .trim();
+      config['${provider.toUpperCase()}_REDIRECT_URI'].trim();
   if (configured.isNotEmpty) {
     return configured;
   }
   return request.requestedUri
-      .resolve(_providerCallbackPath(provider))
+      .resolve(_providerCallbackPath(provider, config))
       .toString();
 }
 
-String _buildAuthUrl(String provider, String codeChallenge, String state, String redirectUri, {String? clientId}) {
+String _buildAuthUrl(String provider, String codeChallenge, String state, String redirectUri, ServerConfig config) {
   final params = <String, String>{
-    'client_id': clientId == null || clientId.isEmpty
-        ? _clientId(provider)
-        : clientId,
+    'client_id': _clientId(provider, config),
     'redirect_uri': redirectUri,
     'response_type': 'code',
     'code_challenge': codeChallenge,
@@ -559,23 +581,23 @@ String _buildAuthUrl(String provider, String codeChallenge, String state, String
   }
 }
 
-Future<Map<String, dynamic>> _exchangeCode(String provider, String code, String codeVerifier, String redirectUri, {String? clientId}) {
+Future<Map<String, dynamic>> _exchangeCode(String provider, String code, String codeVerifier, String redirectUri, ServerConfig config) {
   return _requestToken(provider, {
     'grant_type': 'authorization_code',
     'code': code,
     'code_verifier': codeVerifier,
     'redirect_uri': redirectUri,
-  }, clientId: clientId);
+  }, config);
 }
 
-Future<Map<String, dynamic>> _exchangeRefreshToken(String provider, String refreshToken, {String? clientId}) {
+Future<Map<String, dynamic>> _exchangeRefreshToken(String provider, String refreshToken, ServerConfig config) {
   return _requestToken(provider, {
     'grant_type': 'refresh_token',
     'refresh_token': refreshToken,
-  }, clientId: clientId);
+  }, config);
 }
 
-Future<Map<String, dynamic>> _requestToken(String provider, Map<String, String> body, {String? clientId}) async {
+Future<Map<String, dynamic>> _requestToken(String provider, Map<String, String> body, ServerConfig config) async {
   final client = HttpClient();
   try {
     final tokenUrl = switch (provider) {
@@ -584,10 +606,8 @@ Future<Map<String, dynamic>> _requestToken(String provider, Map<String, String> 
       'yandex' => 'https://oauth.yandex.ru/token',
       _ => throw ArgumentError('unsupported'),
     };
-    body['client_id'] = clientId == null || clientId.isEmpty
-        ? _clientId(provider)
-        : clientId;
-    final clientSecret = _clientSecret(provider);
+    body['client_id'] = _clientId(provider, config);
+    final clientSecret = _clientSecret(provider, config);
     if (clientSecret.isNotEmpty) {
       body['client_secret'] = clientSecret;
     }
@@ -607,29 +627,51 @@ Future<Map<String, dynamic>> _requestToken(String provider, Map<String, String> 
   }
 }
 
-String _clientId(String provider) {
-  final v = Platform.environment['${provider.toUpperCase()}_CLIENT_ID'] ?? '';
-  if (v.isEmpty) {
-    // fallback to common names
-    switch (provider) {
-      case 'gdrive': return Platform.environment['GOOGLE_DRIVE_CLIENT_ID'] ?? '';
-      case 'dropbox': return Platform.environment['DROPBOX_CLIENT_ID'] ?? '';
-      case 'yandex': return Platform.environment['YANDEX_CLIENT_ID'] ?? '';
-    }
+String _clientId(String provider, ServerConfig config) {
+  final v = config['${provider.toUpperCase()}_CLIENT_ID'];
+  if (v.isNotEmpty) return v;
+  switch (provider) {
+    case 'gdrive':
+      return _firstNonEmpty([
+        config['GOOGLE_DRIVE_CLIENT_ID_WEB'],
+        config['GOOGLE_DRIVE_CLIENT_ID'],
+      ]);
+    case 'dropbox':
+      // The web app's Dropbox key is its OAuth client id.
+      return _firstNonEmpty([
+        config['DROPBOX_APP_KEY'],
+        config['DROPBOX_CLIENT_ID'],
+      ]);
+    case 'yandex':
+      return config['YANDEX_CLIENT_ID'];
   }
-  return v;
+  return '';
 }
 
-String _clientSecret(String provider) {
-  final v = Platform.environment['${provider.toUpperCase()}_CLIENT_SECRET'] ?? '';
-  if (v.isEmpty) {
-    switch (provider) {
-      case 'gdrive': return Platform.environment['GOOGLE_DRIVE_CLIENT_SECRET'] ?? '';
-      case 'dropbox': return Platform.environment['DROPBOX_CLIENT_SECRET'] ?? '';
-      case 'yandex': return Platform.environment['YANDEX_CLIENT_SECRET'] ?? '';
-    }
+String _clientSecret(String provider, ServerConfig config) {
+  final v = config['${provider.toUpperCase()}_CLIENT_SECRET'];
+  if (v.isNotEmpty) return v;
+  switch (provider) {
+    case 'gdrive':
+      // The browser flow uses the Web application client, so prefer its
+      // secret over the installed-app ones.
+      return _firstNonEmpty([
+        config['GOOGLE_DRIVE_CLIENT_SECRET_WEB'],
+        config['GOOGLE_DRIVE_CLIENT_SECRET'],
+      ]);
+    case 'dropbox':
+      return config['DROPBOX_CLIENT_SECRET'];
+    case 'yandex':
+      return config['YANDEX_CLIENT_SECRET'];
   }
-  return v;
+  return '';
+}
+
+String _firstNonEmpty(Iterable<String> values) {
+  for (final value in values) {
+    if (value.isNotEmpty) return value;
+  }
+  return '';
 }
 
 String? _extractToken(Request request) {
@@ -640,14 +682,22 @@ String? _extractToken(Request request) {
   return request.url.queryParameters['access_token'];
 }
 
-Future<Map<String, dynamic>> _providerMe(String provider, String token) async {
+Future<Map<String, dynamic>> _providerMe(
+  String provider,
+  String token,
+  CloudCache cache,
+) async {
   if (provider == 'web') return {'id': '$provider:web'};
-  final initialized = await _createAndInitCloudFull(provider, token);
-  return {'id': initialized.id};
+  final lease = await cache.acquire(provider, token);
+  try {
+    return {'id': lease.id};
+  } finally {
+    lease.release();
+  }
 }
 
 
-Future<Response> _authStart(Request request, Map<String, AuthAttempt> attempts, void Function() prune, String Function() randomState) async {
+Future<Response> _authStart(Request request, Map<String, AuthAttempt> attempts, void Function() prune, String Function() randomState, ServerConfig config) async {
   prune();
   final provider = request.params['provider'] ?? '';
   final redirectTo = request.url.queryParameters['redirect_uri'] ?? '';
@@ -657,7 +707,7 @@ Future<Response> _authStart(Request request, Map<String, AuthAttempt> attempts, 
   if (!_authProviders.contains(provider)) {
     return Response.badRequest(body: json.encode({'error': 'unsupported provider'}), headers: _jsonHeaders);
   }
-  if (!_isAllowedRedirect(redirectTo)) {
+  if (!_isAllowedRedirect(redirectTo, config)) {
     return Response.badRequest(
       body: json.encode({'error': 'redirect_uri not allowed'}),
       headers: _jsonHeaders,
@@ -666,14 +716,12 @@ Future<Response> _authStart(Request request, Map<String, AuthAttempt> attempts, 
   final codeVerifier = createPkceCodeVerifier();
   final codeChallenge = pkceCodeChallenge(codeVerifier);
   final state = randomState();
-  final clientId = request.url.queryParameters['client_id'] ?? '';
   attempts[state] = AuthAttempt(
     provider: provider,
     codeVerifier: codeVerifier,
     redirectTo: redirectTo,
-    callbackUri: _providerCallbackUri(provider, request),
+    callbackUri: _providerCallbackUri(provider, request, config),
     expiresAt: DateTime.now().add(const Duration(minutes: 5)),
-    clientId: clientId.isEmpty ? null : clientId,
   );
   final backendCallback = attempts[state]!.callbackUri;
   final authUrl = _buildAuthUrl(
@@ -681,7 +729,7 @@ Future<Response> _authStart(Request request, Map<String, AuthAttempt> attempts, 
     codeChallenge,
     state,
     backendCallback,
-    clientId: clientId,
+    config,
   );
   return _ok({'authUrl': authUrl});
 }
@@ -690,7 +738,7 @@ Future<Response> _authStart(Request request, Map<String, AuthAttempt> attempts, 
 /// redirects back. Local development origins are always allowed; production
 /// deployments must list their origins in `AUTH_REDIRECT_ORIGINS`
 /// (comma-separated).
-bool _isAllowedRedirect(String value) {
+bool _isAllowedRedirect(String value, ServerConfig config) {
   final uri = Uri.tryParse(value);
   if (uri == null || !uri.hasAuthority) {
     return false;
@@ -698,7 +746,7 @@ bool _isAllowedRedirect(String value) {
   if (!uri.isScheme('http') && !uri.isScheme('https')) {
     return false;
   }
-  final configured = Platform.environment['AUTH_REDIRECT_ORIGINS'] ?? '';
+  final configured = config['AUTH_REDIRECT_ORIGINS'];
   final allowed = configured
       .split(',')
       .map((origin) => origin.trim())
@@ -714,7 +762,8 @@ bool _isAllowedRedirect(String value) {
 Future<Response> _authCallback(
   Request request,
   Map<String, AuthAttempt> attempts,
-  void Function() prune, {
+  void Function() prune,
+  ServerConfig config, {
   String? routeProvider,
 }) async {
   prune();
@@ -748,7 +797,7 @@ Future<Response> _authCallback(
     code,
     attempt.codeVerifier,
     backendCallback,
-    clientId: attempt.clientId,
+    config,
   );
   final expiresIn = tokens['expires_in'];
   final seconds = expiresIn is int ? expiresIn : int.tryParse(expiresIn?.toString() ?? '3600') ?? 3600;
@@ -775,7 +824,7 @@ Response _redirectToApp(String redirectTo, Map<String, String> values) {
   );
 }
 
-Future<Response> _authRefresh(Request request, int maxBodyBytes) async {
+Future<Response> _authRefresh(Request request, int maxBodyBytes, ServerConfig config) async {
   final provider = request.params['provider'] ?? '';
   if (!_authProviders.contains(provider)) {
     return Response.badRequest(
@@ -791,13 +840,8 @@ Future<Response> _authRefresh(Request request, int maxBodyBytes) async {
       headers: _jsonHeaders,
     );
   }
-  final clientId = body['client_id'] as String? ?? '';
   try {
-    final tokens = await _exchangeRefreshToken(
-      provider,
-      refreshToken,
-      clientId: clientId.isEmpty ? null : clientId,
-    );
+    final tokens = await _exchangeRefreshToken(provider, refreshToken, config);
     return _ok(tokens);
   } catch (_) {
     return Response(
@@ -808,96 +852,53 @@ Future<Response> _authRefresh(Request request, int maxBodyBytes) async {
   }
 }
 
-Future<Response> _apiMe(Request request) async {
+Future<Response> _apiMe(Request request, CloudCache cache) async {
   final provider = request.params['provider'] ?? '';
   final token = _extractToken(request);
   if (token == null) return Response.unauthorized('missing token');
-  return _ok(await _providerMe(provider, token));
+  return _ok(await _providerMe(provider, token, cache));
 }
 
-Future<Response> _apiChanges(Request request) async {
-  final token = _extractToken(request);
-  if (token == null) return Response.unauthorized('missing token');
-  final provider = request.params['provider'] ?? '';
-  try {
-    if (provider == 'web') return _ok({'events': []});
-    final cloud = (await _createAndInitCloudFull(provider, token)).cloud;
-    final events = <Map<String, dynamic>>[];
-    await for (final e in cloud.changes.take(100)) {
-      events.add({'type': e.runtimeType.toString()});
-    }
-    return _ok({'events': events});
-  } catch (e) {
-    return Response(500, body: e.toString());
-  }
-}
-
-Future<Response> _apiRecordGet(Request request) async {
+Future<Response> _apiRecordGet(Request request, CloudCache cache) async {
   final token = _extractToken(request);
   if (token == null) return Response.unauthorized('missing token');
   final provider = request.params['provider'] ?? '';
   final collection = request.url.queryParameters['collection'] ?? 'records';
   final id = request.url.queryParameters['id'] ?? '';
+  CloudLease? lease;
   try {
-    switch (provider) {
-      case 'gdrive':
-        final cloud = GoogleDriveCloud(startPolling: false);
-        await cloud.authenticateWithAccessToken(accessToken: token);
-        await cloud.initialize();
-        final data = await cloud.getRecord(collection, id);
-        return _ok({'data': data});
-      case 'dropbox':
-        final cloud = DropBoxCloud(clientId: const String.fromEnvironment('DROPBOX_CLIENT_ID', defaultValue: ''), startPolling: false);
-        await cloud.authenticateWithAccessToken(accessToken: token);
-        await cloud.initialize();
-        final data = await cloud.getRecord(collection, id);
-        return _ok({'data': data});
-      case 'yandex':
-        final cloud = YandexDiskCloud(clientId: const String.fromEnvironment('YANDEX_CLIENT_ID', defaultValue: ''), startPolling: false);
-        await cloud.authenticateWithAccessToken(accessToken: token);
-        await cloud.initialize();
-        final data = await cloud.getRecord(collection, id);
-        return _ok({'data': data});
-    }
+    lease = await cache.acquire(provider, token);
+    final data = await lease.cloud.getRecord(collection, id);
+    return _ok({'data': data});
   } catch (e) {
     return Response(500, body: e.toString());
+  } finally {
+    lease?.release();
   }
-  return _ok({'data': null});
 }
 
-Future<Response> _apiRecordList(Request request) async {
+Future<Response> _apiRecordList(Request request, CloudCache cache) async {
   final token = _extractToken(request);
   if (token == null) return Response.unauthorized('missing token');
   final provider = request.params['provider'] ?? '';
   final collection = request.url.queryParameters['collection'] ?? 'records';
+  CloudLease? lease;
   try {
-    switch (provider) {
-      case 'gdrive':
-        final cloud = GoogleDriveCloud(startPolling: false);
-        await cloud.authenticateWithAccessToken(accessToken: token);
-        await cloud.initialize();
-        final items = await cloud.listRecords(collection);
-        return _ok({'items': items.map((e) => e.toJson()).toList()});
-      case 'dropbox':
-        final cloud = DropBoxCloud(clientId: const String.fromEnvironment('DROPBOX_CLIENT_ID', defaultValue: ''), startPolling: false);
-        await cloud.authenticateWithAccessToken(accessToken: token);
-        await cloud.initialize();
-        final items = await cloud.listRecords(collection);
-        return _ok({'items': items.map((e) => e.toJson()).toList()});
-      case 'yandex':
-        final cloud = YandexDiskCloud(clientId: const String.fromEnvironment('YANDEX_CLIENT_ID', defaultValue: ''), startPolling: false);
-        await cloud.authenticateWithAccessToken(accessToken: token);
-        await cloud.initialize();
-        final items = await cloud.listRecords(collection);
-        return _ok({'items': items.map((e) => e.toJson()).toList()});
-    }
+    lease = await cache.acquire(provider, token);
+    final items = await lease.cloud.listRecords(collection);
+    return _ok({'items': items.map((e) => e.toJson()).toList()});
   } catch (e) {
     return Response(500, body: e.toString());
+  } finally {
+    lease?.release();
   }
-  return _ok({'items': []});
 }
 
-Future<Response> _apiRecordSave(Request request, int maxBodyBytes) async {
+Future<Response> _apiRecordSave(
+  Request request,
+  int maxBodyBytes,
+  CloudCache cache,
+) async {
   final token = _extractToken(request);
   if (token == null) return Response.unauthorized('missing token');
   final provider = request.params['provider'] ?? '';
@@ -906,34 +907,27 @@ Future<Response> _apiRecordSave(Request request, int maxBodyBytes) async {
   final collection = body['collection'] as String? ?? 'records';
   final metadata = body['metadata'] as Map<String, dynamic>?;
   final data = body['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
+  CloudLease? lease;
   try {
-    switch (provider) {
-      case 'gdrive':
-        final cloud = GoogleDriveCloud(startPolling: false);
-        await cloud.authenticateWithAccessToken(accessToken: token);
-        await cloud.initialize();
-        final meta = await cloud.saveRecord(collection, metadata != null ? CloudMetadata.fromJson(metadata) : null, data);
-        return _ok({'metadata': meta.toJson()});
-      case 'dropbox':
-        final cloud = DropBoxCloud(clientId: const String.fromEnvironment('DROPBOX_CLIENT_ID', defaultValue: ''), startPolling: false);
-        await cloud.authenticateWithAccessToken(accessToken: token);
-        await cloud.initialize();
-        final meta = await cloud.saveRecord(collection, metadata != null ? CloudMetadata.fromJson(metadata) : null, data);
-        return _ok({'metadata': meta.toJson()});
-      case 'yandex':
-        final cloud = YandexDiskCloud(clientId: const String.fromEnvironment('YANDEX_CLIENT_ID', defaultValue: ''), startPolling: false);
-        await cloud.authenticateWithAccessToken(accessToken: token);
-        await cloud.initialize();
-        final meta = await cloud.saveRecord(collection, metadata != null ? CloudMetadata.fromJson(metadata) : null, data);
-        return _ok({'metadata': meta.toJson()});
-    }
+    lease = await cache.acquire(provider, token);
+    final meta = await lease.cloud.saveRecord(
+      collection,
+      metadata != null ? CloudMetadata.fromJson(metadata) : null,
+      data,
+    );
+    return _ok({'metadata': meta.toJson()});
   } catch (e) {
     return Response(500, body: e.toString());
+  } finally {
+    lease?.release();
   }
-  return _ok({'metadata': null});
 }
 
-Future<Response> _apiRecordDelete(Request request, int maxBodyBytes) async {
+Future<Response> _apiRecordDelete(
+  Request request,
+  int maxBodyBytes,
+  CloudCache cache,
+) async {
   final token = _extractToken(request);
   if (token == null) return Response.unauthorized('missing token');
   final provider = request.params['provider'] ?? '';
@@ -941,38 +935,30 @@ Future<Response> _apiRecordDelete(Request request, int maxBodyBytes) async {
   final body = decodeJsonBody(bodyStr);
   final collection = body['collection'] as String? ?? 'records';
   final id = body['id'] as String? ?? '';
+  CloudLease? lease;
   try {
-    switch (provider) {
-      case 'gdrive':
-        final cloud = (await _createAndInitCloudFull(provider, token)).cloud;
-        await cloud.deleteRecord(collection, id);
-        return _ok({'ok': true});
-      case 'dropbox':
-        final cloud = (await _createAndInitCloudFull(provider, token)).cloud;
-        await cloud.deleteRecord(collection, id);
-        return _ok({'ok': true});
-      case 'yandex':
-        final cloud = (await _createAndInitCloudFull(provider, token)).cloud;
-        await cloud.deleteRecord(collection, id);
-        return _ok({'ok': true});
-    }
+    lease = await cache.acquire(provider, token);
+    await lease.cloud.deleteRecord(collection, id);
+    return _ok({'ok': true});
   } catch (e) {
     return Response(500, body: e.toString());
+  } finally {
+    lease?.release();
   }
-  return _ok({'ok': true});
 }
 
-Future<Response> _apiFileUpload(Request request) async {
+Future<Response> _apiFileUpload(Request request, CloudCache cache) async {
   final token = _extractToken(request);
   if (token == null) return Response.unauthorized('missing token');
   final provider = request.params['provider'] ?? '';
   final name = request.url.queryParameters['name'] ?? 'upload';
   final mimeType = request.url.queryParameters['mimeType'];
+  CloudLease? lease;
   try {
     final bodyBytes = await request.read().expand((x) => x).toList();
     if (provider == 'web') return _ok({'path': ''});
-    final cloud = (await _createAndInitCloudFull(provider, token)).cloud;
-    final path = await cloud.uploadFile(
+    lease = await cache.acquire(provider, token);
+    final path = await lease.cloud.uploadFile(
       name: name,
       fileData: Uint8List.fromList(bodyBytes),
       mimeType: mimeType,
@@ -980,74 +966,94 @@ Future<Response> _apiFileUpload(Request request) async {
     return _ok({'path': path});
   } catch (e) {
     return Response(500, body: e.toString());
+  } finally {
+    lease?.release();
   }
 }
 
-Future<Response> _apiFileDownload(Request request) async {
+Future<Response> _apiFileDownload(Request request, CloudCache cache) async {
   final token = _extractToken(request);
   if (token == null) return Response.unauthorized('missing token');
   final provider = request.params['provider'] ?? '';
   final path = request.url.queryParameters['path'] ?? '';
+  CloudLease? lease;
   try {
     if (provider == 'web') {
       return Response.ok([], headers: {'content-type': 'application/octet-stream'});
     }
-    final cloud = (await _createAndInitCloudFull(provider, token)).cloud;
-    final bytes = await cloud.downloadFile(path);
+    lease = await cache.acquire(provider, token);
+    final bytes = await lease.cloud.downloadFile(path);
     return Response.ok(bytes, headers: {'content-type': 'application/octet-stream'});
   } catch (e) {
     return Response(500, body: e.toString());
+  } finally {
+    lease?.release();
   }
 }
 
-Future<Response> _apiFileDelete(Request request, int maxBodyBytes) async {
+Future<Response> _apiFileDelete(
+  Request request,
+  int maxBodyBytes,
+  CloudCache cache,
+) async {
   final token = _extractToken(request);
   if (token == null) return Response.unauthorized('missing token');
   final provider = request.params['provider'] ?? '';
   final bodyStr = await _readBody(request, maxBodyBytes);
   final body = decodeJsonBody(bodyStr);
   final path = body['path'] as String? ?? '';
+  CloudLease? lease;
   try {
     if (provider == 'web') return _ok({'ok': true});
-    final cloud = (await _createAndInitCloudFull(provider, token)).cloud;
-    await cloud.deleteFile(path);
+    lease = await cache.acquire(provider, token);
+    await lease.cloud.deleteFile(path);
     return _ok({'ok': true});
   } catch (e) {
     return Response(500, body: e.toString());
+  } finally {
+    lease?.release();
   }
 }
 
 
 
-class _CloudInit {
-  final CloudBase cloud;
-  final String id;
-  _CloudInit(this.cloud, this.id);
-}
-
-Future<_CloudInit> _createAndInitCloudFull(
+Future<CloudInit> _createAndInitCloudFull(
   String provider,
   String token, {
+  required ServerConfig settings,
   bool startPolling = false,
 }) async {
-  switch (provider) {
-    case 'gdrive':
-      final cloud = GoogleDriveCloud(startPolling: startPolling);
-      await cloud.authenticateWithAccessToken(accessToken: token);
-      final id = await cloud.initialize();
-      return _CloudInit(cloud, id);
-    case 'dropbox':
-      final cloud = DropBoxCloud(clientId: const String.fromEnvironment('DROPBOX_CLIENT_ID', defaultValue: ''), startPolling: startPolling);
-      await cloud.authenticateWithAccessToken(accessToken: token);
-      final id = await cloud.initialize();
-      return _CloudInit(cloud, id);
-    case 'yandex':
-      final cloud = YandexDiskCloud(clientId: const String.fromEnvironment('YANDEX_CLIENT_ID', defaultValue: ''), startPolling: startPolling);
-      await cloud.authenticateWithAccessToken(accessToken: token);
-      final id = await cloud.initialize();
-      return _CloudInit(cloud, id);
-    default:
-      throw ArgumentError('unsupported provider');
+  CloudBase? cloud;
+  try {
+    switch (provider) {
+      case 'gdrive':
+        final created = GoogleDriveCloud(startPolling: startPolling);
+        cloud = created;
+        await created.authenticateWithAccessToken(accessToken: token);
+        return CloudInit(created, await created.initialize());
+      case 'dropbox':
+        final created = DropBoxCloud(
+          clientId: _clientId('dropbox', settings),
+          startPolling: startPolling,
+        );
+        cloud = created;
+        await created.authenticateWithAccessToken(accessToken: token);
+        return CloudInit(created, await created.initialize());
+      case 'yandex':
+        final created = YandexDiskCloud(
+          clientId: _clientId('yandex', settings),
+          startPolling: startPolling,
+        );
+        cloud = created;
+        await created.authenticateWithAccessToken(accessToken: token);
+        return CloudInit(created, await created.initialize());
+      default:
+        throw ArgumentError('unsupported provider');
+    }
+  } catch (error, stack) {
+    print('Failed to initialize $provider: $error\n$stack');
+    cloud?.dispose();
+    rethrow;
   }
 }
 

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'package:time_machine_core/time_machine_core.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../cloud_base.dart';
 import 'provider_auth.dart';
@@ -38,6 +39,13 @@ class BackendProxyCloud extends CloudBase {
   ProviderSession? _session;
   String? _userEmail;
 
+  /// Kept open for the lifetime of the browser session. It is the anchor the
+  /// proxy uses to cache this client's provider connection between requests.
+  WebSocketChannel? _changesChannel;
+  StreamSubscription? _changesSubscription;
+  Timer? _reconnectTimer;
+  bool _disposed = false;
+
   /// The signed-in account, once [initialize] reached the provider.
   String? get userEmail => _userEmail;
 
@@ -59,6 +67,75 @@ class BackendProxyCloud extends CloudBase {
     }
   }
 
+  /// Opens the long-lived changes socket. The proxy caches the provider
+  /// connection for as long as this socket stays open, so keeping it alive for
+  /// the browser session lets every HTTP request reuse the same cloud.
+  void _connectChanges() {
+    if (_disposed || _changesChannel != null) return;
+    final session = _session;
+    if (session == null) return;
+    final scheme = switch (backendUrl.scheme) {
+      'https' || 'wss' => 'wss',
+      _ => 'ws',
+    };
+    final uri = backendUrl.replace(
+      scheme: scheme,
+      path: '/api/$providerId/changes',
+      queryParameters: {'access_token': session.accessToken},
+    );
+    try {
+      final channel = WebSocketChannel.connect(uri);
+      _changesChannel = channel;
+      _changesSubscription = channel.stream.listen(
+        (_) {
+          // The proxy only sends the event class name, so a full resync is the
+          // safe reaction. CloudSyncService handles UnknownEvent that way.
+          if (!_disposed) _streamController.add(const UnknownEvent());
+        },
+        onDone: _handleChangesClosed,
+        onError: (_) => _handleChangesClosed(),
+        cancelOnError: true,
+      );
+    } catch (_) {
+      _scheduleReconnect();
+    }
+  }
+
+  void _handleChangesClosed() {
+    _changesSubscription?.cancel();
+    _changesSubscription = null;
+    _changesChannel = null;
+    _scheduleReconnect();
+  }
+
+  void _restartChanges() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _changesSubscription?.cancel();
+    _changesSubscription = null;
+    _changesChannel?.sink.close();
+    _changesChannel = null;
+    _connectChanges();
+  }
+
+  void _scheduleReconnect() {
+    if (_disposed || _session == null) return;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(const Duration(seconds: 5), () {
+      _reconnectTimer = null;
+      _connectChanges();
+    });
+  }
+
+  void _stopChanges() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _changesSubscription?.cancel();
+    _changesSubscription = null;
+    _changesChannel?.sink.close();
+    _changesChannel = null;
+  }
+
   @override
   Future<String> initialize() async {
     var session = _session;
@@ -76,6 +153,10 @@ class BackendProxyCloud extends CloudBase {
       throw StateError('Sign-in required for $providerId');
     }
     _session = session;
+    // Open the changes socket first: the proxy anchors its cached cloud on
+    // this connection, so the /me call below reuses that initialization
+    // instead of paying for a second one.
+    _connectChanges();
     final me = await _get('/api/$providerId/me');
     final accountId = me['id']?.toString() ??
         me['accountId']?.toString() ??
@@ -95,6 +176,7 @@ class BackendProxyCloud extends CloudBase {
     final resp = await _http.get(uri, headers: _headers());
     if (resp.statusCode == 401) {
       _session = await auth.authenticate();
+      _restartChanges();
       final retry = await _http.get(uri, headers: _headers());
       if (retry.statusCode >= 400) throw _error(retry);
       return _decode(retry.body);
@@ -109,6 +191,7 @@ class BackendProxyCloud extends CloudBase {
         await _http.post(uri, headers: _headers(), body: jsonEncode(body));
     if (resp.statusCode == 401) {
       _session = await auth.authenticate();
+      _restartChanges();
       final retry =
           await _http.post(uri, headers: _headers(), body: jsonEncode(body));
       if (retry.statusCode >= 400) throw _error(retry);
@@ -123,6 +206,7 @@ class BackendProxyCloud extends CloudBase {
     final resp = await _http.get(uri, headers: _headers());
     if (resp.statusCode == 401) {
       _session = await auth.authenticate();
+      _restartChanges();
       final retry = await _http.get(uri, headers: _headers());
       if (retry.statusCode >= 400) throw _error(retry);
       return retry.bodyBytes;
@@ -147,6 +231,7 @@ class BackendProxyCloud extends CloudBase {
     final resp = await _http.post(uri, headers: headers, body: data);
     if (resp.statusCode == 401) {
       _session = await auth.authenticate();
+      _restartChanges();
       final retry = await _http.post(uri, headers: headers, body: data);
       if (retry.statusCode >= 400) throw _error(retry);
       return _decode(retry.body);
@@ -188,11 +273,14 @@ class BackendProxyCloud extends CloudBase {
   @override
   Future<void> logout() async {
     _session = null;
+    _stopChanges();
     await auth.clear();
   }
 
   @override
   void dispose() {
+    _disposed = true;
+    _stopChanges();
     _streamController.close();
     _http.close();
   }

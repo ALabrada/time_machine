@@ -11,12 +11,10 @@ import 'package:web/web.dart' as web;
 ProviderAuth createWebProviderAuth({
   required String providerId,
   required Uri backendUrl,
-  String? clientId,
 }) =>
     BrowserProviderAuth(
       providerId: providerId,
       backendUrl: backendUrl,
-      clientId: clientId,
     );
 
 /// Runs the backend-mediated OAuth flow from the browser.
@@ -30,16 +28,12 @@ class BrowserProviderAuth implements ProviderAuth, CancellableProviderAuth {
   BrowserProviderAuth({
     required this.providerId,
     required this.backendUrl,
-    this.clientId,
     http.Client? httpClient,
   }) : _http = httpClient ?? http.Client();
 
   final String providerId;
   final Uri backendUrl;
 
-  /// The provider application ID to authorize with. The backend falls back to
-  /// its own `*_CLIENT_ID` environment variables when this is empty.
-  final String? clientId;
   final http.Client _http;
 
   static final _random = Random.secure();
@@ -84,7 +78,6 @@ class BrowserProviderAuth implements ProviderAuth, CancellableProviderAuth {
       path: '/auth/$providerId/start',
       queryParameters: {
         'redirect_uri': callback.toString(),
-        if (clientId != null && clientId!.isNotEmpty) 'client_id': clientId!,
       },
     );
     // Open the window before awaiting the backend. Browsers only allow a
@@ -276,7 +269,6 @@ class BrowserProviderAuth implements ProviderAuth, CancellableProviderAuth {
         headers: const {'content-type': 'application/json'},
         body: jsonEncode({
           'refresh_token': refreshToken,
-          if (clientId != null && clientId!.isNotEmpty) 'client_id': clientId,
         }),
       );
       if (response.statusCode != 200) {

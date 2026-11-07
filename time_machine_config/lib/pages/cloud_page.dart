@@ -29,9 +29,10 @@ class CloudPageState extends State<CloudPage> {
       configurationService: context.read(),
       networkService: context.read(),
       cloudSyncService: context.read(),
-      // OAuth consent runs in the system browser; the redirect returns as a
-      // deep link on the app's custom URL scheme, wired by the app root.
-      consentBrowserFactory: () => context.read<SystemBrowserOAuthConsentBrowser>(),
+      // OAuth consent runs in the system browser. Custom-scheme providers
+      // return through a deep link; Google's desktop client uses a loopback
+      // redirect, handled by the platform browser provider.
+      consentBrowserFactory: () => context.read<OAuthConsentBrowser>(),
     );
   }
 

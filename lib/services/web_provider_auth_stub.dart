@@ -4,7 +4,6 @@ import 'package:time_machine_cloud/time_machine_cloud.dart';
 ProviderAuth createWebProviderAuth({
   required String providerId,
   required Uri backendUrl,
-  String? clientId,
 }) {
   throw UnsupportedError(
     'Web provider authentication is only available on the web',

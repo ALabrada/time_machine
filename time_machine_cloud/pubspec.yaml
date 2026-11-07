@@ -26,6 +26,7 @@ dependencies:
   pointycastle: ^3.7.3
   supabase: ^2.6.0
   uuid: any
+  web_socket_channel: ^2.4.0
 
 dev_dependencies:
   lints: ^5.0.0

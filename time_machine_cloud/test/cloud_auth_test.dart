@@ -3,10 +3,18 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:time_machine_cloud/services/cloud/dropbox_api.dart';
 import 'package:time_machine_cloud/services/cloud/dropbox_cloud.dart';
+import 'package:time_machine_cloud/services/cloud/google_drive_cloud.dart';
 import 'package:time_machine_cloud/services/cloud/yandex_disk_cloud.dart';
 import 'package:time_machine_cloud/services/cloud/yandex_disk_transport.dart';
 
 void main() {
+  test('Google access-token auth creates a UTC expiry', () async {
+    final cloud = GoogleDriveCloud(startPolling: false);
+    addTearDown(cloud.dispose);
+
+    await cloud.authenticateWithAccessToken(accessToken: 'access-token');
+  });
+
   test('Dropbox initialize reuses a server-side access-token session',
       () async {
     final cloud = DropBoxCloud(

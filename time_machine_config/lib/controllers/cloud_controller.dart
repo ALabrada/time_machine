@@ -199,7 +199,8 @@ final class CloudController extends ValueNotifier<CloudState> {
       // The provider is connected now; resume following its syncs.
       _subscribeToSync();
       value = _stateFor(cloud);
-    } catch (error) {
+    } catch (error, stack) {
+      debugPrint('Cloud activation failed: $error\n$stack');
       // A failed Nextcloud sign-in restores a non-authenticated state that
       // still carries the remembered credentials, so the form is refilled
       // with the server URL and login name the user just entered.
@@ -242,6 +243,9 @@ final class CloudController extends ValueNotifier<CloudState> {
   }
 
   CloudState _stateForAuthFailure(CloudBase cloud, CloudState previous) {
+    if (cloud is GoogleDriveCloud) {
+      return const GoogleDriveState(isConnected: false, isActive: false);
+    }
     if (cloud is NextCloudCloud) {
       return NextCloudState(
         serverUrl: cloud.serverUrl,
@@ -314,7 +318,10 @@ final class CloudController extends ValueNotifier<CloudState> {
       return _backendState(cloud, isActive: isActive);
     }
     if (cloud is GoogleDriveCloud) {
-      return GoogleDriveState(isConnected: true, isActive: isActive);
+      return GoogleDriveState(
+        isConnected: isActive || cloud.userEmail != null,
+        isActive: isActive,
+      );
     }
     if (cloud is SupabaseCloud) {
       return SupabaseState(userName: cloud.userEmail, isActive: isActive);

@@ -79,11 +79,15 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   final Map<String, String> _collectionByFolderId = {};
   String? _rootFolderId;
 
+  /// The signed-in account, once [initialize] has resolved it.
+  String? get userEmail => _restoredSession?.userEmail;
+
   /// Signs out, clearing the persisted credentials and the current session
   /// so every subsequent request fails until the cloud is re-authenticated.
   @override
   Future<void> logout() async {
     _signedOut = true;
+    _restoredSession = null;
     final sessionClient = _sessionClient;
     _sessionClient = null;
     if (sessionClient != null && sessionClient != _baseClient) {
@@ -116,7 +120,11 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     final authClient = auth_io.authenticatedClient(
       _baseClient,
       auth.AccessCredentials(
-        auth.AccessToken('Bearer', accessToken, DateTime.now().add(const Duration(hours: 1))),
+        auth.AccessToken(
+          'Bearer',
+          accessToken,
+          DateTime.now().toUtc().add(const Duration(hours: 1)),
+        ),
         null,
         const [appDataScope],
       ),
@@ -146,7 +154,7 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     }
     _restoredSession = session;
     final client = await auth_io.clientViaRefreshToken(
-      auth.ClientId(clientId, null),
+      auth.ClientId(clientId, _signIn?.clientId.secret),
       refreshToken,
       const [appDataScope],
       baseClient: _baseClient,
@@ -159,9 +167,18 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   @override
   Future<String> initialize() async {
     await _restoreSession();
-    final about = await _drive.about.get($fields: 'user(emailAddress)');
-    final email = about.user?.emailAddress ?? 'unknown';
-    await _persistUserEmail(email);
+    var email = _restoredSession?.userEmail ?? 'unknown';
+    try {
+      final about = await _drive.about.get($fields: 'user(emailAddress)');
+      final resolved = about.user?.emailAddress;
+      if (resolved != null && resolved.isNotEmpty) {
+        email = resolved;
+        await _persistUserEmail(email);
+      }
+    } catch (_) {
+      // The app-data scope does not necessarily grant account details; the
+      // cloud can still sync with the stored email (or a generic one).
+    }
     await _ensureRootFolder();
     await _initCollectionFolders();
     final tokenResult = await _drive.changes.getStartPageToken();

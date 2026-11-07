@@ -14,6 +14,7 @@ import 'package:time_machine_cloud/services/image_cache.dart';
 import 'package:time_machine_cloud/services/network_service.dart';
 import 'package:time_machine_server/handler.dart';
 import 'package:time_machine_server/rate_limit.dart';
+import 'package:time_machine_server/server_config.dart';
 
 class _FakeProvider implements DataProvider {
   @override
@@ -96,11 +97,13 @@ Handler _handler({
   CachedImageFetcher? imageFetcher,
   RateLimiter? rateLimiter,
   Directory? webBuildDir,
+  ServerConfig? config,
 }) => createHandler(
   networkService: _network(),
   imageFetcher: imageFetcher,
   rateLimiter: rateLimiter,
   webBuildDir: webBuildDir,
+  config: config,
 );
 
 Request _post(String path, Object body) => Request(
@@ -358,9 +361,15 @@ void main() {
       expect(await response.readAsString(), '<html>callback</html>');
     });
 
-    test('provider callback routes bypass static web serving', () async {
-      final response = await handler(
-        Request('GET', Uri.parse('http://localhost/oauth2redirect-dropbox')),
+    test('custom provider callback routes bypass static web serving', () async {
+      final custom = _handler(
+        webBuildDir: webDir,
+        config: ServerConfig({
+          'DROPBOX_REDIRECT_URI': 'http://localhost/custom-callback',
+        }),
+      );
+      final response = await custom(
+        Request('GET', Uri.parse('http://localhost/custom-callback')),
       );
       expect(response.statusCode, 400);
     });
@@ -388,8 +397,10 @@ void main() {
       expect(response.statusCode, 400);
     });
 
-    test('start forwards the client_id supplied by the web build', () async {
-      final response = await _handler()(Request(
+    test('start uses the server-configured client id', () async {
+      final response = await _handler(
+        config: ServerConfig({'YANDEX_CLIENT_ID': 'server-client-id'}),
+      )(Request(
         'GET',
         Uri.parse(
           'http://localhost/auth/yandex/start'
@@ -399,7 +410,8 @@ void main() {
       ));
       expect(response.statusCode, 200);
       final body = await _readJson(response);
-      expect(body['authUrl'], contains('client_id=web-client-id'));
+      final authUrl = Uri.parse(body['authUrl'] as String);
+      expect(authUrl.queryParameters['client_id'], 'server-client-id');
     });
 
     test('dropbox start uses the registered callback path', () async {
@@ -415,7 +427,7 @@ void main() {
       final authUrl = Uri.parse(body['authUrl'] as String);
       expect(
         authUrl.queryParameters['redirect_uri'],
-        'http://localhost/oauth2redirect-dropbox',
+        'http://localhost/auth/dropbox/callback',
       );
     });
 
@@ -435,7 +447,7 @@ void main() {
       final callback = await handler(Request(
         'GET',
         Uri.parse(
-          'http://localhost/oauth2redirect-dropbox'
+          'http://localhost/auth/dropbox/callback'
           '?state=$state&error=access_denied&error_description=user+cancelled',
         ),
       ));

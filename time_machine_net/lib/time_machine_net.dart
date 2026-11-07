@@ -5,6 +5,7 @@ export 'services/cloud/secure_google_drive_token_store.dart';
 export 'services/cloud/secure_nextcloud_token_store.dart';
 export 'services/cloud/secure_yandex_disk_token_store.dart';
 export 'services/cloud/system_browser_oauth_consent_browser.dart';
+export 'services/cloud/oauth_consent_browser_factory.dart';
 export 'services/geocoders/native_geocoder.dart';
 export 'services/proxy_cache_service.dart';
 export 'services/proxy_network_service.dart';

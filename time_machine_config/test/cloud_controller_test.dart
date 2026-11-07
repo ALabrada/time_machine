@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:time_machine_config/controllers/cloud_controller.dart';
+import 'package:time_machine_config/domain/cloud_event.dart';
 import 'package:time_machine_config/domain/cloud_state.dart';
 import 'package:time_machine_config/services/configuration_service.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -96,6 +97,21 @@ class _FakeYandexDiskCloud extends YandexDiskCloud {
 
   @override
   Future<void> deleteRecord(String collection, String id) async {}
+}
+
+class _FailingGoogleDriveCloud extends GoogleDriveCloud {
+  _FailingGoogleDriveCloud() : super(startPolling: false);
+
+  @override
+  Future<void> authenticate({OAuthConsentBrowser? consentBrowser}) async {}
+
+  @override
+  Future<String> initialize() async {
+    throw Exception('activation failed');
+  }
+
+  @override
+  Future<void> logout() async {}
 }
 
 class _StallableFakeYandexDiskCloud extends _FakeYandexDiskCloud {
@@ -328,6 +344,35 @@ void main() {
 
       controller.dispose();
       await cloudSyncService.dispose();
+    });
+
+    test('a failed Google activation leaves a disconnected state', () async {
+      final cloud = _FailingGoogleDriveCloud();
+      final network = NetworkService(
+        clouds: {'gdrive': cloud},
+        geocoders: {},
+        providers: {},
+      );
+      configurationService.cloud = 'gdrive';
+
+      final controller = CloudController(
+        configurationService: configurationService,
+        networkService: network,
+        cloudSyncService: cloudSyncService,
+      );
+      await _pump();
+
+      await expectLater(
+        controller.handleEvent(const CloudActivateEvent()),
+        throwsException,
+      );
+
+      final state = controller.value;
+      expect(state, isA<GoogleDriveState>());
+      expect((state as GoogleDriveState).isConnected, isFalse);
+      expect(state.isActive, isFalse);
+
+      controller.dispose();
     });
   });
 }
