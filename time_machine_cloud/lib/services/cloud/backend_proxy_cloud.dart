@@ -2,53 +2,95 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
-import 'package:meta/meta.dart';
 import 'dart:async';
-import 'package:time_machine_cloud/services/cloud_sync_provider.dart';
 import 'package:time_machine_core/time_machine_core.dart';
 
+import '../cloud_base.dart';
 import 'provider_auth.dart';
+import '../cloud_sync_provider.dart';
 
-class BackendProxyCloud implements CloudSyncProvider {
+class BackendProxyCloud extends CloudBase {
   BackendProxyCloud({
     required this.providerId,
     required this.backendUrl,
     required this.auth,
-  })  : _http = http.Client(),
+    http.Client? httpClient,
+  })  : _http = httpClient ?? http.Client(),
         assert(
-          providerId == 'gdrive' || providerId == 'dropbox' || providerId == 'yandex',
+          providerId == 'gdrive' ||
+              providerId == 'dropbox' ||
+              providerId == 'yandex',
           'Unsupported provider: $providerId',
         );
 
   final String providerId;
   final Uri backendUrl;
   final ProviderAuth auth;
-  Map<Type, String> get collectionNames => const {};
 
+  @override
+  Map<Type, String> get collectionNames =>
+      const {Picture: 'pictures', Record: 'records'};
+
+  @override
   bool get supportsFiles => true;
 
   final http.Client _http;
   ProviderSession? _session;
-  @override
-  Future<String> initialize() async {
-    try {
-      _session = await auth.restore();
-    } catch (_) {
-      _session = null;
-    }
+  String? _userEmail;
+
+  /// The signed-in account, once [initialize] reached the provider.
+  String? get userEmail => _userEmail;
+
+  /// Runs the browser OAuth flow (or reuses a stored, still valid session).
+  Future<void> authenticate() async {
+    _session = await auth.restore();
     if (_session == null || _session!.isExpired) {
       _session = await auth.authenticate();
     }
+  }
+
+  /// Aborts an interactive sign-in started by [authenticate], if the auth
+  /// implementation supports it. Background calls are unaffected because their
+  /// [ProviderAuth.restore] work is not cancellable.
+  void cancelAuthentication() {
+    final interactive = auth;
+    if (interactive is CancellableProviderAuth) {
+      (interactive as CancellableProviderAuth).cancelPending();
+    }
+  }
+
+  @override
+  Future<String> initialize() async {
+    var session = _session;
+    if (session == null) {
+      try {
+        session = await auth.restore();
+      } catch (_) {
+        session = null;
+      }
+    }
+    if (session == null || session.isExpired) {
+      // Authentication is an explicit, user-triggered step (see
+      // [authenticate]); opening a popup from a background sync would be
+      // blocked by the browser anyway.
+      throw StateError('Sign-in required for $providerId');
+    }
+    _session = session;
     final me = await _get('/api/$providerId/me');
-    final accountId = me['accountId']?.toString() ??
+    final accountId = me['id']?.toString() ??
+        me['accountId']?.toString() ??
         me['email']?.toString() ??
         me['user']?.toString() ??
         'unknown';
+    _userEmail = accountId.contains('/')
+        ? accountId.substring(accountId.indexOf('/') + 1)
+        : accountId;
     publishEvent(const CloudReconnectedEvent());
-    return '$providerId/$accountId';
+    return '$providerId/$_userEmail';
   }
 
-  Future<Map<String, dynamic>> _get(String path, [Map<String, String>? query]) async {
+  Future<Map<String, dynamic>> _get(String path,
+      [Map<String, String>? query]) async {
     final uri = backendUrl.replace(path: path, queryParameters: query);
     final resp = await _http.get(uri, headers: _headers());
     if (resp.statusCode == 401) {
@@ -63,10 +105,12 @@ class BackendProxyCloud implements CloudSyncProvider {
 
   Future<Map<String, dynamic>> _post(String path, dynamic body) async {
     final uri = backendUrl.replace(path: path);
-    final resp = await _http.post(uri, headers: _headers(), body: jsonEncode(body));
+    final resp =
+        await _http.post(uri, headers: _headers(), body: jsonEncode(body));
     if (resp.statusCode == 401) {
       _session = await auth.authenticate();
-      final retry = await _http.post(uri, headers: _headers(), body: jsonEncode(body));
+      final retry =
+          await _http.post(uri, headers: _headers(), body: jsonEncode(body));
       if (retry.statusCode >= 400) throw _error(retry);
       return _decode(retry.body);
     }
@@ -87,29 +131,29 @@ class BackendProxyCloud implements CloudSyncProvider {
     return resp.bodyBytes;
   }
 
-  Future<Map<String, dynamic>> _postBytes(String path, Uint8List data, Map<String, String> fields) async {
-    final uri = backendUrl.replace(path: path);
-    final req = http.MultipartRequest('POST', uri);
-    _headers().forEach((k, v) => req.headers[k] = v);
-    req.fields.addAll(fields);
-    req.files.add(http.MultipartFile.fromBytes('file', data, filename: fields['name'] ?? 'file'));
-    final streamed = await _http.send(req);
-    final resp = await http.Response.fromStream(streamed);
+  Future<Map<String, dynamic>> _postBytes(
+      String path, Uint8List data, Map<String, String> fields) async {
+    final uri = backendUrl.replace(
+      path: path,
+      queryParameters: {
+        if (fields['name'] != null) 'name': fields['name']!,
+        if (fields['mimeType'] != null) 'mimeType': fields['mimeType']!,
+      },
+    );
+    final headers = Map<String, String>.from(_headers())
+      ..remove('Content-Type')
+      ..remove('content-type')
+      ..['content-type'] = fields['mimeType'] ?? 'application/octet-stream';
+    final resp = await _http.post(uri, headers: headers, body: data);
     if (resp.statusCode == 401) {
       _session = await auth.authenticate();
-      final req2 = http.MultipartRequest('POST', uri);
-      _headers().forEach((k, v) => req2.headers[k] = v);
-      req2.fields.addAll(fields);
-      req2.files.add(http.MultipartFile.fromBytes('file', data, filename: fields['name'] ?? 'file'));
-      final s2 = await _http.send(req2);
-      final r2 = await http.Response.fromStream(s2);
-      if (r2.statusCode >= 400) throw _error(r2);
-      return _decode(r2.body);
+      final retry = await _http.post(uri, headers: headers, body: data);
+      if (retry.statusCode >= 400) throw _error(retry);
+      return _decode(retry.body);
     }
     if (resp.statusCode >= 400) throw _error(resp);
     return _decode(resp.body);
   }
-
 
   Map<String, String> _headers() {
     final s = _session;
@@ -129,7 +173,6 @@ class BackendProxyCloud implements CloudSyncProvider {
     }
   }
 
-  @override
   final _streamController = StreamController<CloudSyncEvent>.broadcast();
 
   @override
@@ -155,7 +198,8 @@ class BackendProxyCloud implements CloudSyncProvider {
   }
 
   @override
-  Future<CloudMetadata> saveRecord(String collection, CloudMetadata? metadata, Map<String, dynamic> data) async {
+  Future<CloudMetadata> saveRecord(String collection, CloudMetadata? metadata,
+      Map<String, dynamic> data) async {
     final res = await _post('/api/$providerId/records/save', {
       'collection': collection,
       'metadata': metadata?.toJson(),
@@ -166,27 +210,35 @@ class BackendProxyCloud implements CloudSyncProvider {
 
   @override
   Future<Map<String, dynamic>?> getRecord(String collection, String id) async {
-    final res = await _get('/api/$providerId/records/get', {'collection': collection, 'id': id});
+    final res = await _get(
+        '/api/$providerId/records/get', {'collection': collection, 'id': id});
     return res['data'] as Map<String, dynamic>?;
   }
 
   @override
-  Future<List<CloudMetadata>> listRecords(String collection, {DateTime? since}) async {
+  Future<List<CloudMetadata>> listRecords(String collection,
+      {DateTime? since}) async {
     final res = await _get('/api/$providerId/records/list', {
       'collection': collection,
       if (since != null) 'since': since.toIso8601String(),
     });
     final items = res['items'] as List<dynamic>? ?? [];
-    return items.map((e) => CloudMetadata.fromJson(e as Map<String, dynamic>)).toList();
+    return items
+        .map((e) => CloudMetadata.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   @override
   Future<void> deleteRecord(String collection, String id) async {
-    await _post('/api/$providerId/records/delete', {'collection': collection, 'id': id});
+    await _post('/api/$providerId/records/delete',
+        {'collection': collection, 'id': id});
   }
 
   @override
-  Future<String> uploadFile({required String name, required Uint8List fileData, String? mimeType}) async {
+  Future<String> uploadFile(
+      {required String name,
+      required Uint8List fileData,
+      String? mimeType}) async {
     final res = await _postBytes('/api/$providerId/files/upload', fileData, {
       'name': name,
       if (mimeType != null) 'mimeType': mimeType,

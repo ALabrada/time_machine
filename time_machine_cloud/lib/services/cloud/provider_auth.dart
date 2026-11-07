@@ -4,6 +4,12 @@ abstract class ProviderAuth {
   Future<void> clear();
 }
 
+/// An auth flow that can be aborted while [ProviderAuth.authenticate] is still
+/// waiting for the user, e.g. when the user cancels an in-app sign-in screen.
+abstract interface class CancellableProviderAuth {
+  void cancelPending();
+}
+
 abstract class ProviderSession {
   String get accountId;
   bool get isExpired;

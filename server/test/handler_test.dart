@@ -240,6 +240,7 @@ void main() {
     final response = await _handler()(Request('OPTIONS', Uri.parse('http://localhost/api/findIn')));
     expect(response.statusCode, 200);
     expect(response.headers['Access-Control-Allow-Origin'], '*');
+    expect(response.headers['Access-Control-Allow-Headers'], contains('authorization'));
   });
 
   test('rate limit returns 429 once exceeded', () async {
@@ -271,6 +272,8 @@ void main() {
     setUp(() {
       webDir = Directory.systemTemp.createTempSync('tm_web_');
       File('${webDir.path}/index.html').writeAsStringSync('<html>app</html>');
+      File('${webDir.path}/auth.html')
+          .writeAsStringSync('<html>callback</html>');
       Directory('${webDir.path}/assets').createSync();
       File('${webDir.path}/assets/main.dart.js').writeAsStringSync('console.log(1);');
       handler = _handler(webBuildDir: webDir);
@@ -327,6 +330,120 @@ void main() {
     test('API routes still work when web serving is enabled', () async {
       final response = await handler(_post('/api/findIn', {'area': _area()}));
       expect(response.statusCode, 200);
+    });
+
+    test('auth routes reach the API when web serving is enabled', () async {
+      final response = await handler(Request(
+        'GET',
+        Uri.parse(
+          'http://localhost/auth/yandex/start'
+          '?redirect_uri=http%3A%2F%2Flocalhost%2Fauth.html',
+        ),
+      ));
+      expect(response.statusCode, 200);
+      final body = await _readJson(response);
+      expect(body['authUrl'], contains('oauth.yandex.ru'));
+      final authUrl = Uri.parse(body['authUrl'] as String);
+      expect(
+        authUrl.queryParameters['redirect_uri'],
+        'http://localhost/auth/yandex/callback',
+      );
+    });
+
+    test('auth callback page is served as a static file', () async {
+      final response = await handler(
+        Request('GET', Uri.parse('http://localhost/auth.html')),
+      );
+      expect(response.statusCode, 200);
+      expect(await response.readAsString(), '<html>callback</html>');
+    });
+
+    test('provider callback routes bypass static web serving', () async {
+      final response = await handler(
+        Request('GET', Uri.parse('http://localhost/oauth2redirect-dropbox')),
+      );
+      expect(response.statusCode, 400);
+    });
+  });
+
+  group('OAuth start validation', () {
+    test('rejects a non-http redirect_uri', () async {
+      final response = await _handler()(Request(
+        'GET',
+        Uri.parse(
+          'http://localhost/auth/yandex/start'
+          '?redirect_uri=com.fakegem.historylens%3A%2Foauth2redirect',
+        ),
+      ));
+      expect(response.statusCode, 400);
+    });
+
+    test('refresh requires a refresh token', () async {
+      final response = await _handler()(Request(
+        'POST',
+        Uri.parse('http://localhost/auth/yandex/refresh'),
+        body: json.encode(const <String, String>{}),
+        headers: const {'content-type': 'application/json'},
+      ));
+      expect(response.statusCode, 400);
+    });
+
+    test('start forwards the client_id supplied by the web build', () async {
+      final response = await _handler()(Request(
+        'GET',
+        Uri.parse(
+          'http://localhost/auth/yandex/start'
+          '?redirect_uri=http%3A%2F%2Flocalhost%2Fauth.html'
+          '&client_id=web-client-id',
+        ),
+      ));
+      expect(response.statusCode, 200);
+      final body = await _readJson(response);
+      expect(body['authUrl'], contains('client_id=web-client-id'));
+    });
+
+    test('dropbox start uses the registered callback path', () async {
+      final response = await _handler()(Request(
+        'GET',
+        Uri.parse(
+          'http://localhost/auth/dropbox/start'
+          '?redirect_uri=http%3A%2F%2Flocalhost%2Fauth.html',
+        ),
+      ));
+      expect(response.statusCode, 200);
+      final body = await _readJson(response);
+      final authUrl = Uri.parse(body['authUrl'] as String);
+      expect(
+        authUrl.queryParameters['redirect_uri'],
+        'http://localhost/oauth2redirect-dropbox',
+      );
+    });
+
+    test('dropbox callback route accepts the provider redirect', () async {
+      final handler = _handler();
+      final start = await handler(Request(
+        'GET',
+        Uri.parse(
+          'http://localhost/auth/dropbox/start'
+          '?redirect_uri=http%3A%2F%2Flocalhost%2Fauth.html',
+        ),
+      ));
+      final authUrl = Uri.parse(
+        (await _readJson(start))['authUrl'] as String,
+      );
+      final state = authUrl.queryParameters['state']!;
+      final callback = await handler(Request(
+        'GET',
+        Uri.parse(
+          'http://localhost/oauth2redirect-dropbox'
+          '?state=$state&error=access_denied&error_description=user+cancelled',
+        ),
+      ));
+      expect(callback.statusCode, 302);
+      final location = Uri.parse(callback.headers['location']!);
+      expect(location.path, '/auth.html');
+      expect(location.queryParameters['provider'], 'dropbox');
+      expect(location.queryParameters['error'], 'access_denied');
     });
   });
 }

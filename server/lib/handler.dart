@@ -31,12 +31,19 @@ class AuthAttempt {
     required this.provider,
     required this.codeVerifier,
     required this.redirectTo,
+    required this.callbackUri,
     required this.expiresAt,
+    this.clientId,
   });
   final String provider;
   final String codeVerifier;
   final String redirectTo;
+
+  /// Absolute redirect URI sent to the provider, captured when the flow
+  /// started so the token exchange uses exactly the same value.
+  final String callbackUri;
   final DateTime expiresAt;
+  final String? clientId;
 }
 /// Builds the proxy handler.
 ///
@@ -112,6 +119,7 @@ Handler createHandler({
     ))
     ..get('/auth/<provider>/start', (Request request) => _authStart(request, _authAttempts, _pruneAttempts, _randomState))
     ..get('/auth/<provider>/callback', (Request request) => _authCallback(request, _authAttempts, _pruneAttempts))
+    ..post('/auth/<provider>/refresh', (Request request) => _authRefresh(request, maxBodyBytes))
     ..get('/api/<provider>/me', (Request request) => _apiMe(request))
     ..get('/api/<provider>/records/get', (Request request) => _apiRecordGet(request))
     ..get('/api/<provider>/records/list', (Request request) => _apiRecordList(request))
@@ -129,16 +137,58 @@ Handler createHandler({
           return;
         }
         try {
-          final cloud = (await _createAndInitCloudFull(provider, token)).cloud;
-          final sub = cloud.changes.listen((event) {
+          // The changes stream lives as long as the socket, so this cloud is
+          // the one exception that keeps its provider polling enabled. It is
+          // disposed when the client disconnects.
+          final cloud = (await _createAndInitCloudFull(
+            provider,
+            token,
+            startPolling: true,
+          )).cloud;
+          StreamSubscription? sub;
+          var stopped = false;
+          void stop() {
+            if (stopped) return;
+            stopped = true;
+            sub?.cancel();
+            cloud.dispose();
+          }
+
+          sub = cloud.changes.listen((event) {
             socket.sink.add(json.encode({'type': event.runtimeType.toString()}));
           });
-          socket.stream.listen((_) {}, onDone: () => sub.cancel(), onError: (_) => sub.cancel());
+          socket.stream.listen(
+            (_) {},
+            onDone: stop,
+            onError: (_) => stop(),
+          );
         } catch (_) {
           await socket.sink.close();
         }
       })(request);
     });
+
+  // Providers whose app registration uses a different callback path (for
+  // example Dropbox's `/oauth2redirect-dropbox`) get an extra route that feeds
+  // the same callback handler as `/auth/<provider>/callback`.
+  final callbackRoutes = <String, String>{};
+  for (final provider in _authProviders) {
+    final path = _providerCallbackPath(provider);
+    if (path != '/auth/$provider/callback') {
+      callbackRoutes[path] = provider;
+    }
+  }
+  for (final entry in callbackRoutes.entries) {
+    router.get(
+      entry.key,
+      (Request request) => _authCallback(
+        request,
+        _authAttempts,
+        _pruneAttempts,
+        routeProvider: entry.value,
+      ),
+    );
+  }
 
   final inner = const Pipeline()
       .addMiddleware(_log())
@@ -154,9 +204,17 @@ Handler createHandler({
   final webHandler =
       createStaticHandler(webBuildDir.path, defaultDocument: 'index.html');
   final indexHtml = _readIndexHtml(webBuildDir);
+  final callbackPaths = callbackRoutes.keys
+      .map((path) => path.startsWith('/') ? path.substring(1) : path)
+      .toSet();
   return (Request request) {
     final path = request.url.path;
-    if (path == 'health' || path.startsWith('api')) {
+    if (path == 'health' ||
+        path == 'api' ||
+        path.startsWith('api/') ||
+        path == 'auth' ||
+        path.startsWith('auth/') ||
+        callbackPaths.contains(path)) {
       return inner(request);
     }
     return _serveWeb(request, webHandler, indexHtml);
@@ -350,7 +408,7 @@ Middleware _cors() {
   Map<String, String> headers(Request request) => {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'content-type',
+    'Access-Control-Allow-Headers': 'authorization, content-type',
     'Access-Control-Max-Age': '86400',
   };
   return (Handler inner) {
@@ -434,9 +492,47 @@ Middleware _log() {
   };
 }
 
-String _buildAuthUrl(String provider, String codeChallenge, String state, String redirectUri) {
+const _authProviders = ['gdrive', 'dropbox', 'yandex'];
+
+/// Callback path registered in the provider's app settings, when it differs
+/// from the default `/auth/<provider>/callback`.
+String _providerCallbackPath(String provider) {
+  final configured =
+      (Platform.environment['${provider.toUpperCase()}_REDIRECT_URI'] ?? '')
+          .trim();
+  if (configured.isNotEmpty) {
+    final path = Uri.tryParse(configured)?.path;
+    if (path != null && path.isNotEmpty) {
+      return path;
+    }
+  }
+  return switch (provider) {
+    // Dropbox app registrations commonly use a short callback path instead of
+    // the API-shaped one.
+    'dropbox' => '/oauth2redirect-dropbox',
+    _ => '/auth/$provider/callback',
+  };
+}
+
+/// The exact redirect URI to send to the provider. It must match one of the
+/// URIs registered in the provider's app settings.
+String _providerCallbackUri(String provider, Request request) {
+  final configured =
+      (Platform.environment['${provider.toUpperCase()}_REDIRECT_URI'] ?? '')
+          .trim();
+  if (configured.isNotEmpty) {
+    return configured;
+  }
+  return request.requestedUri
+      .resolve(_providerCallbackPath(provider))
+      .toString();
+}
+
+String _buildAuthUrl(String provider, String codeChallenge, String state, String redirectUri, {String? clientId}) {
   final params = <String, String>{
-    'client_id': _clientId(provider),
+    'client_id': clientId == null || clientId.isEmpty
+        ? _clientId(provider)
+        : clientId,
     'redirect_uri': redirectUri,
     'response_type': 'code',
     'code_challenge': codeChallenge,
@@ -463,41 +559,47 @@ String _buildAuthUrl(String provider, String codeChallenge, String state, String
   }
 }
 
-Future<Map<String, dynamic>> _exchangeCode(String provider, String code, String codeVerifier, String redirectUri) async {
+Future<Map<String, dynamic>> _exchangeCode(String provider, String code, String codeVerifier, String redirectUri, {String? clientId}) {
+  return _requestToken(provider, {
+    'grant_type': 'authorization_code',
+    'code': code,
+    'code_verifier': codeVerifier,
+    'redirect_uri': redirectUri,
+  }, clientId: clientId);
+}
+
+Future<Map<String, dynamic>> _exchangeRefreshToken(String provider, String refreshToken, {String? clientId}) {
+  return _requestToken(provider, {
+    'grant_type': 'refresh_token',
+    'refresh_token': refreshToken,
+  }, clientId: clientId);
+}
+
+Future<Map<String, dynamic>> _requestToken(String provider, Map<String, String> body, {String? clientId}) async {
   final client = HttpClient();
   try {
-    late HttpClientRequest request;
-    final body = <String, String>{
-      'grant_type': 'authorization_code',
-      'code': code,
-      'code_verifier': codeVerifier,
-      'redirect_uri': redirectUri,
+    final tokenUrl = switch (provider) {
+      'gdrive' => 'https://oauth2.googleapis.com/token',
+      'dropbox' => 'https://api.dropboxapi.com/oauth2/token',
+      'yandex' => 'https://oauth.yandex.ru/token',
+      _ => throw ArgumentError('unsupported'),
     };
-    switch (provider) {
-      case 'gdrive':
-        body['client_id'] = _clientId(provider);
-        body['client_secret'] = _clientSecret(provider);
-        request = await client.postUrl(Uri.parse('https://oauth2.googleapis.com/token'));
-        break;
-      case 'dropbox':
-        body['client_id'] = _clientId(provider);
-        body['client_secret'] = _clientSecret(provider);
-        request = await client.postUrl(Uri.parse('https://api.dropboxapi.com/oauth2/token'));
-        break;
-      case 'yandex':
-        body['client_id'] = _clientId(provider);
-        body['client_secret'] = _clientSecret(provider);
-        request = await client.postUrl(Uri.parse('https://oauth.yandex.ru/token'));
-        break;
-      default:
-        throw ArgumentError('unsupported');
+    body['client_id'] = clientId == null || clientId.isEmpty
+        ? _clientId(provider)
+        : clientId;
+    final clientSecret = _clientSecret(provider);
+    if (clientSecret.isNotEmpty) {
+      body['client_secret'] = clientSecret;
     }
+    final request = await client.postUrl(Uri.parse(tokenUrl));
     request.headers.set('content-type', 'application/x-www-form-urlencoded');
     request.write(Uri(queryParameters: body).query);
     final response = await request.close();
     final respBody = await response.transform(utf8.decoder).join();
     if (response.statusCode != 200) {
-      throw Exception('token exchange failed: \${response.statusCode} \$respBody');
+      throw Exception(
+        'token exchange failed: HTTP ${response.statusCode} $respBody',
+      );
     }
     return jsonDecode(respBody) as Map<String, dynamic>;
   } finally {
@@ -540,13 +642,8 @@ String? _extractToken(Request request) {
 
 Future<Map<String, dynamic>> _providerMe(String provider, String token) async {
   if (provider == 'web') return {'id': '$provider:web'};
-  try {
-    final cloud = (await _createAndInitCloudFull(provider, token)).cloud;
-    final id = await cloud.initialize();
-    return {'id': id};
-  } catch (e) {
-    return {'id': '$provider:unknown'};
-  }
+  final initialized = await _createAndInitCloudFull(provider, token);
+  return {'id': initialized.id};
 }
 
 
@@ -557,28 +654,87 @@ Future<Response> _authStart(Request request, Map<String, AuthAttempt> attempts, 
   if (redirectTo.isEmpty) {
     return Response.badRequest(body: json.encode({'error': 'redirect_uri required'}), headers: _jsonHeaders);
   }
-  if (!['gdrive', 'dropbox', 'yandex'].contains(provider)) {
+  if (!_authProviders.contains(provider)) {
     return Response.badRequest(body: json.encode({'error': 'unsupported provider'}), headers: _jsonHeaders);
+  }
+  if (!_isAllowedRedirect(redirectTo)) {
+    return Response.badRequest(
+      body: json.encode({'error': 'redirect_uri not allowed'}),
+      headers: _jsonHeaders,
+    );
   }
   final codeVerifier = createPkceCodeVerifier();
   final codeChallenge = pkceCodeChallenge(codeVerifier);
   final state = randomState();
+  final clientId = request.url.queryParameters['client_id'] ?? '';
   attempts[state] = AuthAttempt(
     provider: provider,
     codeVerifier: codeVerifier,
     redirectTo: redirectTo,
+    callbackUri: _providerCallbackUri(provider, request),
     expiresAt: DateTime.now().add(const Duration(minutes: 5)),
+    clientId: clientId.isEmpty ? null : clientId,
   );
-  final backendCallback = request.url.resolve('/auth/$provider/callback').toString();
-  final authUrl = _buildAuthUrl(provider, codeChallenge, state, backendCallback);
+  final backendCallback = attempts[state]!.callbackUri;
+  final authUrl = _buildAuthUrl(
+    provider,
+    codeChallenge,
+    state,
+    backendCallback,
+    clientId: clientId,
+  );
   return _ok({'authUrl': authUrl});
 }
 
-Future<Response> _authCallback(Request request, Map<String, AuthAttempt> attempts, void Function() prune) async {
+/// Only web app origins may receive the access token after the provider
+/// redirects back. Local development origins are always allowed; production
+/// deployments must list their origins in `AUTH_REDIRECT_ORIGINS`
+/// (comma-separated).
+bool _isAllowedRedirect(String value) {
+  final uri = Uri.tryParse(value);
+  if (uri == null || !uri.hasAuthority) {
+    return false;
+  }
+  if (!uri.isScheme('http') && !uri.isScheme('https')) {
+    return false;
+  }
+  final configured = Platform.environment['AUTH_REDIRECT_ORIGINS'] ?? '';
+  final allowed = configured
+      .split(',')
+      .map((origin) => origin.trim())
+      .where((origin) => origin.isNotEmpty);
+  if (allowed.contains(uri.origin)) {
+    return true;
+  }
+  return uri.host == 'localhost' ||
+      uri.host == '127.0.0.1' ||
+      uri.host == '::1';
+}
+
+Future<Response> _authCallback(
+  Request request,
+  Map<String, AuthAttempt> attempts,
+  void Function() prune, {
+  String? routeProvider,
+}) async {
   prune();
-  final provider = request.params['provider'] ?? '';
-  final code = request.url.queryParameters['code'];
+  final provider = routeProvider ?? request.params['provider'] ?? '';
   final state = request.url.queryParameters['state'];
+  final error = request.url.queryParameters['error'];
+  if (error != null && error.isNotEmpty) {
+    final attempt = state == null ? null : attempts.remove(state);
+    if (attempt == null) {
+      return Response.badRequest(body: 'authorization failed: $error');
+    }
+    return _redirectToApp(attempt.redirectTo, {
+      'provider': provider,
+      'error': error,
+      if (request.url.queryParameters['error_description'] != null)
+        'error_description':
+            request.url.queryParameters['error_description']!,
+    });
+  }
+  final code = request.url.queryParameters['code'];
   if (code == null || code.isEmpty || state == null || state.isEmpty) {
     return Response.badRequest(body: 'missing code/state');
   }
@@ -586,19 +742,70 @@ Future<Response> _authCallback(Request request, Map<String, AuthAttempt> attempt
   if (attempt == null || attempt.provider != provider || attempt.expiresAt.isBefore(DateTime.now())) {
     return Response(400, body: 'invalid or expired state');
   }
-  final backendCallback = request.url.resolve('/auth/$provider/callback').toString();
-  final tokens = await _exchangeCode(provider, code, attempt.codeVerifier, backendCallback);
-  final redirect = Uri.parse(attempt.redirectTo);
-  final qp = Map<String, String>.from(redirect.queryParameters);
-  qp['provider'] = provider;
-  qp['access_token'] = tokens['access_token'] ?? '';
-  if (tokens['refresh_token'] != null && (tokens['refresh_token'] as String).isNotEmpty) {
-    qp['refresh_token'] = tokens['refresh_token'] as String;
-  }
+  final backendCallback = attempt.callbackUri;
+  final tokens = await _exchangeCode(
+    provider,
+    code,
+    attempt.codeVerifier,
+    backendCallback,
+    clientId: attempt.clientId,
+  );
   final expiresIn = tokens['expires_in'];
   final seconds = expiresIn is int ? expiresIn : int.tryParse(expiresIn?.toString() ?? '3600') ?? 3600;
-  qp['expires_at'] = DateTime.now().add(Duration(seconds: seconds)).millisecondsSinceEpoch.toString();
-  return Response(302, headers: {'location': redirect.replace(queryParameters: qp).toString()});
+  return _redirectToApp(attempt.redirectTo, {
+    'provider': provider,
+    'access_token': tokens['access_token'] ?? '',
+    if (tokens['refresh_token'] is String &&
+        (tokens['refresh_token'] as String).isNotEmpty)
+      'refresh_token': tokens['refresh_token'] as String,
+    'expires_at': DateTime.now()
+        .add(Duration(seconds: seconds))
+        .millisecondsSinceEpoch
+        .toString(),
+  });
+}
+
+Response _redirectToApp(String redirectTo, Map<String, String> values) {
+  final redirect = Uri.parse(redirectTo);
+  final qp = Map<String, String>.from(redirect.queryParameters);
+  qp.addAll(values);
+  return Response(
+    302,
+    headers: {'location': redirect.replace(queryParameters: qp).toString()},
+  );
+}
+
+Future<Response> _authRefresh(Request request, int maxBodyBytes) async {
+  final provider = request.params['provider'] ?? '';
+  if (!_authProviders.contains(provider)) {
+    return Response.badRequest(
+      body: json.encode({'error': 'unsupported provider'}),
+      headers: _jsonHeaders,
+    );
+  }
+  final body = decodeJsonBody(await _readBody(request, maxBodyBytes));
+  final refreshToken = body['refresh_token'] as String?;
+  if (refreshToken == null || refreshToken.isEmpty) {
+    return Response.badRequest(
+      body: json.encode({'error': 'refresh_token required'}),
+      headers: _jsonHeaders,
+    );
+  }
+  final clientId = body['client_id'] as String? ?? '';
+  try {
+    final tokens = await _exchangeRefreshToken(
+      provider,
+      refreshToken,
+      clientId: clientId.isEmpty ? null : clientId,
+    );
+    return _ok(tokens);
+  } catch (_) {
+    return Response(
+      401,
+      body: json.encode({'error': 'refresh failed'}),
+      headers: _jsonHeaders,
+    );
+  }
 }
 
 Future<Response> _apiMe(Request request) async {
@@ -634,19 +841,19 @@ Future<Response> _apiRecordGet(Request request) async {
   try {
     switch (provider) {
       case 'gdrive':
-        final cloud = GoogleDriveCloud();
+        final cloud = GoogleDriveCloud(startPolling: false);
         await cloud.authenticateWithAccessToken(accessToken: token);
         await cloud.initialize();
         final data = await cloud.getRecord(collection, id);
         return _ok({'data': data});
       case 'dropbox':
-        final cloud = DropBoxCloud(clientId: const String.fromEnvironment('DROPBOX_CLIENT_ID', defaultValue: ''));
+        final cloud = DropBoxCloud(clientId: const String.fromEnvironment('DROPBOX_CLIENT_ID', defaultValue: ''), startPolling: false);
         await cloud.authenticateWithAccessToken(accessToken: token);
         await cloud.initialize();
         final data = await cloud.getRecord(collection, id);
         return _ok({'data': data});
       case 'yandex':
-        final cloud = YandexDiskCloud(clientId: const String.fromEnvironment('YANDEX_CLIENT_ID', defaultValue: ''));
+        final cloud = YandexDiskCloud(clientId: const String.fromEnvironment('YANDEX_CLIENT_ID', defaultValue: ''), startPolling: false);
         await cloud.authenticateWithAccessToken(accessToken: token);
         await cloud.initialize();
         final data = await cloud.getRecord(collection, id);
@@ -666,19 +873,19 @@ Future<Response> _apiRecordList(Request request) async {
   try {
     switch (provider) {
       case 'gdrive':
-        final cloud = GoogleDriveCloud();
+        final cloud = GoogleDriveCloud(startPolling: false);
         await cloud.authenticateWithAccessToken(accessToken: token);
         await cloud.initialize();
         final items = await cloud.listRecords(collection);
         return _ok({'items': items.map((e) => e.toJson()).toList()});
       case 'dropbox':
-        final cloud = DropBoxCloud(clientId: const String.fromEnvironment('DROPBOX_CLIENT_ID', defaultValue: ''));
+        final cloud = DropBoxCloud(clientId: const String.fromEnvironment('DROPBOX_CLIENT_ID', defaultValue: ''), startPolling: false);
         await cloud.authenticateWithAccessToken(accessToken: token);
         await cloud.initialize();
         final items = await cloud.listRecords(collection);
         return _ok({'items': items.map((e) => e.toJson()).toList()});
       case 'yandex':
-        final cloud = YandexDiskCloud(clientId: const String.fromEnvironment('YANDEX_CLIENT_ID', defaultValue: ''));
+        final cloud = YandexDiskCloud(clientId: const String.fromEnvironment('YANDEX_CLIENT_ID', defaultValue: ''), startPolling: false);
         await cloud.authenticateWithAccessToken(accessToken: token);
         await cloud.initialize();
         final items = await cloud.listRecords(collection);
@@ -702,19 +909,19 @@ Future<Response> _apiRecordSave(Request request, int maxBodyBytes) async {
   try {
     switch (provider) {
       case 'gdrive':
-        final cloud = GoogleDriveCloud();
+        final cloud = GoogleDriveCloud(startPolling: false);
         await cloud.authenticateWithAccessToken(accessToken: token);
         await cloud.initialize();
         final meta = await cloud.saveRecord(collection, metadata != null ? CloudMetadata.fromJson(metadata) : null, data);
         return _ok({'metadata': meta.toJson()});
       case 'dropbox':
-        final cloud = DropBoxCloud(clientId: const String.fromEnvironment('DROPBOX_CLIENT_ID', defaultValue: ''));
+        final cloud = DropBoxCloud(clientId: const String.fromEnvironment('DROPBOX_CLIENT_ID', defaultValue: ''), startPolling: false);
         await cloud.authenticateWithAccessToken(accessToken: token);
         await cloud.initialize();
         final meta = await cloud.saveRecord(collection, metadata != null ? CloudMetadata.fromJson(metadata) : null, data);
         return _ok({'metadata': meta.toJson()});
       case 'yandex':
-        final cloud = YandexDiskCloud(clientId: const String.fromEnvironment('YANDEX_CLIENT_ID', defaultValue: ''));
+        final cloud = YandexDiskCloud(clientId: const String.fromEnvironment('YANDEX_CLIENT_ID', defaultValue: ''), startPolling: false);
         await cloud.authenticateWithAccessToken(accessToken: token);
         await cloud.initialize();
         final meta = await cloud.saveRecord(collection, metadata != null ? CloudMetadata.fromJson(metadata) : null, data);
@@ -759,11 +966,17 @@ Future<Response> _apiFileUpload(Request request) async {
   final token = _extractToken(request);
   if (token == null) return Response.unauthorized('missing token');
   final provider = request.params['provider'] ?? '';
+  final name = request.url.queryParameters['name'] ?? 'upload';
+  final mimeType = request.url.queryParameters['mimeType'];
   try {
     final bodyBytes = await request.read().expand((x) => x).toList();
     if (provider == 'web') return _ok({'path': ''});
     final cloud = (await _createAndInitCloudFull(provider, token)).cloud;
-    final path = await cloud.uploadFile(name: 'upload', fileData: Uint8List.fromList(bodyBytes));
+    final path = await cloud.uploadFile(
+      name: name,
+      fileData: Uint8List.fromList(bodyBytes),
+      mimeType: mimeType,
+    );
     return _ok({'path': path});
   } catch (e) {
     return Response(500, body: e.toString());
@@ -812,20 +1025,24 @@ class _CloudInit {
   _CloudInit(this.cloud, this.id);
 }
 
-Future<_CloudInit> _createAndInitCloudFull(String provider, String token) async {
+Future<_CloudInit> _createAndInitCloudFull(
+  String provider,
+  String token, {
+  bool startPolling = false,
+}) async {
   switch (provider) {
     case 'gdrive':
-      final cloud = GoogleDriveCloud();
+      final cloud = GoogleDriveCloud(startPolling: startPolling);
       await cloud.authenticateWithAccessToken(accessToken: token);
       final id = await cloud.initialize();
       return _CloudInit(cloud, id);
     case 'dropbox':
-      final cloud = DropBoxCloud(clientId: const String.fromEnvironment('DROPBOX_CLIENT_ID', defaultValue: ''));
+      final cloud = DropBoxCloud(clientId: const String.fromEnvironment('DROPBOX_CLIENT_ID', defaultValue: ''), startPolling: startPolling);
       await cloud.authenticateWithAccessToken(accessToken: token);
       final id = await cloud.initialize();
       return _CloudInit(cloud, id);
     case 'yandex':
-      final cloud = YandexDiskCloud(clientId: const String.fromEnvironment('YANDEX_CLIENT_ID', defaultValue: ''));
+      final cloud = YandexDiskCloud(clientId: const String.fromEnvironment('YANDEX_CLIENT_ID', defaultValue: ''), startPolling: startPolling);
       await cloud.authenticateWithAccessToken(accessToken: token);
       final id = await cloud.initialize();
       return _CloudInit(cloud, id);

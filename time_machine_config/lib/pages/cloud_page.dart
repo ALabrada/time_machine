@@ -119,6 +119,14 @@ class CloudPageState extends State<CloudPage> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(message, textAlign: TextAlign.center),
           ),
+          if (controller.loadingPhase == CloudLoadingPhase.authenticating &&
+              controller.cloud is BackendProxyCloud) ...[
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: controller.cancelActivation,
+              child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+            ),
+          ],
         ],
       ),
     );
@@ -203,7 +211,22 @@ class CloudPageState extends State<CloudPage> {
 
   List<Widget> _buildCloudContent(BuildContext context, CloudBase cloud) {
     return [
-      if (cloud is SupabaseCloud)
+      if (cloud is BackendProxyCloud && cloud.providerId == 'gdrive')
+        GoogleDriveCloudContent(
+          state: controller.value,
+          onEvent: controller.handleEvent,
+        )
+      else if (cloud is BackendProxyCloud && cloud.providerId == 'dropbox')
+        DropBoxCloudContent(
+          state: controller.value,
+          onEvent: controller.handleEvent,
+        )
+      else if (cloud is BackendProxyCloud && cloud.providerId == 'yandex')
+        YandexDiskCloudContent(
+          state: controller.value,
+          onEvent: controller.handleEvent,
+        )
+      else if (cloud is SupabaseCloud)
         SupabaseCloudContent(
           state: controller.value,
           onEvent: controller.handleEvent,

@@ -141,6 +141,16 @@ final class CloudController extends ValueNotifier<CloudState> {
     }
   }
 
+  /// Aborts an interactive backend sign-in that [handleEvent] is still
+  /// awaiting. The activation future then fails and restores the previous
+  /// state, so the page leaves the authenticating screen.
+  void cancelActivation() {
+    final cloud = this.cloud;
+    if (cloud is BackendProxyCloud) {
+      cloud.cancelAuthentication();
+    }
+  }
+
   Future<void> _load() async {
     value = const LoadingState(phase: CloudLoadingPhase.connecting);
     final cloud = this.cloud;
@@ -219,7 +229,10 @@ final class CloudController extends ValueNotifier<CloudState> {
     }
     // Providers whose session needs no extra credentials here (Supabase fills
     // its own session through its client) need no authentication step.
-    if (cloud is DropBoxCloud) {
+    if (cloud is BackendProxyCloud) {
+      // Web: the browser flow is mediated by the proxy backend.
+      await cloud.authenticate();
+    } else if (cloud is DropBoxCloud) {
       await cloud.authenticate(consentBrowser: consentBrowser);
     } else if (cloud is GoogleDriveCloud) {
       await cloud.authenticate(consentBrowser: consentBrowser);
@@ -258,6 +271,9 @@ final class CloudController extends ValueNotifier<CloudState> {
   }
 
   CloudState _stateForDeactivated(CloudBase cloud) {
+    if (cloud is BackendProxyCloud) {
+      return _backendState(cloud, isActive: false);
+    }
     if (cloud is SupabaseCloud) {
       return const SupabaseState(isActive: false);
     }
@@ -280,8 +296,23 @@ final class CloudController extends ValueNotifier<CloudState> {
     return NotSelectedState(clouds: cloudNames);
   }
 
+  /// Maps a backend-proxied provider back onto the state the existing cloud
+  /// page widgets understand.
+  CloudState _backendState(BackendProxyCloud cloud, {required bool isActive}) {
+    final account = cloud.userEmail;
+    return switch (cloud.providerId) {
+      'gdrive' => GoogleDriveState(isConnected: isActive, isActive: isActive),
+      'dropbox' => DropBoxState(accountEmail: account, isActive: isActive),
+      'yandex' => YandexDiskState(accountEmail: account, isActive: isActive),
+      _ => NotSelectedState(clouds: cloudNames),
+    };
+  }
+
   CloudState _stateFor(CloudBase cloud) {
     final isActive = cloudSyncService.isActive;
+    if (cloud is BackendProxyCloud) {
+      return _backendState(cloud, isActive: isActive);
+    }
     if (cloud is GoogleDriveCloud) {
       return GoogleDriveState(isConnected: true, isActive: isActive);
     }

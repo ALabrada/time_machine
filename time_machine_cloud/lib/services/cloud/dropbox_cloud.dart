@@ -34,6 +34,7 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     required this.clientId,
     DropboxTokenStore? tokenStore,
     this.pollInterval = const Duration(minutes: 1),
+    this.startPolling = true,
     String? redirectUri,
     this.consentBrowser,
     super.encryptionKey,
@@ -54,6 +55,11 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
 
   /// How often the collection folders are polled for remote changes.
   final Duration pollInterval;
+
+  /// Whether [initialize] starts the background change-polling timer. The
+  /// proxy server creates a short-lived cloud per request and does not need
+  /// change notifications, so it disables this to avoid leaking timers.
+  final bool startPolling;
 
   /// Redirect URI of the registered Dropbox app. Only used to run (or refresh)
   /// the OAuth flow; defaults to a local loopback address.
@@ -213,7 +219,7 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
 
   @override
   Future<String> initialize() async {
-    final session = await tokenStore.read();
+    final session = _session ?? await tokenStore.read();
     if (session == null || session.accessToken.isEmpty) {
       throw Exception('No Dropbox session available');
     }
@@ -230,7 +236,7 @@ class DropBoxCloud extends FileCloudBase with EventfulFileCloud {
     }
     await _ensureFolderPath(FileCloudBase.filesDir);
     await _resetSnapshots();
-    _startPolling();
+    if (startPolling) _startPolling();
     publishEvent(const CloudReconnectedEvent());
     return 'dropbox/${account.email}';
   }

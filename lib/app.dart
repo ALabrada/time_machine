@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:statusbarz/statusbarz.dart';
 import 'package:time_machine/pages/home_page.dart';
 import 'package:time_machine/secrets.dart' as secrets;
+import 'package:time_machine/services/web_provider_auth.dart' as web_auth;
 import 'package:time_machine_cam/time_machine_cam.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/services/cloud_sync_service.dart';
@@ -205,13 +206,16 @@ class TimeMachineApp extends StatelessWidget {
                 defaultTargetPlatform == TargetPlatform.iOS
                     ? secrets.GOOGLE_DRIVE_CLIENT_ID_IOS
                     : secrets.GOOGLE_DRIVE_CLIENT_ID_ANDROID;
+            // OAuth providers keep their native implementation (system browser
+            // + custom-scheme deep link) except on the web, where the proxy
+            // backend mediates the flow and hosts the provider API calls.
+            final backendUrl = Uri.tryParse(secrets.BACKEND_URL);
+            final useBackendAuth =
+                kIsWeb && backendUrl != null && backendUrl.hasAuthority;
             final clouds = <String, CloudBase>{
               // Nextcloud needs no application credentials, so it is always
               // offered — including on web, where its login (server URL +
-              // credentials) needs no OAuth/browser deep links. OAuth-based
-              // providers are only registered on native platforms because the
-              // consent return is delivered as a deep link on the app's custom
-              // URL scheme, which a browser cannot route back to a web app.
+              // credentials) needs no OAuth/browser deep links.
               'nextcloud': NextCloudCloud(
                 appRootFolderName: 'HistoryLens',
                 tokenStore: SecureNextcloudTokenStore(),
@@ -239,6 +243,36 @@ class TimeMachineApp extends StatelessWidget {
                   clientId: secrets.YANDEX_CLIENT_ID,
                   redirectUri: secrets.YANDEX_REDIRECT_URI,
                   tokenStore: SecureYandexDiskTokenStore(),
+                ),
+              if (useBackendAuth && googleClientId.isNotEmpty)
+                'gdrive': BackendProxyCloud(
+                  providerId: 'gdrive',
+                  backendUrl: backendUrl,
+                  auth: web_auth.createWebProviderAuth(
+                    providerId: 'gdrive',
+                    backendUrl: backendUrl,
+                    clientId: googleClientId,
+                  ),
+                ),
+              if (useBackendAuth && secrets.DROPBOX_APP_KEY.isNotEmpty)
+                'dropbox': BackendProxyCloud(
+                  providerId: 'dropbox',
+                  backendUrl: backendUrl,
+                  auth: web_auth.createWebProviderAuth(
+                    providerId: 'dropbox',
+                    backendUrl: backendUrl,
+                    clientId: secrets.DROPBOX_APP_KEY,
+                  ),
+                ),
+              if (useBackendAuth && secrets.YANDEX_CLIENT_ID.isNotEmpty)
+                'yandex': BackendProxyCloud(
+                  providerId: 'yandex',
+                  backendUrl: backendUrl,
+                  auth: web_auth.createWebProviderAuth(
+                    providerId: 'yandex',
+                    backendUrl: backendUrl,
+                    clientId: secrets.YANDEX_CLIENT_ID,
+                  ),
                 ),
             };
             final geocoders = {

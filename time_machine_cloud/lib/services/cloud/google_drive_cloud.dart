@@ -21,6 +21,7 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     GoogleDriveTokenStore? tokenStore,
     this.appRootFolderName = 'TimeMachine',
     this.pollInterval = const Duration(minutes: 1),
+    this.startPolling = true,
     GoogleDriveSignIn? signIn,
     OAuthConsentBrowser? consentBrowser,
     super.encryptionKey,
@@ -56,6 +57,11 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
   http.Client? _sessionClient;
   final String appRootFolderName;
   final Duration pollInterval;
+
+  /// Whether [initialize] starts the background change-polling timer. The
+  /// proxy server creates a short-lived cloud per request and does not need
+  /// change notifications, so it disables this to avoid leaking timers.
+  final bool startPolling;
 
   final GoogleDriveSignIn? _signIn;
 
@@ -160,7 +166,7 @@ class GoogleDriveCloud extends FileCloudBase with EventfulFileCloud {
     await _initCollectionFolders();
     final tokenResult = await _drive.changes.getStartPageToken();
     _nextChangeToken = tokenResult.startPageToken;
-    _startPolling();
+    if (startPolling) _startPolling();
     publishEvent(const CloudReconnectedEvent());
     return 'gdrive/$email';
   }
