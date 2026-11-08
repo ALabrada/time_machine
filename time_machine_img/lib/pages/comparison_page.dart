@@ -11,12 +11,10 @@ import 'package:time_machine_img/l10n/img_localizations.dart';
 import 'package:time_machine_img/molecules/comparison_description.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 import '../controllers/upload_controller.dart';
 import '../molecules/sync_record_page.dart';
 import '../molecules/tool_bar.dart';
-import '../services/telegram_service.dart';
 
 class ComparisonPage extends StatefulWidget {
   const ComparisonPage({
@@ -340,15 +338,15 @@ class ComparisonPageState extends State<ComparisonPage>
   }
 
   Future<void> publishToTelegram() async {
-    if (!await comparisonController.publishToTelegram()) {
+    final submitted = await comparisonController.publishToTelegram();
+    if (!submitted || !mounted) {
       return;
     }
-    final channelName = comparisonController.telegramService?.channelName;
-    if (channelName != null) {
-      await launchUrlString('https://t.me/$channelName',
-          mode: LaunchMode.externalNonBrowserApplication,
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(ResLocalizations.of(context).telegramSubmitted)),
       );
-    }
   }
 
   Future<void> showSharingMenu({BuildContext? source}) async {
@@ -371,7 +369,7 @@ class ComparisonPageState extends State<ComparisonPage>
               context.pop();
             },
           ),
-        if (!kIsWeb && comparisonController.isTelegramSupported)
+        if (comparisonController.isTelegramSupported)
           BottomSheetAction(
             title: Text(ImgLocalizations.of(context).shareMenuPublishTo('Telegram')),
             onPressed: (context) {

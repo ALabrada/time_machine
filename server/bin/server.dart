@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:time_machine_cloud/services/image_cache.dart';
+import 'package:time_machine_cloud/services/telegram_photo_resolver.dart';
+import 'package:time_machine_cloud/services/telegram_service.dart';
 import 'package:time_machine_server/handler.dart';
 import 'package:time_machine_server/network.dart';
 import 'package:time_machine_server/rate_limit.dart';
@@ -51,6 +53,18 @@ Future<void> main() async {
     geonamesUserName: optional('GEONAMES_USERNAME'),
   );
 
+  final telegramToken = optional('TELEGRAM_BOT_TOKEN');
+  final telegramChannelId = int.tryParse(config['TELEGRAM_CHANNEL_ID']);
+  final telegramService = telegramToken != null && telegramChannelId != null
+      ? TelegramService(
+          apiKey: telegramToken,
+          channelId: telegramChannelId,
+          photoResolver: NetworkTelegramPhotoResolver(
+            imageFetcher: imageFetcher,
+          ),
+        )
+      : null;
+
   final webBuildDirValue = optional('WEB_BUILD_DIR');
   Directory? webBuildDir;
   if (webBuildDirValue != null) {
@@ -72,6 +86,7 @@ Future<void> main() async {
 
   final handler = createHandler(
     networkService: networkService,
+    telegramService: telegramService,
     imageFetcher: imageFetcher,
     rateLimiter: RateLimiter(maxRequestsPerWindow: limit),
     webBuildDir: webBuildDir,
@@ -87,5 +102,8 @@ Future<void> main() async {
   print('rate limit: $limit req/min');
   if (webBuildDir != null) {
     print('serving web app from: $webBuildDir');
+  }
+  if (telegramService != null) {
+    print('telegram suggestions enabled for channel $telegramChannelId');
   }
 }

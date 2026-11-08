@@ -13,6 +13,7 @@ import 'package:time_machine_core/domain/picture.dart';
 import 'package:time_machine_core/domain/cloud_metadata.dart';
 import 'package:time_machine_cloud/services/image_cache.dart';
 import 'package:time_machine_cloud/services/network_service.dart';
+import 'package:time_machine_cloud/services/telegram_service.dart';
 
 import 'cloud_cache.dart';
 import 'network.dart';
@@ -55,6 +56,7 @@ class AuthAttempt {
 /// Flutter web app), with SPA fallback to `index.html`.
 Handler createHandler({
   required NetworkService networkService,
+  TelegramPublisher? telegramService,
   CachedImageFetcher? imageFetcher,
   RateLimiter? rateLimiter,
   Directory? webBuildDir,
@@ -130,6 +132,11 @@ Handler createHandler({
       networkService,
       cached,
       maxBodyBytes,
+    ))
+    ..post('/api/telegram/submit', (Request request) => _telegramSubmit(
+      request,
+      telegramService,
+      telegramMaxBodyBytes,
     ))
     ..get('/auth/<provider>/start', (Request request) => _authStart(request, _authAttempts, _pruneAttempts, _randomState, settings))
     ..get('/auth/<provider>/callback', (Request request) => _authCallback(request, _authAttempts, _pruneAttempts, settings))
@@ -272,6 +279,43 @@ bool _isPageRoute(Request request) {
     return false;
   }
   return !segments.last.contains('.');
+}
+
+/// Pictures may be sent as inline `data:` URLs from the web app, which are
+/// considerably larger than the regular JSON bodies handled by the other API
+/// routes.
+const telegramMaxBodyBytes = 32 << 20;
+
+Future<Response> _telegramSubmit(
+  Request request,
+  TelegramPublisher? telegram,
+  int maxBodyBytes,
+) async {
+  if (telegram == null || !telegram.enabled) {
+    return Response(
+      503,
+      body: json.encode({'error': 'telegram not configured'}),
+      headers: _jsonHeaders,
+    );
+  }
+  final body = decodeJsonBody(await _readBody(request, maxBodyBytes));
+  final rawPictures = body['pictures'];
+  if (rawPictures is! List || rawPictures.isEmpty) {
+    return Response(
+      400,
+      body: json.encode({'error': 'pictures required'}),
+      headers: _jsonHeaders,
+    );
+  }
+  final pictures = [
+    for (final item in rawPictures)
+      Picture.fromJson(item as Map<String, dynamic>),
+  ];
+  final submitted = await telegram.submit(
+    pictures: pictures,
+    caption: body['caption'] as String?,
+  );
+  return _ok({'submitted': submitted});
 }
 
 Future<Response> _findIn(

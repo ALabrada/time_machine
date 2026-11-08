@@ -159,6 +159,12 @@ abstract class ResLocalizations {
   /// In en, this message translates to:
   /// **'Saved to {path}'**
   String savedToFile(String path);
+
+  /// No description provided for @telegramSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted to Telegram for review'**
+  String get telegramSubmitted;
 }
 
 class _ResLocalizationsDelegate

@@ -15,5 +15,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "telegramSubmitted": "Submitted to Telegram for review"
 }

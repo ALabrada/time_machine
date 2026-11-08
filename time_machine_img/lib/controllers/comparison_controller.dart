@@ -5,7 +5,6 @@ import 'package:time_machine_db/time_machine_db.dart';
 import 'package:time_machine_img/controllers/sync_record_controller.dart';
 import 'package:time_machine_img/services/database_service.dart';
 import 'package:time_machine_img/services/similarity_service.dart';
-import 'package:time_machine_img/services/telegram_service.dart';
 import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 
@@ -40,8 +39,10 @@ class ComparisonController with TaskManager, SyncRecordController {
   int? _similarityRecordId;
   Future<double?>? _pendingComparison;
 
-  /// Whether the Share-to-Telegram option is available (a Telegram bot token
-  /// was configured at build time).
+  /// Whether the Share-to-Telegram option is available.
+  ///
+  /// The provider is only registered when the build has a native bot token or
+  /// the web build declares the proxy backend supports Telegram.
   bool get isTelegramSupported => telegramService != null;
 
   void watchRecord(int? id) {
@@ -111,13 +112,10 @@ class ComparisonController with TaskManager, SyncRecordController {
         original.site!,
     ].join('\n');
 
-    await execute(() => telegramService.publish(
+    return execute(() => telegramService.submit(
       pictures: [original, picture],
       caption: caption,
-      cacheService: cacheService,
-      databaseService: databaseService,
     ));
-    return true;
   }
 
   Future<void> savePictures({String? dialogTitle}) async {

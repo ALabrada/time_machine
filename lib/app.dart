@@ -17,7 +17,8 @@ import 'package:time_machine_cam/time_machine_cam.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/services/cloud_sync_service.dart';
 import 'package:time_machine_db/services/database_service.dart';
-import 'package:time_machine_img/services/telegram_service.dart';
+import 'package:time_machine_img/services/proxy_telegram_service.dart';
+import 'package:time_machine_img/services/telegram_photo_resolver.dart';
 import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_map/time_machine_map.dart';
 import 'package:time_machine_map/services/vector_service.dart' as vs;
@@ -417,7 +418,16 @@ class TimeMachineApp extends StatelessWidget {
           ),
         ),
         Provider<TelegramService?>(
-          create: (_) {
+          create: (context) {
+            // On the web the bot token must not be shipped with the app, so
+            // publishing goes through the proxy backend when the build declares
+            // that the backend supports Telegram.
+            if (kIsWeb) {
+              if (secrets.BACKEND_URL.isEmpty || !secrets.BACKEND_TELEGRAM) {
+                return null;
+              }
+              return ProxyTelegramService(backendUrl: secrets.BACKEND_URL);
+            }
             final apiKey = secrets.telegramBotToken;
             final channelId = secrets.telegramChannelId;
             if (apiKey == null || channelId == null) {
@@ -428,7 +438,9 @@ class TimeMachineApp extends StatelessWidget {
             return TelegramService(
               apiKey: apiKey,
               channelId: channelId,
-              channelName: 'history_lens_app',
+              photoResolver: AppTelegramPhotoResolver(
+                cacheService: context.read<CacheService>(),
+              ),
             );
           },
         ),

@@ -6,7 +6,8 @@
 /// file becomes an empty string, so consumers check the value before enabling
 /// the feature that needs it:
 ///  * no `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHANNEL_ID` -> the Telegram share
-///    option is not shown;
+///    option is not shown on native builds; the web build uses
+///    `BACKEND_TELEGRAM` instead, so the bot token never reaches the browser;
 ///  * no Google Drive client id for the current platform -> Google Drive is not
 ///    offered as a cloud provider;
 ///  * no `DROPBOX_APP_KEY`/`YANDEX_CLIENT_ID` -> the corresponding cloud
@@ -56,6 +57,11 @@ const String BACKEND_URL = String.fromEnvironment('BACKEND_URL');
 const String BACKEND_PROVIDERS =
     String.fromEnvironment('BACKEND_PROVIDERS');
 
+/// Whether the proxy backend has Telegram publishing configured. Like
+/// [BACKEND_PROVIDERS], this only tells the frontend which backend features to
+/// offer; the bot token itself stays on the server.
+const bool BACKEND_TELEGRAM = bool.fromEnvironment('BACKEND_TELEGRAM');
+
 /// OAuth consent return URIs. Registered in the OAuth provider apps and in
 /// the platform URL schemes; public application configuration, not secrets.
 const String GOOGLE_DRIVE_REDIRECT_URI =
@@ -73,10 +79,13 @@ const String DROPBOX_REDIRECT_URI =
 const String YANDEX_REDIRECT_URI =
     'com.fakegem.historylens:/oauth2redirect-yandex';
 
-/// Telegram bot API key, or null when not configured.
+/// Telegram bot API key for native builds, or null when not configured.
+///
+/// Web builds never read the bot token: they publish through the proxy
+/// backend, which reads it from its own configuration.
 String? get telegramBotToken => _present(TELEGRAM_BOT_TOKEN);
 
-/// Numeric Telegram channel id, or null when not configured.
+/// Numeric Telegram channel id for native builds, or null when not configured.
 int? get telegramChannelId => int.tryParse(TELEGRAM_CHANNEL_ID);
 
 String? _present(String value) => value.isEmpty ? null : value;

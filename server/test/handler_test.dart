@@ -12,6 +12,7 @@ import 'package:time_machine_core/domain/place_info.dart';
 import 'package:time_machine_cloud/services/cloud_base.dart';
 import 'package:time_machine_cloud/services/image_cache.dart';
 import 'package:time_machine_cloud/services/network_service.dart';
+import 'package:time_machine_cloud/services/telegram_service.dart';
 import 'package:time_machine_server/handler.dart';
 import 'package:time_machine_server/rate_limit.dart';
 import 'package:time_machine_server/server_config.dart';
@@ -94,17 +95,37 @@ NetworkService _network() => NetworkService(
 );
 
 Handler _handler({
+  TelegramPublisher? telegramService,
   CachedImageFetcher? imageFetcher,
   RateLimiter? rateLimiter,
   Directory? webBuildDir,
   ServerConfig? config,
 }) => createHandler(
   networkService: _network(),
+  telegramService: telegramService,
   imageFetcher: imageFetcher,
   rateLimiter: rateLimiter,
   webBuildDir: webBuildDir,
   config: config,
 );
+
+class _FakeTelegram implements TelegramPublisher {
+  @override
+  bool get enabled => true;
+
+  List<Picture>? publishedPictures;
+  String? publishedCaption;
+
+  @override
+  Future<bool> submit({
+    required List<Picture> pictures,
+    String? caption,
+  }) async {
+    publishedPictures = pictures;
+    publishedCaption = caption;
+    return true;
+  }
+}
 
 Request _post(String path, Object body) => Request(
   'POST',
@@ -237,6 +258,53 @@ void main() {
       Uri.parse('http://localhost/api/image?url=https%3A%2F%2Fevil.example%2Fimg.jpg'),
     ));
     expect(response.statusCode, 403);
+  });
+
+  group('telegram proxy', () {
+    test('POST /api/telegram/submit forwards pictures and caption', () async {
+      final fake = _FakeTelegram();
+      final response = await _handler(telegramService: fake)(
+        _post('/api/telegram/submit', {
+          'pictures': [
+            {
+              'id': '1',
+              'url': 'https://fake.example/1.jpg',
+              'latitude': 1.0,
+              'longitude': 2.0,
+              'provider': 'pastvu',
+            },
+            {
+              'id': '2',
+              'url': 'https://fake.example/2.jpg',
+              'latitude': 3.0,
+              'longitude': 4.0,
+              'provider': 'pastvu',
+            },
+          ],
+          'caption': 'then and now',
+        }),
+      );
+      expect(response.statusCode, 200);
+      expect(await _readJson(response), {'submitted': true});
+      expect(fake.publishedPictures, hasLength(2));
+      expect(fake.publishedPictures!.first.id, '1');
+      expect(fake.publishedCaption, 'then and now');
+    });
+
+    test('POST /api/telegram/submit returns 503 when not configured',
+        () async {
+      final response = await _handler()(
+        _post('/api/telegram/submit', {'pictures': []}),
+      );
+      expect(response.statusCode, 503);
+    });
+
+    test('POST /api/telegram/submit requires pictures', () async {
+      final response = await _handler(telegramService: _FakeTelegram())(
+        _post('/api/telegram/submit', {'caption': 'no pictures'}),
+      );
+      expect(response.statusCode, 400);
+    });
   });
 
   test('OPTIONS preflight is answered with CORS headers', () async {

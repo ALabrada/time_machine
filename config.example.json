@@ -16,5 +16,6 @@
   "VK_GROUP_ID": "",
   "VK_MAPS_API_KEY": "",
   "BACKEND_URL": "",
-  "BACKEND_PROVIDERS": ""
+  "BACKEND_PROVIDERS": "",
+  "BACKEND_TELEGRAM": "false"
 }

@@ -63,7 +63,6 @@ dependencies:
   provider: ^6.1.2
   rxdart: ^0.28.0
   shared_preferences: any
-  televerse: any
   url_launcher: ^6.3.1
   uuid: any
 
