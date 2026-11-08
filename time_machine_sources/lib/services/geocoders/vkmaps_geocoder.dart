@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 
 import 'package:time_machine_core/domain/location.dart';
 import 'package:time_machine_core/domain/place_info.dart';
-import '../geo_math.dart';
+import 'package:time_machine_core/services/geo_math.dart';
 import '../network_service.dart';
 
 class VKMapsGeocoder implements GeocodingService {

@@ -51,6 +51,8 @@ dependencies:
     path: ./time_machine_net
   time_machine_res:
     path: ./time_machine_res
+  time_machine_sources:
+    path: ./time_machine_sources
 
   fk_user_agent:
     path: ./fk_user_agent

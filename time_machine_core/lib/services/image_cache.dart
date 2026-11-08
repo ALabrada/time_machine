@@ -1,16 +1,41 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cachette/cachette.dart';
 import 'package:dio/dio.dart';
+import 'package:time_machine_core/domain/picture.dart';
 
+/// A cached image response.
 class CachedImage {
   final List<int> bytes;
   final String? contentType;
   const CachedImage({required this.bytes, this.contentType});
 }
 
-class CachedImageFetcher {
+/// Resolved image bytes ready to be uploaded or stored.
+class ResolvedImage {
+  const ResolvedImage({required this.bytes, this.mimeType});
+
+  final Uint8List bytes;
+  final String? mimeType;
+}
+
+/// Resolves the actual bytes of a [Picture].
+///
+/// The app resolves local files/disk cache through its `CacheService`, while
+/// the proxy backend uses [CachedImageFetcher], which downloads remote URLs and
+/// decodes inline `data:` URLs.
+abstract interface class ImageResolver {
+  Future<ResolvedImage?> resolve(Picture picture);
+}
+
+/// Memory/disk cache for remote images.
+///
+/// The proxy backend also uses it as its [ImageResolver]: [resolve] downloads
+/// HTTP(S) images through the cache and decodes inline `data:` URLs. Local
+/// `file:` URLs are not accessible to the server and are ignored.
+class CachedImageFetcher implements ImageResolver {
   final Dio dio;
   final Cachette<String, CachedImage> _memory;
   final Directory? diskDir;
@@ -75,6 +100,36 @@ class CachedImageFetcher {
       await _writeDisk(key, diskPath, image.bytes);
     }
     return image;
+  }
+
+  @override
+  Future<ResolvedImage?> resolve(Picture picture) async {
+    final uri = Uri.tryParse(picture.url);
+    if (uri == null) {
+      return null;
+    }
+    if (uri.isScheme('data')) {
+      final data = UriData.fromUri(uri);
+      final bytes = data.contentAsBytes();
+      if (bytes.isEmpty) {
+        return null;
+      }
+      return ResolvedImage(
+        bytes: bytes,
+        mimeType: data.mimeType.isEmpty ? null : data.mimeType,
+      );
+    }
+    if (uri.isScheme('http') || uri.isScheme('https')) {
+      final image = await fetch(picture.url);
+      if (image == null || image.bytes.isEmpty) {
+        return null;
+      }
+      return ResolvedImage(
+        bytes: Uint8List.fromList(image.bytes),
+        mimeType: image.contentType,
+      );
+    }
+    return null;
   }
 
   Future<void> _writeDisk(String key, String diskPath, List<int> bytes) async {

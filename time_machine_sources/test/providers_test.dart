@@ -2,11 +2,11 @@ import 'package:test/test.dart';
 import 'package:time_machine_core/domain/area.dart';
 import 'package:time_machine_core/domain/location.dart';
 import 'package:time_machine_core/domain/picture.dart';
-import 'package:time_machine_cloud/services/providers/history_pin_provider.dart';
-import 'package:time_machine_cloud/services/providers/pastvu_provider.dart';
-import 'package:time_machine_cloud/services/providers/retro_photos_provider.dart';
-import 'package:time_machine_cloud/services/providers/russia_in_photo_provider.dart';
-import 'package:time_machine_cloud/services/providers/sepia_town_provider.dart';
+import 'package:time_machine_sources/services/providers/history_pin_provider.dart';
+import 'package:time_machine_sources/services/providers/pastvu_provider.dart';
+import 'package:time_machine_sources/services/providers/retro_photos_provider.dart';
+import 'package:time_machine_sources/services/providers/russia_in_photo_provider.dart';
+import 'package:time_machine_sources/services/providers/sepia_town_provider.dart';
 
 import 'mock_adapter.dart';
 

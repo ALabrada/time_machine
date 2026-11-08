@@ -2,9 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:shelf/shelf_io.dart' as shelf_io;
-import 'package:time_machine_cloud/services/image_cache.dart';
-import 'package:time_machine_cloud/services/telegram_photo_resolver.dart';
-import 'package:time_machine_cloud/services/telegram_service.dart';
+import 'package:time_machine_core/services/image_cache.dart';
+import 'package:time_machine_sources/services/telegram_service.dart';
 import 'package:time_machine_server/handler.dart';
 import 'package:time_machine_server/network.dart';
 import 'package:time_machine_server/rate_limit.dart';
@@ -59,9 +58,7 @@ Future<void> main() async {
       ? TelegramService(
           apiKey: telegramToken,
           channelId: telegramChannelId,
-          photoResolver: NetworkTelegramPhotoResolver(
-            imageFetcher: imageFetcher,
-          ),
+          photoResolver: imageFetcher,
         )
       : null;
 

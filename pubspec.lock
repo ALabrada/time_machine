@@ -2095,6 +2095,13 @@ packages:
       relative: true
     source: path
     version: "1.1.0"
+  time_machine_sources:
+    dependency: "direct main"
+    description:
+      path: time_machine_sources
+      relative: true
+    source: path
+    version: "1.0.0"
   timezone:
     dependency: transitive
     description:

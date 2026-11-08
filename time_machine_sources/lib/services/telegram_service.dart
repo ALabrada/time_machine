@@ -2,7 +2,7 @@ import 'package:televerse/telegram.dart';
 import 'package:televerse/televerse.dart';
 import 'package:time_machine_core/domain/picture.dart';
 
-import 'telegram_photo_resolver.dart';
+import 'package:time_machine_core/services/image_cache.dart';
 
 /// Interface used by the proxy backend so tests/deployments can substitute a
 /// different publisher.
@@ -21,8 +21,7 @@ abstract interface class TelegramPublisher {
 ///
 /// The post is submitted as a Telegram suggested post, so the channel admin
 /// must approve it before it becomes visible. The same implementation runs
-/// natively in the app and in the server; only the [TelegramPhotoResolver]
-/// differs.
+/// natively in the app and in the server; only the [ImageResolver] differs.
 class TelegramService implements TelegramPublisher {
   const TelegramService({
     this.apiKey,
@@ -34,7 +33,7 @@ class TelegramService implements TelegramPublisher {
   final int? channelId;
 
   /// Loads picture bytes for the current platform.
-  final TelegramPhotoResolver? photoResolver;
+  final ImageResolver? photoResolver;
 
   @override
   bool get enabled =>
@@ -55,7 +54,7 @@ class TelegramService implements TelegramPublisher {
       return false;
     }
 
-    final photos = <TelegramPhoto>[];
+    final photos = <ResolvedImage>[];
     for (final picture in pictures) {
       final photo = await resolver.resolve(picture);
       if (photo != null) {

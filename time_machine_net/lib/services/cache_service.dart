@@ -4,8 +4,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:time_machine_core/domain/picture.dart';
+import 'package:time_machine_core/services/image_cache.dart';
 
-class CacheService {
+class CacheService implements ImageResolver {
   CacheService({
     BaseCacheManager? cacheManager,
     this.pathExpander,
@@ -36,6 +38,17 @@ class CacheService {
     }
     final file = await cacheManager.getSingleFile(url);
     return XFile(file.path);
+  }
+
+  /// Resolves a [Picture] to its bytes by loading [picture] through [fetch].
+  @override
+  Future<ResolvedImage?> resolve(Picture picture) async {
+    final file = await fetch(picture.url);
+    final bytes = await file.readAsBytes();
+    if (bytes.isEmpty) {
+      return null;
+    }
+    return ResolvedImage(bytes: bytes, mimeType: file.mimeType);
   }
 
   /// Builds the [ImageProvider] used to display [url].

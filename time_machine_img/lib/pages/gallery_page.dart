@@ -32,7 +32,7 @@ class GalleryPageState extends State<GalleryPage> {
     galleryController = GalleryController(
       configurationService: context.read(),
       cloudSyncService: context.read(),
-      networkService: context.read(),
+      cloudService: context.read(),
       sharingService: context.read(),
     );
     _syncFailedSubscription = galleryController.syncFailed.skip(1).listen((_) {

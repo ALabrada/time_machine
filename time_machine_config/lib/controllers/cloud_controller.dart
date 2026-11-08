@@ -10,7 +10,7 @@ import 'package:time_machine_net/time_machine_net.dart';
 final class CloudController extends ValueNotifier<CloudState> {
   CloudController({
     required this.configurationService,
-    required this.networkService,
+    required this.cloudService,
     required this.cloudSyncService,
     OAuthConsentBrowser Function()? consentBrowserFactory,
   })  : _consentBrowserFactory = consentBrowserFactory,
@@ -26,7 +26,7 @@ final class CloudController extends ValueNotifier<CloudState> {
   StreamSubscription<bool>? _syncSubscription;
 
   final ConfigurationService configurationService;
-  final NetworkService networkService;
+  final CloudService cloudService;
   final CloudSyncService cloudSyncService;
 
   /// Supplies the platform browser that hosts the OAuth consent page (the
@@ -38,7 +38,7 @@ final class CloudController extends ValueNotifier<CloudState> {
 
   /// The cloud providers available for selection, sorted by name.
   List<String> get cloudNames {
-    final names = networkService.clouds.keys.toList();
+    final names = cloudService.clouds.keys.toList();
     names.sort();
     return names;
   }
@@ -78,7 +78,7 @@ final class CloudController extends ValueNotifier<CloudState> {
     if (name == null) {
       return null;
     }
-    return networkService.clouds[name];
+    return cloudService.clouds[name];
   }
 
   bool get cloudAvailable => cloud != null;

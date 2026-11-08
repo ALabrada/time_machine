@@ -18,7 +18,7 @@ class GalleryController with TaskManager {
   GalleryController({
     this.configurationService,
     this.cloudSyncService,
-    this.networkService,
+    this.cloudService,
     this.sharingService,
   }) {
     searchController.addListener(() {
@@ -28,7 +28,7 @@ class GalleryController with TaskManager {
 
   final ConfigurationService? configurationService;
   final CloudSyncService? cloudSyncService;
-  final NetworkService? networkService;
+  final CloudService? cloudService;
   final SharingService? sharingService;
   final searchController = TextEditingController();
   final _searchCriteria = BehaviorSubject.seeded('');
@@ -142,7 +142,7 @@ class GalleryController with TaskManager {
     await sharingService?.init(databaseService: databaseService);
 
     final configProvider = configurationService?.cloud;
-    final cloudProvider = networkService?.clouds[configProvider ?? ''];
+    final cloudProvider = cloudService?.clouds[configProvider ?? ''];
     final cloudSyncService = this.cloudSyncService;
     if (databaseService != null && cloudSyncService != null && !cloudSyncService.isActive) {
       unawaited(cloudSyncService.init(databaseService: databaseService, provider: cloudProvider));

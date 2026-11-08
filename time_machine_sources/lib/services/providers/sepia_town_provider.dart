@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:time_machine_core/domain/area.dart';
 import 'package:time_machine_core/domain/location.dart';
 import 'package:time_machine_core/domain/picture.dart';
-import '../geo_math.dart';
+import 'package:time_machine_core/services/geo_math.dart';
 import '../network_service.dart';
 
 class SepiaTownProvider implements DataProvider {

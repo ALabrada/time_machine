@@ -1,5 +1,5 @@
 name: time_machine_cloud
-description: "Pure-Dart networking for history-lens: photo providers, geocoders, the cloud storage interface and the cloud providers themselves. Consumed by the Flutter app through time_machine_net and by the pure-Dart server when it hosts them."
+description: "Pure-Dart cloud storage and sync backends for history-lens: Dropbox, Google Drive, Nextcloud, Yandex Disk and Supabase. Consumed by the Flutter app through time_machine_net and by the pure-Dart server."
 version: 1.0.0
 publish_to: 'none'
 
@@ -10,22 +10,15 @@ dependencies:
   time_machine_core:
     path: ../time_machine_core
 
-  cachette: ^1.0.0
-  collection: any
   dio: ^5.7.0
   googleapis: ^16.0.0
   googleapis_auth: ^2.3.3
-  html: any
   http: any
-  intl: any
-  latlong2: any
   meta: any
   nextcloud: ^9.0.0
-  osm_nominatim: ^4.0.1
   path: any
   pointycastle: ^3.7.3
   supabase: ^2.6.0
-  televerse: ^3.7.0
   uuid: any
   web_socket_channel: ^2.4.0
 

@@ -1,4 +1,5 @@
 import 'package:test/test.dart';
+import 'package:time_machine_core/time_machine_core.dart';
 import 'package:time_machine_cloud/time_machine_cloud.dart';
 import 'package:time_machine_server/cloud_cache.dart';
 

@@ -1,7 +1,7 @@
 import 'package:test/test.dart';
 import 'package:time_machine_core/domain/location.dart';
-import 'package:time_machine_cloud/services/geocoders/geonames_geocoder.dart';
-import 'package:time_machine_cloud/services/geocoders/vkmaps_geocoder.dart';
+import 'package:time_machine_sources/services/geocoders/geonames_geocoder.dart';
+import 'package:time_machine_sources/services/geocoders/vkmaps_geocoder.dart';
 
 import 'mock_adapter.dart';
 

@@ -18,7 +18,6 @@ import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/services/cloud_sync_service.dart';
 import 'package:time_machine_db/services/database_service.dart';
 import 'package:time_machine_img/services/proxy_telegram_service.dart';
-import 'package:time_machine_img/services/telegram_photo_resolver.dart';
 import 'package:time_machine_img/time_machine_img.dart';
 import 'package:time_machine_map/time_machine_map.dart';
 import 'package:time_machine_map/services/vector_service.dart' as vs;
@@ -202,7 +201,7 @@ class TimeMachineApp extends StatelessWidget {
             );
           },
         ),
-        Provider<NetworkService>(
+        Provider<CloudService>(
           create: (context) {
             final googleClientId = kIsWeb
                 ? ''
@@ -304,6 +303,11 @@ class TimeMachineApp extends StatelessWidget {
                   ),
                 ),
             };
+            return CloudService(clouds: clouds);
+          },
+        ),
+        Provider<NetworkService>(
+          create: (context) {
             final geocoders = {
               if (userAgent != null)
                 'OSM': OsmSearchEngine(
@@ -342,14 +346,12 @@ class TimeMachineApp extends StatelessWidget {
             if (kIsWeb && secrets.BACKEND_URL.isNotEmpty) {
               return ProxyNetworkService(
                 backendUrl: secrets.BACKEND_URL,
-                clouds: clouds,
                 geocoders: geocoders,
                 providers: providers,
                 userAgent: userAgent,
               );
             }
             return NetworkService(
-              clouds: clouds,
               userAgent: userAgent,
               geocoders: geocoders,
               providers: providers,
@@ -438,9 +440,7 @@ class TimeMachineApp extends StatelessWidget {
             return TelegramService(
               apiKey: apiKey,
               channelId: channelId,
-              photoResolver: AppTelegramPhotoResolver(
-                cacheService: context.read<CacheService>(),
-              ),
+              photoResolver: context.read<CacheService>(),
             );
           },
         ),

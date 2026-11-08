@@ -9,10 +9,9 @@ import 'package:time_machine_core/domain/area.dart';
 import 'package:time_machine_core/domain/location.dart';
 import 'package:time_machine_core/domain/picture.dart';
 import 'package:time_machine_core/domain/place_info.dart';
-import 'package:time_machine_cloud/services/cloud_base.dart';
-import 'package:time_machine_cloud/services/image_cache.dart';
-import 'package:time_machine_cloud/services/network_service.dart';
-import 'package:time_machine_cloud/services/telegram_service.dart';
+import 'package:time_machine_core/services/image_cache.dart';
+import 'package:time_machine_sources/services/network_service.dart';
+import 'package:time_machine_sources/services/telegram_service.dart';
 import 'package:time_machine_server/handler.dart';
 import 'package:time_machine_server/rate_limit.dart';
 import 'package:time_machine_server/server_config.dart';
@@ -89,7 +88,6 @@ class _ImageAdapter implements dio.HttpClientAdapter {
 }
 
 NetworkService _network() => NetworkService(
-  clouds: const <String, CloudBase>{},
   geocoders: {'fake': _FakeGeocoder()},
   providers: {'pastvu': _FakeProvider()},
 );

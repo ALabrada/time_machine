@@ -27,7 +27,7 @@ class CloudPageState extends State<CloudPage> {
     super.initState();
     controller = CloudController(
       configurationService: context.read(),
-      networkService: context.read(),
+      cloudService: context.read(),
       cloudSyncService: context.read(),
       // OAuth consent runs in the system browser. Custom-scheme providers
       // return through a deep link; Google's desktop client uses a loopback

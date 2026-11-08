@@ -3,13 +3,11 @@ import 'package:time_machine_core/domain/area.dart';
 import 'package:time_machine_core/domain/location.dart';
 import 'package:time_machine_core/domain/picture.dart';
 import 'package:time_machine_core/domain/place_info.dart';
-import 'package:time_machine_cloud/services/cloud_base.dart';
-import 'package:time_machine_cloud/services/network_service.dart';
+import 'package:time_machine_sources/services/network_service.dart';
 
 class ProxyNetworkService extends NetworkService {
   ProxyNetworkService({
     required String backendUrl,
-    Map<String, CloudBase> clouds = const {},
     Map<String, GeocodingService> geocoders = const {},
     Map<String, DataProvider> providers = const {},
     String? userAgent,
@@ -17,7 +15,6 @@ class ProxyNetworkService extends NetworkService {
   }) : _backendUrl = backendUrl,
        _dio = dio ?? Dio(),
        super(
-         clouds: clouds,
          geocoders: geocoders,
          providers: providers,
          userAgent: userAgent,

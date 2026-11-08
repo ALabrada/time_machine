@@ -3,6 +3,7 @@ FROM dart:stable AS build
 WORKDIR /app
 COPY time_machine_core ./time_machine_core
 COPY time_machine_cloud ./time_machine_cloud
+COPY time_machine_sources ./time_machine_sources
 COPY server ./server
 WORKDIR /app/server
 RUN dart pub get

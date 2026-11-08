@@ -8,4 +8,6 @@ export 'domain/place_info.dart';
 export 'domain/record.dart';
 export 'domain/record_mirror.dart';
 export 'domain/sync_state.dart';
+export 'services/geo_math.dart';
+export 'services/image_cache.dart' show ImageResolver, ResolvedImage;
 export 'utils/file_path.dart';

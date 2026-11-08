@@ -1,4 +1,6 @@
+export 'package:time_machine_core/time_machine_core.dart';
 export 'package:time_machine_cloud/time_machine_cloud.dart';
+export 'package:time_machine_sources/time_machine_sources.dart';
 export 'services/cache_service.dart';
 export 'services/cloud/secure_dropbox_token_store.dart';
 export 'services/cloud/secure_google_drive_token_store.dart';

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:time_machine_cloud/services/cloud_sync_provider.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -8,6 +7,7 @@ import 'package:supabase/supabase.dart';
 import 'package:time_machine_core/time_machine_core.dart';
 
 import '../cloud_base.dart';
+import '../cloud_sync_provider.dart';
 
 class SupabaseCloud extends CloudBase with EventfulCloud {
   static const idColumn = 'id';

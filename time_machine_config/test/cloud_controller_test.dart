@@ -149,7 +149,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late ConfigurationService configurationService;
-  late NetworkService networkService;
+  late CloudService cloudService;
   late CloudSyncService cloudSyncService;
 
   setUp(() async {
@@ -159,10 +159,8 @@ void main() {
       cacheOptions: const SharedPreferencesWithCacheOptions(),
     );
     configurationService = ConfigurationService(preferences: () => prefs);
-    networkService = NetworkService(
+    cloudService = CloudService(
       clouds: {'alpha': _FakeCloud(), 'beta': _FakeCloud()},
-      geocoders: {},
-      providers: {},
     );
     cloudSyncService = CloudSyncService();
   });
@@ -171,7 +169,7 @@ void main() {
     test('persists the selection when no cloud is configured', () async {
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: networkService,
+        cloudService: cloudService,
         cloudSyncService: cloudSyncService,
       );
 
@@ -189,7 +187,7 @@ void main() {
       configurationService.cloud = 'alpha';
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: networkService,
+        cloudService: cloudService,
         cloudSyncService: cloudSyncService,
       );
       await _pump();
@@ -205,7 +203,7 @@ void main() {
       configurationService.cloud = 'alpha';
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: networkService,
+        cloudService: cloudService,
         cloudSyncService: cloudSyncService,
       );
       await _pump();
@@ -221,7 +219,7 @@ void main() {
       configurationService.cloud = 'alpha';
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: networkService,
+        cloudService: cloudService,
         cloudSyncService: cloudSyncService,
       );
       await _pump();
@@ -240,16 +238,14 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_active.db');
       final databaseService = DatabaseService(db: db);
       final cloud = _FakeYandexDiskCloud();
-      final network = NetworkService(
+      final service = CloudService(
         clouds: {'yandex': cloud},
-        geocoders: {},
-        providers: {},
       );
       configurationService.cloud = 'yandex';
 
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: network,
+        cloudService: service,
         cloudSyncService: cloudSyncService,
       );
       await _pump();
@@ -273,16 +269,14 @@ void main() {
         () async {
       final db = await databaseFactoryMemory.openDatabase('test_selection.db');
       final databaseService = DatabaseService(db: db);
-      final network = NetworkService(
+      final service = CloudService(
         clouds: {'yandex': _FakeYandexDiskCloud()},
-        geocoders: {},
-        providers: {},
       );
       configurationService.cloud = 'yandex';
 
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: network,
+        cloudService: service,
         cloudSyncService: cloudSyncService,
       );
       await _pump();
@@ -307,10 +301,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_sync_loading.db');
       final databaseService = DatabaseService(db: db);
       final cloud = _StallableFakeYandexDiskCloud();
-      final network = NetworkService(
+      final service = CloudService(
         clouds: {'yandex': cloud},
-        geocoders: {},
-        providers: {},
       );
       configurationService.cloud = 'yandex';
 
@@ -325,7 +317,7 @@ void main() {
 
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: network,
+        cloudService: service,
         cloudSyncService: cloudSyncService,
       );
       await _pump();
@@ -348,16 +340,14 @@ void main() {
 
     test('a failed Google activation leaves a disconnected state', () async {
       final cloud = _FailingGoogleDriveCloud();
-      final network = NetworkService(
+      final service = CloudService(
         clouds: {'gdrive': cloud},
-        geocoders: {},
-        providers: {},
       );
       configurationService.cloud = 'gdrive';
 
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: network,
+        cloudService: service,
         cloudSyncService: cloudSyncService,
       );
       await _pump();

@@ -4,18 +4,15 @@ import 'package:time_machine_core/domain/area.dart';
 import 'package:time_machine_core/domain/location.dart';
 import 'package:time_machine_core/domain/picture.dart';
 import 'package:time_machine_core/domain/place_info.dart';
-import 'cloud_base.dart';
-import 'geo_math.dart';
+import 'package:time_machine_core/services/geo_math.dart';
 
 class NetworkService {
   NetworkService({
-    required this.clouds,
     required this.geocoders,
     required this.providers,
     this.userAgent,
   });
 
-  final Map<String, CloudBase> clouds;
   final Map<String, GeocodingService> geocoders;
   final Map<String, DataProvider> providers;
   String? userAgent;

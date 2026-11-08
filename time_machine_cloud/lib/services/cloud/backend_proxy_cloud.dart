@@ -7,8 +7,8 @@ import 'package:time_machine_core/time_machine_core.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../cloud_base.dart';
-import 'provider_auth.dart';
 import '../cloud_sync_provider.dart';
+import 'provider_auth.dart';
 
 class BackendProxyCloud extends CloudBase {
   BackendProxyCloud({
