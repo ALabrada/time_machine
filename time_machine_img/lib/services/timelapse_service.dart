@@ -1,23 +1,39 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
-import 'package:flutter_litert/native.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 
-/// Monolithic FILM interpolation with every frame rendered off the UI isolate.
+import '_litert_platform.dart'
+    show openInterpreter, TimelapseInterpreter;
+
+/// Monolithic FILM frame interpolation shared by every platform.
 ///
-/// Each render runs inside a single [Isolate.run] computation: the TFLite
-/// interpreter and its XNNPACK delegate are created, resized, invoked and
-/// closed entirely within that background isolate, and so is all of the
-/// `image`-package work (resize, tensor marshalling, output decoding, JPEG/GIF
-/// encoding). The main isolate only downloads the model, dispatches the job
-/// and forwards the per-frame JPEG previews it receives over a [SendPort]
-/// stream, so the UI thread stays responsive for the whole render.
+/// The whole pipeline (model load, inference, image resize/tensor marshalling,
+/// output decoding, JPEG/GIF encoding) uses only the interpreter members
+/// common to the native and web surfaces — the platform-specific interpreter
+/// bootstrap itself (fromFile + XNNPACK + resize on native, TF.js GraphModel
+/// from a hosted model.json on web) is isolated in `_litert_platform.dart`.
+///
+/// * **Native**: the >100MB model is downloaded once to the app's cache file;
+///   every render runs inside a single [Isolate.run] computation (TFLite
+///   interpreter, XNNPACK delegate and all image work stay off the UI isolate)
+///   and streams per-frame JPEG previews back over a [SendPort].
+/// * **Web**: the tflite-js WASM runtime cannot run the FILM graph (its
+///   XNNPACK delegate fails to prepare it, dynamic or static), so the web
+///   backend loads the graph as a TF.js `GraphModel` from a hosted model.json
+///   + weight shards; the "model" is a URL, not a byte blob. With no isolates,
+///   the job runs inline on the UI isolate and reports frames directly through
+///   [FrameCallback], while the recursive bisection yields to the event loop
+///   between midpoints. Web interpreters cannot be resized, so the render
+///   resolution is the model's own declared input shape rather than the
+///   caller-supplied target.
 
 /// Callback reported as each interpolated frame is produced during streaming.
 ///
@@ -34,25 +50,91 @@ typedef FrameCallback = void Function(
 );
 
 class TimelapseService {
+  /// Native: the TFLite model is a single binary downloaded to the cache.
   static const _modelUrl =
       'https://github.com/ALabrada/frame-interpolation-tflite/raw/refs/heads/dynamic/film_net_fixed/dynamic_fp16.tflite';
 
+  /// Web: the tflite-js WASM runtime cannot run FILM, so the web platform
+  /// loads the same graph as a TF.js GraphModel hosted next to the native
+  /// model (model.json + fp16 weight shards, fetched relative to it). Uses the
+  /// direct `raw.githubusercontent.com` origin — the `github.com/.../raw/`
+  /// alias adds a redirect hop per request, which some browsers gate on CORS.
+  static const _webModelUrl =
+      'https://raw.githubusercontent.com/ALabrada/frame-interpolation-tflite/dynamic/film_net_fixed/tfjs_film_web/model.json';
+
   final int _width;
   final int _height;
-  final File _modelFile;
+  final String? _modelPath; // native: cached model file; web: GraphModel URL
 
-  TimelapseService._(this._width, this._height, this._modelFile);
+  TimelapseService._(
+    this._width,
+    this._height,
+    this._modelPath,
+  );
 
-  /// Downloads the model to the app's cache (reusing an existing local copy)
-  /// and returns its [File].
+  /// Acquires the model location for the current platform.
+  ///
+  /// Native: the downloaded cache file path (reusing an existing local copy
+  /// across calls). Web: the TF.js GraphModel URL; the browser HTTP cache is
+  /// pre-warmed here so the graph loader's own fetches are cache hits, but the
+  /// loader then fetches the artifacts itself.
   ///
   /// [onReceiveProgress] reports (received, total) bytes while downloading and
   /// [cancelToken] can cancel an in-flight download; both are ignored when the
-  /// model is already cached.
-  static Future<File> _downloadIfNeeded({
+  /// model is already cached on native.
+  static Future<String?> _acquireModel({
     CancelToken? cancelToken,
     void Function(int received, int total)? onReceiveProgress,
   }) async {
+    if (kIsWeb) {
+      // The web model is a TF.js GraphModel split into model.json + weight
+      // shards; the graph loader fetches each artifact itself. Pre-warm the
+      // browser HTTP cache (and report honest progress) by fetching the
+      // artifacts here first, so the loader's own fetches are served almost
+      // entirely from cache. FILM's graph is dynamic, so there is nothing to
+      // choose on the host side — the shards are always the whole model.
+      //
+      // Best-effort: if a fetch fails here (model not published yet, CORS,
+      // transient network), the TF.js loader runs regardless and is the single
+      // source of truth for availability — it ends the job with its own,
+      // clearer error instead of a bare Dio connection error.
+      try {
+        final modelJson = await Dio().get<Uint8List>(
+          _webModelUrl,
+          options: Options(responseType: ResponseType.bytes),
+          cancelToken: cancelToken,
+          onReceiveProgress: (received, total) {
+            if (onReceiveProgress == null || total <= 0) return;
+            onReceiveProgress(received, total);
+          },
+        );
+        final shardNames = _webModelShardNames(modelJson.data!);
+        // model.json counts toward the reported total so the bar reflects the
+        // full artifact set, not just the shards.
+        var accumulated = modelJson.data!.lengthInBytes;
+        for (final name in shardNames) {
+          var shardTotal = 0;
+          await Dio().get<Uint8List>(
+            _resolveWebModelUrl(name),
+            options: Options(responseType: ResponseType.bytes),
+            cancelToken: cancelToken,
+            // Progress relative to (everything fetched so far + this shard),
+            // which converges to 100% as the fetch drains.
+            onReceiveProgress: (received, total) {
+              shardTotal = total;
+              if (onReceiveProgress == null || total <= 0) return;
+              onReceiveProgress(accumulated + received, accumulated + total);
+            },
+          );
+          if (shardTotal > 0) accumulated += shardTotal;
+        }
+      } catch (error) {
+        debugPrint('Web model pre-warm failed; TF.js loader will retry: '
+            '$error');
+      }
+      return _webModelUrl;
+    }
+
     final cacheDir = await getApplicationSupportDirectory();
     final file = File('${cacheDir.path}/film.tflite');
     try {
@@ -64,18 +146,38 @@ class TimelapseService {
           onReceiveProgress: onReceiveProgress,
         );
       }
-      return file;
+      return file.path;
     } catch (_) {
       await file.delete();
       rethrow;
     }
   }
 
+  /// Names of the weight shard files referenced by a GraphModel model.json
+  /// (e.g. `group1-shard1of15.bin`).
+  static List<String> _webModelShardNames(Uint8List modelJson) {
+    final decoded = jsonDecode(utf8.decode(modelJson)) as Map<String, dynamic>;
+    final manifest =
+        decoded['weightsManifest'] as List<dynamic>? ?? const [];
+    if (manifest.isEmpty) return const [];
+    final paths = (manifest.first as Map<String, dynamic>)['paths'];
+    if (paths is! List<dynamic>) return const [];
+    return [for (final path in paths) path as String];
+  }
+
+  /// Resolves a weight shard name against the hosted model.json URL, e.g.
+  /// `.../tfjs_film_web/model.json` + `group1-shard1of15.bin` ->
+  /// `.../tfjs_film_web/group1-shard1of15.bin`.
+  static String _resolveWebModelUrl(String shardName) =>
+      Uri.parse(_webModelUrl).resolve(shardName).toString();
+
   /// Loads the model (downloading it first if needed). It is *not* opened
-  /// here: the interpreter is created inside the per-render background isolate
-  /// in [_renderJob], so no native handle ever lives on the main isolate.
+  /// here: the interpreter is created inside each render job, so no native
+  /// handle ever lives on the main isolate.
   ///
-  /// [width]/[height] must be multiples of 32 (FILM's pyramid constraint).
+  /// [width]/[height] must be multiples of 32 (FILM's pyramid constraint). On
+  /// the web they are only a fallback: the render resolution is the model's own
+  /// declared input shape (see [TimelapseInterpreter.resolveRenderSize]).
   ///
   /// [onReceiveProgress] reports (received, total) bytes while the model is
   /// being downloaded and [cancelToken] can cancel that download.
@@ -85,11 +187,15 @@ class TimelapseService {
     CancelToken? cancelToken,
     void Function(int received, int total)? onReceiveProgress,
   }) async {
-    final modelFile = await _downloadIfNeeded(
+    final modelPath = await _acquireModel(
       cancelToken: cancelToken,
       onReceiveProgress: onReceiveProgress,
     );
-    return TimelapseService._(width, height, modelFile);
+    return TimelapseService._(
+      width,
+      height,
+      modelPath,
+    );
   }
 
   /// Computes a target (width, height) preserving the aspect ratio of
@@ -116,8 +222,8 @@ class TimelapseService {
     return (w, h);
   }
 
-  /// Nothing native lives on this isolate — the interpreter is created and
-  /// closed inside each [Isolate.run] job — so disposing is a no-op.
+  /// Nothing native lives on the main isolate (native) or between renders
+  /// (web), so disposing is a no-op.
   void dispose() {}
 
   /// Generates a single interpolated JPEG image at t=0.5 (the midpoint of
@@ -133,6 +239,7 @@ class TimelapseService {
       depth: depth,
       fps: 1,
       encodeGif: false,
+      onFrame: null,
     );
     if (bytes == null) {
       throw StateError('Rendering produced no output image.');
@@ -178,12 +285,13 @@ class TimelapseService {
     );
   }
 
-  /// Runs one render in a background isolate via [Isolate.run].
+  /// Runs one render.
   ///
-  /// The entire computation — model load, inference, and every image
-  /// creation/transformation — happens off the main isolate in [_renderJob].
-  /// The only channel back is [progressPort], which carries the per-frame JPEG
-  /// previews that [onFrame] forwards to the UI.
+  /// Native: dispatches it to a background isolate via [Isolate.run]; the only
+  /// channel back is [progressPort], which carries the per-frame JPEG previews
+  /// that [onFrame] forwards to the UI. Web: there are no isolates, so the job
+  /// runs inline on the UI isolate and reports frames directly through
+  /// [onFrame].
   Future<Uint8List?> _render({
     required img.Image firstImage,
     required img.Image secondImage,
@@ -192,6 +300,21 @@ class TimelapseService {
     FrameCallback? onFrame,
     required bool encodeGif,
   }) async {
+    if (kIsWeb) {
+      final output = await _renderJob(
+        modelPath: _modelPath,
+        firstImage: firstImage,
+        secondImage: secondImage,
+        width: _width,
+        height: _height,
+        depth: depth,
+        fps: fps,
+        encodeGif: encodeGif,
+        onFrame: onFrame,
+      );
+      return encodeGif ? output.gifBytes : output.midpointBytes;
+    }
+
     final progressPort = ReceivePort();
     final progressSubscription = progressPort.listen((message) {
       if (message is _FrameProgress) {
@@ -211,7 +334,7 @@ class TimelapseService {
     // into the background isolate.
     try {
       final output = await _runRenderJob(
-        modelPath: _modelFile.path,
+        modelPath: _modelPath,
         firstImage: firstImage,
         secondImage: secondImage,
         width: _width,
@@ -229,7 +352,7 @@ class TimelapseService {
   }
 }
 
-/// Dispatches [_renderJob] via [Isolate.run].
+/// Dispatches [_renderJob] via [Isolate.run] (native).
 ///
 /// Top-level on purpose: the closure it hands to [Isolate.run] is created here,
 /// where the only in-scope cells are these sendable parameters. Written inside
@@ -237,7 +360,7 @@ class TimelapseService {
 /// with the sibling listen closure that captures [onFrame] (and through it the
 /// controller), making the whole message unsendable.
 Future<_RenderOutput> _runRenderJob({
-  required String modelPath,
+  required String? modelPath,
   required img.Image firstImage,
   required img.Image secondImage,
   required int width,
@@ -257,18 +380,22 @@ Future<_RenderOutput> _runRenderJob({
       depth: depth,
       fps: fps,
       encodeGif: encodeGif,
+      onFrame: null,
       progressPort: progressPort,
     ),
   );
 }
 
-// --- render job (runs on a one-shot background isolate) ----------------------
-
-/// Entry point executed by [Isolate.run]: creates its own interpreter from
-/// [modelPath], renders the full interpolated sequence, and streams a JPEG
-/// preview of each frame back to [progressPort] as it is produced.
+/// Renders the full interpolated sequence.
+///
+/// Entry point of the native one-shot background isolate; on the web it runs
+/// inline on the UI isolate ([_TimelapseService._render]) with [onFrame]
+/// populated instead of [progressPort]. Builds its own interpreter from the
+  /// platform's model source, fixes the render resolution once via
+  /// [TimelapseInterpreter.resolveRenderSize], and streams a JPEG preview of
+  /// each frame back through [progressPort]/[onFrame] as it is produced.
 Future<_RenderOutput> _renderJob({
-  required String modelPath,
+  required String? modelPath,
   required img.Image firstImage,
   required img.Image secondImage,
   required int width,
@@ -276,21 +403,13 @@ Future<_RenderOutput> _renderJob({
   required int depth,
   required double fps,
   required bool encodeGif,
-  required SendPort progressPort,
+  FrameCallback? onFrame,
+  SendPort? progressPort,
 }) async {
-  // The interpreter and its XNNPACK delegate live only in this isolate; they
-  // are closed in the finally block when the job completes (or errors).
-  final (options, _) = InterpreterFactory.create(
-    const PerformanceConfig.xnnpack(numThreads: 4),
-  );
-  final interpreter = Interpreter.fromFile(File(modelPath), options: options);
+  final interpreter = await openInterpreter(modelPath: modelPath);
   try {
-    // Fix the input resolution once up front; every frame shares it. The
-    // output tensor then always matches [1, height, width, 3] float32.
-    final inputShape = [1, height, width, 3];
-    interpreter.resizeInputTensor(1, inputShape); // x0
-    interpreter.resizeInputTensor(2, inputShape); // x1
-    interpreter.allocateTensors();
+    final (renderWidth, renderHeight) =
+        interpreter.resolveRenderSize(width, height);
 
     Uint8List? midpointJpeg;
     final frames = await _renderStreaming(
@@ -298,20 +417,27 @@ Future<_RenderOutput> _renderJob({
       firstImage,
       secondImage,
       depth,
-      width,
-      height,
+      renderWidth,
+      renderHeight,
       (bytes, frameIndex, totalFrames, stepsDone, totalSteps) {
         // The first midpoint produced by pre-order bisection is exactly the
         // temporal middle of the sequence (t=0.5), so it doubles as the
         // "single interpolated image" output of generateImage.
         midpointJpeg ??= bytes;
-        progressPort.send(_FrameProgress(
+        progressPort?.send(_FrameProgress(
           bytes: bytes,
           frameIndex: frameIndex,
           totalFrames: totalFrames,
           stepsDone: stepsDone,
           totalSteps: totalSteps,
         ));
+        onFrame?.call(
+          bytes,
+          frameIndex,
+          totalFrames,
+          stepsDone,
+          totalSteps,
+        );
       },
     );
 
@@ -324,26 +450,55 @@ Future<_RenderOutput> _renderJob({
   }
 }
 
-/// Runs one interpolation step at t=0.5 via the in-isolate [Interpreter].
-/// Output is always [1, height, width, 3] float32 (4 bytes per element).
-Float32List _generateFrame(
-  Interpreter interpreter,
-  img.Image firstImage,
-  img.Image secondImage,
-  int width,
-  int height,
-) {
-  // Build raw byte inputs matching the allocated tensor sizes.
-  final firstBytes = _createInputBytes(_resize(firstImage, width, height));
-  final secondBytes = _createInputBytes(_resize(secondImage, width, height));
-  final timeBytes = Float32List.fromList([0.5]).buffer.asUint8List();
+/// Runs one interpolation step at t=0.5 via the platform
+  /// [TimelapseInterpreter]. Output is always [1, height, width, 3] float32
+  /// (4 bytes per element).
+  Future<Float32List> _generateFrame(
+    TimelapseInterpreter interpreter,
+    img.Image firstImage,
+    img.Image secondImage,
+    int width,
+    int height,
+  ) async {
+    // Build raw byte inputs matching the interpreter's tensor shapes.
+    final firstBytes = _createInputBytes(_resize(firstImage, width, height));
+    final secondBytes = _createInputBytes(_resize(secondImage, width, height));
+    final timeBytes = _timeInputBytes(interpreter);
 
-  // Model signature is [time, x0, x1]; interpolate at the fixed midpoint.
-  final inputs = <Object>[timeBytes, firstBytes, secondBytes];
-  final outputBytes = Uint8List(1 * height * width * 3 * 4);
+    // Model signature is [time, x0, x1]; interpolate at the fixed midpoint.
+    final inputs = <Object>[timeBytes, firstBytes, secondBytes];
+    // The output is exactly the resolution the interpreter was configured to
+    // (resolveRenderSize) — [1, height, width, 3] float32. Sizing the buffer
+    // from the interpreter's *reported* output shape is wrong on native, where
+    // the dynamic FILM graph reports an unusable placeholder shape until the
+    // first run.
+    final outputBytes = Uint8List(1 * height * width * 3 * 4);
 
-  interpreter.runForMultipleInputs(inputs, <int, Object>{0: outputBytes});
-  return Float32List.view(outputBytes.buffer);
+    await interpreter.runForMultipleInputs(inputs, <int, Object>{0: outputBytes});
+    return Float32List.view(outputBytes.buffer);
+  }
+
+  /// Builds the `time` input scaled to the model's declared time-tensor shape,
+  /// all elements at t=0.5 (the midpoint). Guards against unusable shapes.
+  Uint8List _timeInputBytes(TimelapseInterpreter interpreter) {
+  var count = 1;
+  final inputs = interpreter.getInputTensors();
+  if (inputs.isNotEmpty) {
+    var n = 1;
+    for (final dim in inputs[0].shape) {
+      if (dim <= 0) {
+        n = 1;
+        break;
+      }
+      n *= dim;
+    }
+    count = n;
+  }
+  final values = Float32List(count);
+  for (var i = 0; i < values.length; i++) {
+    values[i] = 0.5;
+  }
+  return values.buffer.asUint8List();
 }
 
 /// Builds the full ordered frame list between [a] and [b] via recursive
@@ -354,7 +509,7 @@ Float32List _generateFrame(
 /// ready (in *pre-order*, not playback order), together with its temporal
 /// index in the final sequence.
 Future<List<img.Image>> _renderStreaming(
-  Interpreter interpreter,
+  TimelapseInterpreter interpreter,
   img.Image a,
   img.Image b,
   int depth,
@@ -378,7 +533,7 @@ Future<List<img.Image>> _renderStreaming(
   ) async {
     if (d <= 0) return [lo, hi];
     final mid = _decodeImage(
-      _generateFrame(interpreter, lo, hi, width, height),
+      await _generateFrame(interpreter, lo, hi, width, height),
       width,
       height,
     );
@@ -391,6 +546,10 @@ Future<List<img.Image>> _renderStreaming(
       done,
       total,
     );
+    // On the web there are no isolates, so this yield lets the browser flush
+    // the frame we just published through [onFrame]; a harmless microtask on
+    // native.
+    await Future<void>.delayed(Duration.zero);
     final left = await render(lo, mid, base, d - 1);
     final right = await render(mid, hi, midIndex, d - 1);
     return [...left, ...right.skip(1)];
@@ -409,7 +568,7 @@ Future<List<img.Image>> _renderStreaming(
   return frames;
 }
 
-// --- image helpers (always run inside the render job isolate) ----------------
+// --- image helpers -----------------------------------------------------------
 
 /// Encodes an [img.Image] to flat float32 bytes in [0, 1] (RGB planar).
 Uint8List _createInputBytes(img.Image image) {
@@ -477,7 +636,8 @@ class _FrameProgress {
   final int totalSteps;
 }
 
-/// The output of a render job, delivered as the [Isolate.run] return value.
+/// The output of a render job, delivered as the [Isolate.run] return value on
+/// native and as the direct return value on web.
 ///
 /// Errors inside the job propagate out of [Isolate.run] directly, so the
 /// result never carries one.

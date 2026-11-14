@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_config/time_machine_config.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -16,7 +18,7 @@ class GalleryController with TaskManager {
   GalleryController({
     this.configurationService,
     this.cloudSyncService,
-    this.networkService,
+    this.cloudService,
     this.sharingService,
   }) {
     searchController.addListener(() {
@@ -26,7 +28,7 @@ class GalleryController with TaskManager {
 
   final ConfigurationService? configurationService;
   final CloudSyncService? cloudSyncService;
-  final NetworkService? networkService;
+  final CloudService? cloudService;
   final SharingService? sharingService;
   final searchController = TextEditingController();
   final _searchCriteria = BehaviorSubject.seeded('');
@@ -79,12 +81,18 @@ class GalleryController with TaskManager {
   Future<void> importRecords({
     DatabaseService? databaseService,
   }) async {
-    final selection = await FilePicker.platform.pickFiles();
+    final selection = await FilePicker.platform.pickFiles(withData: true);
     if (selection == null) {
       return;
     }
+    final files = kIsWeb
+        ? [
+            for (final file in selection.files)
+              XFile.fromData(file.bytes ?? Uint8List(0), name: file.name),
+          ]
+        : selection.xFiles;
     await sharingService?.import(
-      files: selection.xFiles.nonNulls,
+      files: files,
       databaseService: databaseService,
     );
     await _reloadElements();
@@ -134,7 +142,7 @@ class GalleryController with TaskManager {
     await sharingService?.init(databaseService: databaseService);
 
     final configProvider = configurationService?.cloud;
-    final cloudProvider = networkService?.clouds[configProvider ?? ''];
+    final cloudProvider = cloudService?.clouds[configProvider ?? ''];
     final cloudSyncService = this.cloudSyncService;
     if (databaseService != null && cloudSyncService != null && !cloudSyncService.isActive) {
       unawaited(cloudSyncService.init(databaseService: databaseService, provider: cloudProvider));

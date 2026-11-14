@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:time_machine_net/services/cloud/yandex_disk_transport.dart';
+import 'package:time_machine_cloud/services/cloud/yandex_disk_transport.dart';
 
 /// In-memory [YandexDiskTransport] double reproducing the behaviour of the
 /// REST transport: missing files surface as exceptions and deletes are

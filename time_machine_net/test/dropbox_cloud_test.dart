@@ -3,9 +3,9 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:time_machine_db/time_machine_db.dart';
-import 'package:time_machine_net/services/cloud/dropbox_cloud.dart';
-import 'package:time_machine_net/services/cloud/dropbox_token_store.dart';
+import 'package:time_machine_net/time_machine_net.dart';
+import 'package:time_machine_cloud/services/cloud/dropbox_cloud.dart';
+import 'package:time_machine_cloud/services/cloud/dropbox_token_store.dart';
 
 import 'fakes/fake_dropbox_api.dart';
 

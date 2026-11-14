@@ -4,11 +4,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 import 'package:http/http.dart' as http;
-import 'package:time_machine_db/time_machine_db.dart';
-import 'package:time_machine_net/services/cloud/yandex_disk_auth.dart';
-import 'package:time_machine_net/services/cloud/yandex_disk_cloud.dart';
-import 'package:time_machine_net/services/cloud/yandex_disk_token_store.dart';
+import 'package:time_machine_cloud/services/cloud/yandex_disk_auth.dart';
+import 'package:time_machine_cloud/services/cloud/yandex_disk_cloud.dart';
+import 'package:time_machine_cloud/services/cloud/yandex_disk_token_store.dart';
 
 import 'fakes/fake_yandex_transport.dart';
 
@@ -92,39 +92,38 @@ void main() {
   group('authenticate', () {
     test('runs the consent flow through the browser and persists the session',
         () async {
-      final opens = <Uri>[];
-      final redirects = StreamController<Uri>.broadcast();
+      final consents = <Uri>[];
 
       cloud = YandexDiskCloud(
         clientId: clientId,
         tokenStore: store,
         transport: adapter,
         auth: _FakeYandexAuth(),
-        redirectStream: redirects.stream,
-        openBrowser: (uri) {
-          opens.add(uri);
-          // Simulate the browser returning the redirect immediately.
-redirects.add(Uri.parse('com.fakegem.historylens:/oauth2redirect-yandex'
-            '?code=auth-code&state=state-123'));
-        },
+        consentBrowser: MemoryOAuthConsentBrowser(
+          onConsent: (consentUri) {
+            consents.add(consentUri);
+            // Simulate the browser returning the redirect immediately.
+            return Uri.parse('com.fakegem.historylens:/oauth2redirect-yandex'
+                '?code=auth-code&state=state-123');
+          },
+        ),
       );
 
       await cloud.authenticate();
 
-      expect(opens, hasLength(1));
+      expect(consents, hasLength(1));
       expect(store.session, isNotNull);
       expect(store.session!.accessToken, 'auth-token');
-      await redirects.close();
     });
 
-    test('throws when no redirect stream is provided', () async {
+    test('throws when no consent browser is provided', () async {
       cloud = YandexDiskCloud(
         clientId: clientId,
         tokenStore: store,
         transport: adapter,
       );
 
-      expect(cloud.authenticate(), throwsStateError);
+      expect(cloud.authenticate(), throwsUnsupportedError);
     });
   });
 
@@ -394,8 +393,8 @@ class _MemoryTokenStore implements YandexDiskTokenStore {
   Future<void> clear() async => session = null;
 }
 
-/// OAuth double that returns a fresh session without launching a browser,
-/// for the expired-token refresh path.
+/// OAuth double that returns a fresh session without launching a real
+/// consent flow, for the expired-token refresh and authenticate paths.
 class _FakeYandexAuth extends YandexDiskAuth {
   @override
   Future<YandexDiskSession?> refresh(
@@ -413,21 +412,18 @@ class _FakeYandexAuth extends YandexDiskAuth {
   @override
   Future<YandexDiskSession> obtainSession({
     required String clientId,
-    required void Function(Uri authorizationUri) openBrowser,
-    required Stream<Uri> redirectStream,
+    OAuthConsentBrowser? consentBrowser,
     List<String> scopes = const [],
     http.Client? httpClient,
   }) async {
-    // Simulate the browser opening and returning via the redirect stream.
-    final completer = Completer<void>();
-    final sub = redirectStream.listen((uri) {
-      if (!completer.isCompleted && uri.queryParameters['state'] != null) {
-        completer.complete();
-      }
-    });
-    openBrowser(Uri.parse('https://oauth.yandex.ru/authorize?state=state-123'));
-    await completer.future.timeout(const Duration(seconds: 1));
-    await sub.cancel();
+    // Exercise the consent step the orchestrator wires in (and let a missing
+    // browser surface its error) before handing back a canned session.
+    await consentBrowser?.consent(
+      authorizationUri: Uri.parse(
+        'https://oauth.yandex.ru/authorize?state=state-123',
+      ),
+      redirectUri: Uri.parse(redirectUri),
+    );
     return const YandexDiskSession(
       accessToken: 'auth-token',
       refreshToken: 'auth-refresh',

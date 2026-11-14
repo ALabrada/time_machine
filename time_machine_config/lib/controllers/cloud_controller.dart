@@ -10,9 +10,11 @@ import 'package:time_machine_net/time_machine_net.dart';
 final class CloudController extends ValueNotifier<CloudState> {
   CloudController({
     required this.configurationService,
-    required this.networkService,
+    required this.cloudService,
     required this.cloudSyncService,
-  }) : super(const NotSelectedState()) {
+    OAuthConsentBrowser Function()? consentBrowserFactory,
+  })  : _consentBrowserFactory = consentBrowserFactory,
+        super(const NotSelectedState()) {
     unawaited(_load());
   }
 
@@ -24,14 +26,19 @@ final class CloudController extends ValueNotifier<CloudState> {
   StreamSubscription<bool>? _syncSubscription;
 
   final ConfigurationService configurationService;
-  final NetworkService networkService;
+  final CloudService cloudService;
   final CloudSyncService cloudSyncService;
+
+  /// Supplies the platform browser that hosts the OAuth consent page (the
+  /// system-browser browser from `time_machine_net` in the Flutter shell).
+  /// Built per activation so its context is the page that triggered sign-in.
+  final OAuthConsentBrowser Function()? _consentBrowserFactory;
 
   String? get cloudName => configurationService.cloud;
 
   /// The cloud providers available for selection, sorted by name.
   List<String> get cloudNames {
-    final names = networkService.clouds.keys.toList();
+    final names = cloudService.clouds.keys.toList();
     names.sort();
     return names;
   }
@@ -71,7 +78,7 @@ final class CloudController extends ValueNotifier<CloudState> {
     if (name == null) {
       return null;
     }
-    return networkService.clouds[name];
+    return cloudService.clouds[name];
   }
 
   bool get cloudAvailable => cloud != null;
@@ -134,6 +141,16 @@ final class CloudController extends ValueNotifier<CloudState> {
     }
   }
 
+  /// Aborts an interactive backend sign-in that [handleEvent] is still
+  /// awaiting. The activation future then fails and restores the previous
+  /// state, so the page leaves the authenticating screen.
+  void cancelActivation() {
+    final cloud = this.cloud;
+    if (cloud is BackendProxyCloud) {
+      cloud.cancelAuthentication();
+    }
+  }
+
   Future<void> _load() async {
     value = const LoadingState(phase: CloudLoadingPhase.connecting);
     final cloud = this.cloud;
@@ -182,7 +199,8 @@ final class CloudController extends ValueNotifier<CloudState> {
       // The provider is connected now; resume following its syncs.
       _subscribeToSync();
       value = _stateFor(cloud);
-    } catch (error) {
+    } catch (error, stack) {
+      debugPrint('Cloud activation failed: $error\n$stack');
       // A failed Nextcloud sign-in restores a non-authenticated state that
       // still carries the remembered credentials, so the form is refilled
       // with the server URL and login name the user just entered.
@@ -195,6 +213,7 @@ final class CloudController extends ValueNotifier<CloudState> {
   /// provider exposes its own `authenticate`/`signIn` variant; Nextcloud
   /// additionally carries the submitted credentials on the event.
   Future<void> _authenticate(CloudBase cloud, CloudActivateEvent event) async {
+    final consentBrowser = _consentBrowserFactory?.call();
     if (event is NextCloudSignInEvent) {
       if (cloud is! NextCloudCloud) {
         throw StateError(
@@ -211,16 +230,22 @@ final class CloudController extends ValueNotifier<CloudState> {
     }
     // Providers whose session needs no extra credentials here (Supabase fills
     // its own session through its client) need no authentication step.
-    if (cloud is DropBoxCloud) {
+    if (cloud is BackendProxyCloud) {
+      // Web: the browser flow is mediated by the proxy backend.
       await cloud.authenticate();
+    } else if (cloud is DropBoxCloud) {
+      await cloud.authenticate(consentBrowser: consentBrowser);
     } else if (cloud is GoogleDriveCloud) {
-      await cloud.authenticate();
+      await cloud.authenticate(consentBrowser: consentBrowser);
     } else if (cloud is YandexDiskCloud) {
-      await cloud.authenticate();
+      await cloud.authenticate(consentBrowser: consentBrowser);
     }
   }
 
   CloudState _stateForAuthFailure(CloudBase cloud, CloudState previous) {
+    if (cloud is GoogleDriveCloud) {
+      return const GoogleDriveState(isConnected: false, isActive: false);
+    }
     if (cloud is NextCloudCloud) {
       return NextCloudState(
         serverUrl: cloud.serverUrl,
@@ -250,6 +275,9 @@ final class CloudController extends ValueNotifier<CloudState> {
   }
 
   CloudState _stateForDeactivated(CloudBase cloud) {
+    if (cloud is BackendProxyCloud) {
+      return _backendState(cloud, isActive: false);
+    }
     if (cloud is SupabaseCloud) {
       return const SupabaseState(isActive: false);
     }
@@ -272,10 +300,28 @@ final class CloudController extends ValueNotifier<CloudState> {
     return NotSelectedState(clouds: cloudNames);
   }
 
+  /// Maps a backend-proxied provider back onto the state the existing cloud
+  /// page widgets understand.
+  CloudState _backendState(BackendProxyCloud cloud, {required bool isActive}) {
+    final account = cloud.userEmail;
+    return switch (cloud.providerId) {
+      'gdrive' => GoogleDriveState(isConnected: isActive, isActive: isActive),
+      'dropbox' => DropBoxState(accountEmail: account, isActive: isActive),
+      'yandex' => YandexDiskState(accountEmail: account, isActive: isActive),
+      _ => NotSelectedState(clouds: cloudNames),
+    };
+  }
+
   CloudState _stateFor(CloudBase cloud) {
     final isActive = cloudSyncService.isActive;
+    if (cloud is BackendProxyCloud) {
+      return _backendState(cloud, isActive: isActive);
+    }
     if (cloud is GoogleDriveCloud) {
-      return GoogleDriveState(isConnected: true, isActive: isActive);
+      return GoogleDriveState(
+        isConnected: isActive || cloud.userEmail != null,
+        isActive: isActive,
+      );
     }
     if (cloud is SupabaseCloud) {
       return SupabaseState(userName: cloud.userEmail, isActive: isActive);

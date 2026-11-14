@@ -9,6 +9,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:time_machine_db/time_machine_db.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:time_machine_img/services/database_service.dart';
+import 'package:time_machine_img/services/sharing_drop_stub.dart'
+    if (dart.library.js_interop) 'package:time_machine_img/services/sharing_drop_web.dart'
+    as sharing_drop;
 
 final class SharingService {
   SharingService({this.ignoreUriSchemes = const {}});
@@ -26,7 +29,22 @@ final class SharingService {
   Future<void> init({
     DatabaseService? databaseService,
   }) async {
-    if (databaseService == null || kIsWeb) {
+    if (databaseService == null) {
+      return;
+    }
+
+    if (kIsWeb) {
+      // No filesystem folder to watch and no share intent on the browser, so
+      // the drop-in target is the window itself: files dragged onto the page
+      // are imported through the same pipeline as the desktop drop-in folder.
+      sharing_drop.SharingDropIn.init(onFile: (bytes, name) {
+        unawaited(
+          import(
+            files: [XFile.fromData(bytes, name: name)],
+            databaseService: databaseService,
+          ),
+        );
+      });
       return;
     }
 
@@ -62,6 +80,7 @@ final class SharingService {
     _intentSub = null;
     _dropTimer?.cancel();
     _dropTimer = null;
+    sharing_drop.SharingDropIn.dispose();
   }
 
   /// On desktop platforms there is no share intent to receive, so the

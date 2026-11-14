@@ -1,10 +1,10 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart' as http_testing;
-import 'package:time_machine_net/services/cloud/yandex_disk_auth.dart';
+import 'package:time_machine_cloud/services/cloud/oauth_consent_browser.dart';
+import 'package:time_machine_cloud/services/cloud/yandex_disk_auth.dart';
 
 void main() {
   const clientId = 'test-client-id';
@@ -24,7 +24,6 @@ void main() {
 
   group('obtainSession', () {
     test('exchanges the code and returns a session', () async {
-      final redirects = _RedirectStream();
       final auth = YandexDiskAuth(
         redirectUri: 'com.fakegem.historylens:/oauth2redirect-yandex',
       );
@@ -40,8 +39,7 @@ void main() {
 
       final session = await auth.obtainSession(
         clientId: clientId,
-        openBrowser: redirects.simulateRedirect(auth),
-        redirectStream: redirects.stream,
+        consentBrowser: const _ConsentBrowser(),
         httpClient: http_testing.MockClient(fakeClient),
       );
 
@@ -49,98 +47,92 @@ void main() {
       expect(session.refreshToken, refreshToken);
       expect(session.expiresAt, isNotNull);
       expect(session.expiresAt!.isAfter(DateTime.now()), isTrue);
-      redirects.close();
     });
 
     test('rejects a state mismatch', () async {
       final auth = YandexDiskAuth(
         redirectUri: 'com.fakegem.historylens:/oauth2redirect-yandex',
       );
-      final redirects = _RedirectStream();
 
       final session = auth.obtainSession(
         clientId: clientId,
-        openBrowser: (consentUri) {
-          // Emit a redirect carrying a *different* state.
-          final redirect = Uri.parse(auth.redirectUri).replace(
-            queryParameters: {'code': code, 'state': 'WRONG_STATE'},
-          );
-          redirects._ctrl.add(redirect);
-        },
-        redirectStream: redirects.stream,
+        consentBrowser: MemoryOAuthConsentBrowser(
+          onConsent: (consentUri) {
+            // Return a redirect carrying a *different* state.
+            return Uri.parse(auth.redirectUri).replace(
+              queryParameters: {'code': code, 'state': 'WRONG_STATE'},
+            );
+          },
+        ),
       );
 
       await expectLater(session, throwsA(isA<StateError>()));
-      redirects.close();
     });
 
     test('throws when the redirect lacks a code', () async {
       final auth = YandexDiskAuth(
         redirectUri: 'com.fakegem.historylens:/oauth2redirect-yandex',
       );
-      final redirects = _RedirectStream();
 
       final session = auth.obtainSession(
         clientId: clientId,
-        openBrowser: (consentUri) {
-          final state = consentUri.queryParameters['state']!;
-          final redirect = Uri.parse(auth.redirectUri).replace(
-            queryParameters: {'state': state},
-          );
-          redirects._ctrl.add(redirect);
-        },
-        redirectStream: redirects.stream,
+        consentBrowser: MemoryOAuthConsentBrowser(
+          onConsent: (consentUri) {
+            final state = consentUri.queryParameters['state']!;
+            return Uri.parse(auth.redirectUri).replace(
+              queryParameters: {'state': state},
+            );
+          },
+        ),
       );
 
       await expectLater(session, throwsA(isA<StateError>()));
-      redirects.close();
     });
 
-    test('subscribes before opening the browser', () async {
+    test('consents once with the authorize URL', () async {
       final auth = YandexDiskAuth(
         redirectUri: 'com.fakegem.historylens:/oauth2redirect-yandex',
       );
-      final redirects = _RedirectStream();
-      final opens = <Uri>[];
+      final consents = <Uri>[];
 
       final sessionFuture = auth.obtainSession(
         clientId: clientId,
-        openBrowser: (consentUri) async {
-          opens.add(consentUri);
-          final state = consentUri.queryParameters['state']!;
-          // Deliver the redirect synchronously (simulates a fast browser).
-          redirects._ctrl.add(Uri.parse(auth.redirectUri).replace(
-            queryParameters: {'code': code, 'state': state},
-          ));
-        },
-        redirectStream: redirects.stream,
+        consentBrowser: MemoryOAuthConsentBrowser(
+          onConsent: (consentUri) {
+            consents.add(consentUri);
+            final state = consentUri.queryParameters['state']!;
+            // Deliver the redirect synchronously (simulates a fast webview).
+            return Uri.parse(auth.redirectUri).replace(
+              queryParameters: {'code': code, 'state': state},
+            );
+          },
+        ),
         httpClient: http_testing.MockClient((_) async => fakeResponse),
       );
 
       final session = await sessionFuture;
-      expect(opens, hasLength(1));
+      expect(consents, hasLength(1));
       expect(session.accessToken, accessToken);
-      redirects.close();
     });
   });
 }
 
-class _RedirectStream {
-  final StreamController<Uri> _ctrl = StreamController<Uri>.broadcast();
+/// Simulates a user consenting inside the in-app webview: given the
+/// authorization URL, it answers with the provider's redirect carrying the
+/// same `state` and a fixed authorization code — as if the webview had
+/// captured the redirect before it ever left the app.
+class _ConsentBrowser implements OAuthConsentBrowser {
+  const _ConsentBrowser();
 
-  Stream<Uri> get stream => _ctrl.stream;
-
-  /// Returns an [openBrowser] callback that simulates the user consenting
-  /// by emitting the expected redirect (with the correct state) immediately.
-  void Function(Uri consentUri) simulateRedirect(YandexDiskAuth auth) {
-    return (consentUri) {
-      final state = consentUri.queryParameters['state']!;
-      final redirect = Uri.parse(auth.redirectUri).replace(
-        queryParameters: {'code': 'granted-code', 'state': state},
-      );
-      _ctrl.add(redirect);
-    };
+  @override
+  Future<Uri> consent({
+    required Uri authorizationUri,
+    required Uri redirectUri,
+  }) async {
+    final state = authorizationUri.queryParameters['state']!;
+    return redirectUri.replace(queryParameters: {
+      'code': 'granted-code',
+      'state': state,
+    });
   }
-
-  void close() => _ctrl.close();
 }

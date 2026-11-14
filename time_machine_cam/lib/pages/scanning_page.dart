@@ -76,6 +76,7 @@ class ScanningPageState extends State<ScanningPage> {
               );
             },
             showDebugInfoSensor: !kReleaseMode,
+            showRadar: !kIsWeb,
             annotations: snapshot.data ?? [],
             maxVisibleDistance: widget.maxDistanceInMeters,
             locationErrorBuilder: (context, error) {

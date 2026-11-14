@@ -10,6 +10,7 @@ import 'package:time_machine_img/controllers/picture_controller.dart';
 import 'package:time_machine_img/molecules/edit_description_dialog.dart';
 import 'package:time_machine_img/molecules/full_screen_view.dart';
 import 'package:time_machine_img/molecules/tool_bar.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 import 'package:time_machine_res/time_machine_res.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -104,9 +105,8 @@ class PicturePageState extends State<PicturePage>
       content: picture == null
           ? null
           : PhotoView(
-              imageProvider: PictureFrame.imageFor(
+              imageProvider: context.read<CacheService>().imageProvider(
                 picture.url,
-                databaseService: context.read(),
               ),
               scaleStateChangedCallback: (state) async {
                 if (animationController.value == 0.0 &&

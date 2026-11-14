@@ -39,4 +39,7 @@ class ResLocalizationsEn extends ResLocalizations {
   String savedToFile(String path) {
     return 'Saved to $path';
   }
+
+  @override
+  String get telegramSubmitted => 'Submitted to Telegram for review';
 }

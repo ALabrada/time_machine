@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:time_machine_config/controllers/cloud_controller.dart';
+import 'package:time_machine_config/domain/cloud_event.dart';
 import 'package:time_machine_config/domain/cloud_state.dart';
 import 'package:time_machine_config/services/configuration_service.dart';
 import 'package:time_machine_db/time_machine_db.dart';
@@ -98,6 +99,21 @@ class _FakeYandexDiskCloud extends YandexDiskCloud {
   Future<void> deleteRecord(String collection, String id) async {}
 }
 
+class _FailingGoogleDriveCloud extends GoogleDriveCloud {
+  _FailingGoogleDriveCloud() : super(startPolling: false);
+
+  @override
+  Future<void> authenticate({OAuthConsentBrowser? consentBrowser}) async {}
+
+  @override
+  Future<String> initialize() async {
+    throw Exception('activation failed');
+  }
+
+  @override
+  Future<void> logout() async {}
+}
+
 class _StallableFakeYandexDiskCloud extends _FakeYandexDiskCloud {
   Completer<void>? _gate = Completer<void>();
 
@@ -133,7 +149,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late ConfigurationService configurationService;
-  late NetworkService networkService;
+  late CloudService cloudService;
   late CloudSyncService cloudSyncService;
 
   setUp(() async {
@@ -143,10 +159,8 @@ void main() {
       cacheOptions: const SharedPreferencesWithCacheOptions(),
     );
     configurationService = ConfigurationService(preferences: () => prefs);
-    networkService = NetworkService(
+    cloudService = CloudService(
       clouds: {'alpha': _FakeCloud(), 'beta': _FakeCloud()},
-      geocoders: {},
-      providers: {},
     );
     cloudSyncService = CloudSyncService();
   });
@@ -155,7 +169,7 @@ void main() {
     test('persists the selection when no cloud is configured', () async {
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: networkService,
+        cloudService: cloudService,
         cloudSyncService: cloudSyncService,
       );
 
@@ -173,7 +187,7 @@ void main() {
       configurationService.cloud = 'alpha';
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: networkService,
+        cloudService: cloudService,
         cloudSyncService: cloudSyncService,
       );
       await _pump();
@@ -189,7 +203,7 @@ void main() {
       configurationService.cloud = 'alpha';
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: networkService,
+        cloudService: cloudService,
         cloudSyncService: cloudSyncService,
       );
       await _pump();
@@ -205,7 +219,7 @@ void main() {
       configurationService.cloud = 'alpha';
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: networkService,
+        cloudService: cloudService,
         cloudSyncService: cloudSyncService,
       );
       await _pump();
@@ -224,16 +238,14 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_active.db');
       final databaseService = DatabaseService(db: db);
       final cloud = _FakeYandexDiskCloud();
-      final network = NetworkService(
+      final service = CloudService(
         clouds: {'yandex': cloud},
-        geocoders: {},
-        providers: {},
       );
       configurationService.cloud = 'yandex';
 
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: network,
+        cloudService: service,
         cloudSyncService: cloudSyncService,
       );
       await _pump();
@@ -257,16 +269,14 @@ void main() {
         () async {
       final db = await databaseFactoryMemory.openDatabase('test_selection.db');
       final databaseService = DatabaseService(db: db);
-      final network = NetworkService(
+      final service = CloudService(
         clouds: {'yandex': _FakeYandexDiskCloud()},
-        geocoders: {},
-        providers: {},
       );
       configurationService.cloud = 'yandex';
 
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: network,
+        cloudService: service,
         cloudSyncService: cloudSyncService,
       );
       await _pump();
@@ -291,10 +301,8 @@ void main() {
       final db = await databaseFactoryMemory.openDatabase('test_sync_loading.db');
       final databaseService = DatabaseService(db: db);
       final cloud = _StallableFakeYandexDiskCloud();
-      final network = NetworkService(
+      final service = CloudService(
         clouds: {'yandex': cloud},
-        geocoders: {},
-        providers: {},
       );
       configurationService.cloud = 'yandex';
 
@@ -309,7 +317,7 @@ void main() {
 
       final controller = CloudController(
         configurationService: configurationService,
-        networkService: network,
+        cloudService: service,
         cloudSyncService: cloudSyncService,
       );
       await _pump();
@@ -328,6 +336,33 @@ void main() {
 
       controller.dispose();
       await cloudSyncService.dispose();
+    });
+
+    test('a failed Google activation leaves a disconnected state', () async {
+      final cloud = _FailingGoogleDriveCloud();
+      final service = CloudService(
+        clouds: {'gdrive': cloud},
+      );
+      configurationService.cloud = 'gdrive';
+
+      final controller = CloudController(
+        configurationService: configurationService,
+        cloudService: service,
+        cloudSyncService: cloudSyncService,
+      );
+      await _pump();
+
+      await expectLater(
+        controller.handleEvent(const CloudActivateEvent()),
+        throwsException,
+      );
+
+      final state = controller.value;
+      expect(state, isA<GoogleDriveState>());
+      expect((state as GoogleDriveState).isConnected, isFalse);
+      expect(state.isActive, isFalse);
+
+      controller.dispose();
     });
   });
 }

@@ -13,6 +13,8 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  web: ^1.1.1
+
   flutter_inappwebview:
     path: ../flutter_inappwebview/flutter_inappwebview
   flutter_inappwebview_android:
@@ -23,9 +25,13 @@ dependencies:
     path: ../flutter_inappwebview/flutter_inappwebview_macos
   flutter_inappwebview_windows:
     path: ../flutter_inappwebview/flutter_inappwebview_windows
+  flutter_inappwebview_linux:
+    path: ../flutter_inappwebview/flutter_inappwebview_linux
 
   time_machine_config:
     path: ../time_machine_config
+  time_machine_core:
+    path: ../time_machine_core
   time_machine_db:
     path: ../time_machine_db
   time_machine_net:
@@ -47,7 +53,6 @@ dependencies:
   go_router: any
   group_grid_view: ^1.0.1
   image: ^4.5.2
-  image_compare_2: ^1.1.7
   image_compare_slider: ^2.8.0
   image_picker: ^1.1.2
   intl: any
@@ -58,7 +63,6 @@ dependencies:
   provider: ^6.1.2
   rxdart: ^0.28.0
   shared_preferences: any
-  televerse: any
   url_launcher: ^6.3.1
   uuid: any
 
@@ -66,6 +70,20 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+
+dependency_overrides:
+  flutter_inappwebview:
+    path: ../flutter_inappwebview/flutter_inappwebview
+  flutter_inappwebview_android:
+    path: ../flutter_inappwebview/flutter_inappwebview_android
+  flutter_inappwebview_ios:
+    path: ../flutter_inappwebview/flutter_inappwebview_ios
+  flutter_inappwebview_macos:
+    path: ../flutter_inappwebview/flutter_inappwebview_macos
+  flutter_inappwebview_windows:
+    path: ../flutter_inappwebview/flutter_inappwebview_windows
+  flutter_inappwebview_linux:
+    path: ../flutter_inappwebview/flutter_inappwebview_linux
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

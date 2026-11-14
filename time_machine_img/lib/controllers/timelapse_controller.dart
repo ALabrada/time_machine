@@ -200,13 +200,19 @@ class TimelapseController extends ValueNotifier<TimelapseState>
     if (state is! FinishedState) {
       return;
     }
-    final dir = await getTemporaryDirectory();
-    final file = File(
-      '${dir.path}/timelapse_${DateTime.now().millisecondsSinceEpoch}.gif',
-    );
-    await file.writeAsBytes(state.data, flush: true);
+    final name = 'timelapse_${DateTime.now().millisecondsSinceEpoch}.gif';
+    final XFile file;
+    if (kIsWeb) {
+      // No dart:io File on the web — share the in-memory GIF bytes directly.
+      file = XFile.fromData(state.data, mimeType: 'image/gif', name: name);
+    } else {
+      final dir = await getTemporaryDirectory();
+      final path = '${dir.path}/$name';
+      await File(path).writeAsBytes(state.data, flush: true);
+      file = XFile(path);
+    }
     final result = await saveFiles(
-      files: [XFile(file.path)],
+      files: [file],
       dialogTitle: dialogTitle,
     );
     if (result is FileSaved) {
@@ -255,13 +261,12 @@ class TimelapseController extends ValueNotifier<TimelapseState>
 
 // --- background image work --------------------------------------------------
 
-/// Decodes and crops both source photos in a background isolate via
-/// [Isolate.run].
+/// Decodes and crops both source photos, plus a JPEG preview of the original.
 ///
-/// Top-level on purpose: the closure must not capture the [TimelapseController]
-/// (its dio [_cancelToken] is unsendable), so the job lives here where `this`
-/// is not in scope. Anything that must send an isolate message but is written
-/// as an instance-method local closure risks silently capturing the controller.
+/// Top-level on purpose: the job must not capture the [TimelapseController]
+/// (its dio [_cancelToken] is unsendable), so it lives here where `this` is not
+/// in scope. Anything that must send an isolate message but is written as an
+/// instance-method local closure risks silently capturing the controller.
 Future<(img.Image?, img.Image?, Uint8List?)> _cropSourceImages({
   required XFile originalFile,
   required XFile ownFile,
@@ -269,18 +274,44 @@ Future<(img.Image?, img.Image?, Uint8List?)> _cropSourceImages({
   required Rectangle<num>? pictureViewPort,
   Rectangle<num>? intersection,
 }) {
-  return Isolate.run(() async {
-    final originalImage = await cropImageFile(
-      file: originalFile,
-      viewPort: originalViewPort,
+  if (kIsWeb) {
+    // Isolates do not exist on the web; run the same job inline on the UI
+    // isolate instead.
+    return _cropSourceImagesOnIsolate(
+      originalFile: originalFile,
+      ownFile: ownFile,
+      originalViewPort: originalViewPort,
+      pictureViewPort: pictureViewPort,
       intersection: intersection,
     );
-    final ownImage = await cropImageFile(
-      file: ownFile,
-      viewPort: pictureViewPort,
-      intersection: intersection,
-    );
-    final preview = originalImage == null ? null : img.JpegEncoder().encode(originalImage);
-    return (originalImage, ownImage, preview);
-  });
+  }
+  return Isolate.run(() => _cropSourceImagesOnIsolate(
+        originalFile: originalFile,
+        ownFile: ownFile,
+        originalViewPort: originalViewPort,
+        pictureViewPort: pictureViewPort,
+        intersection: intersection,
+      ));
+}
+
+Future<(img.Image?, img.Image?, Uint8List?)> _cropSourceImagesOnIsolate({
+  required XFile originalFile,
+  required XFile ownFile,
+  required Rectangle<num>? originalViewPort,
+  required Rectangle<num>? pictureViewPort,
+  Rectangle<num>? intersection,
+}) async {
+  final originalImage = await cropImageFile(
+    file: originalFile,
+    viewPort: originalViewPort,
+    intersection: intersection,
+  );
+  final ownImage = await cropImageFile(
+    file: ownFile,
+    viewPort: pictureViewPort,
+    intersection: intersection,
+  );
+  final preview =
+      originalImage == null ? null : img.JpegEncoder().encode(originalImage);
+  return (originalImage, ownImage, preview);
 }

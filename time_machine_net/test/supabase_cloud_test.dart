@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 import 'package:http/http.dart';
 import 'package:http/testing.dart';
 import 'package:supabase/supabase.dart';
-import 'package:time_machine_db/time_machine_db.dart';
-import 'package:time_machine_net/services/cloud/supabase_cloud.dart';
+import 'package:time_machine_cloud/services/cloud/supabase_cloud.dart';
 
 const testUrl = 'https://test.supabase.co';
 const testKey = 'test-key-12345';
