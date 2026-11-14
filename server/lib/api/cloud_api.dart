@@ -22,6 +22,7 @@ class CloudApi {
   CloudApi({
     required ServerConfig settings,
     required this.maxBodyBytes,
+    this.maxUploadBytes = 32 << 20,
     CloudCache? cache,
   }) : cache =
            cache ??
@@ -35,6 +36,11 @@ class CloudApi {
            );
 
   final int maxBodyBytes;
+
+  /// Upper bound on a single file upload body. Larger than [maxBodyBytes]
+  /// because uploads carry binary payloads, but still capped so a streamed
+  /// request cannot exhaust memory.
+  final int maxUploadBytes;
   final CloudCache cache;
 
   Future<Response> me(Request request) async {
@@ -130,7 +136,7 @@ class CloudApi {
     final mimeType = request.url.queryParameters['mimeType'];
     CloudLease? lease;
     try {
-      final bodyBytes = await request.read().expand((x) => x).toList();
+      final bodyBytes = await readBodyBytes(request, maxUploadBytes);
       if (provider == 'web') return okResponse({'path': ''});
       lease = await cache.acquire(provider, token);
       final path = await lease.cloud.uploadFile(

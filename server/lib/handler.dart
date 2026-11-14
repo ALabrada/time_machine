@@ -31,7 +31,9 @@ Handler createHandler({
   RateLimiter? rateLimiter,
   Directory? webBuildDir,
   int maxBodyBytes = 1 << 20,
+  int maxUploadBytes = 32 << 20,
   ServerConfig? config,
+  bool trustForwardedFor = false,
 }) {
   final settings = config ?? ServerConfig.fromEnvironment();
   final cached = imageFetcher ?? CachedImageFetcher();
@@ -42,7 +44,11 @@ Handler createHandler({
     maxBodyBytes: maxBodyBytes,
   );
   final oauthApi = OAuthApi(config: settings, maxBodyBytes: maxBodyBytes);
-  final cloudApi = CloudApi(settings: settings, maxBodyBytes: maxBodyBytes);
+  final cloudApi = CloudApi(
+    settings: settings,
+    maxBodyBytes: maxBodyBytes,
+    maxUploadBytes: maxUploadBytes,
+  );
 
   final router = Router()
     ..get('/health', (Request request) => okResponse({'status': 'ok'}))
@@ -89,7 +95,7 @@ Handler createHandler({
       .addMiddleware(_log())
       .addMiddleware(_cors())
       .addMiddleware(_errors())
-      .addMiddleware(_rateLimit(limiter))
+      .addMiddleware(_rateLimit(limiter, trustForwardedFor))
       .addHandler(router.call);
 
   if (webBuildDir == null) {
@@ -241,10 +247,10 @@ Middleware _cors() {
   };
 }
 
-Middleware _rateLimit(RateLimiter limiter) {
+Middleware _rateLimit(RateLimiter limiter, bool trustForwardedFor) {
   return (Handler inner) {
     return (Request request) async {
-      if (!limiter.allow(_clientKey(request))) {
+      if (!limiter.allow(_clientKey(request, trustForwardedFor))) {
         return jsonError(429, 'rate limit exceeded');
       }
       return inner(request);
@@ -252,11 +258,15 @@ Middleware _rateLimit(RateLimiter limiter) {
   };
 }
 
-String _clientKey(Request request) {
-  const forwarded = 'x-forwarded-for';
-  final upstream = request.headers[forwarded];
-  if (upstream != null && upstream.isNotEmpty) {
-    return upstream.split(', ').first;
+String _clientKey(Request request, bool trustForwardedFor) {
+  if (trustForwardedFor) {
+    final upstream = request.headers['x-forwarded-for'];
+    if (upstream != null && upstream.isNotEmpty) {
+      // The leftmost address is the original client. Only honor it when the
+      // server is deployed behind a proxy that overwrites this header, so a
+      // direct client cannot rotate it to defeat throttling.
+      return upstream.split(',').first.trim();
+    }
   }
   final info = request.context['shelf.io.connection_info'];
   if (info is HttpConnectionInfo) {

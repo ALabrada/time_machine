@@ -223,7 +223,7 @@ void main() {
 
   test('GET /api/image returns proxied bytes with content type', () async {
     final dioImpl = dio.Dio()..httpClientAdapter = _ImageAdapter(utf8.encode('fakepng'));
-    final fetcher = CachedImageFetcher(dio: dioImpl);
+    final fetcher = CachedImageFetcher(dio: dioImpl, allowedHosts: const ['pastvu.com']);
     final response = await _handler(imageFetcher: fetcher)(Request(
       'GET',
       Uri.parse('http://localhost/api/image?url=https%3A%2F%2Fpastvu.com%2Fimg.jpg'),
@@ -235,7 +235,7 @@ void main() {
 
   test('GET /api/image returns etag and honors If-None-Match with 304', () async {
     final dioImpl = dio.Dio()..httpClientAdapter = _ImageAdapter(utf8.encode('fakepng'));
-    final fetcher = CachedImageFetcher(dio: dioImpl);
+    final fetcher = CachedImageFetcher(dio: dioImpl, allowedHosts: const ['pastvu.com']);
     final handler = _handler(imageFetcher: fetcher);
     final uri = Uri.parse('http://localhost/api/image?url=https%3A%2F%2Fpastvu.com%2Fimg.jpg');
     final first = await handler(Request('GET', uri));
@@ -254,6 +254,16 @@ void main() {
     final response = await _handler(imageFetcher: fetcher)(Request(
       'GET',
       Uri.parse('http://localhost/api/image?url=https%3A%2F%2Fevil.example%2Fimg.jpg'),
+    ));
+    expect(response.statusCode, 403);
+  });
+
+  test('GET /api/image fails closed when no allow-list is configured', () async {
+    final dioImpl = dio.Dio()..httpClientAdapter = _ImageAdapter(utf8.encode('x'));
+    final fetcher = CachedImageFetcher(dio: dioImpl);
+    final response = await _handler(imageFetcher: fetcher)(Request(
+      'GET',
+      Uri.parse('http://localhost/api/image?url=https%3A%2F%2Fpastvu.com%2Fimg.jpg'),
     ));
     expect(response.statusCode, 403);
   });

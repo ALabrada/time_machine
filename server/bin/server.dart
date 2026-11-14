@@ -81,6 +81,9 @@ Future<void> main() async {
     webBuildDir = Directory(resolved);
   }
 
+  final trustForwardedFor =
+      config['TRUST_X_FORWARDED_FOR'].toLowerCase() == 'true';
+
   final handler = createHandler(
     networkService: networkService,
     telegramService: telegramService,
@@ -88,6 +91,7 @@ Future<void> main() async {
     rateLimiter: RateLimiter(maxRequestsPerWindow: limit),
     webBuildDir: webBuildDir,
     config: config,
+    trustForwardedFor: trustForwardedFor,
   );
 
   final server = await shelf_io.serve(handler, address, port);

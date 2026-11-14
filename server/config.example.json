@@ -1,6 +1,7 @@
 {
   "PORT": "8080",
   "HOST": "",
+  "TRUST_X_FORWARDED_FOR": "false",
   "GOOGLE_DRIVE_CLIENT_ID_WEB": "",
   "GOOGLE_DRIVE_CLIENT_SECRET_WEB": "",
   "DROPBOX_APP_KEY": "",

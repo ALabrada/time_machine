@@ -80,16 +80,23 @@ class CachedImageFetcher implements ImageResolver {
       }
     }
 
-    if (allowedHosts.isNotEmpty) {
-      final host = Uri.tryParse(url)?.host;
-      if (host == null || !allowedHosts.contains(host)) {
-        throw StateError('Host "$host" is not allowed');
-      }
+    // The host allow-list is always enforced for remote URLs. When no hosts
+    // are configured the fetcher fails closed: it refuses every remote URL
+    // rather than silently allowing arbitrary hosts.
+    final host = Uri.tryParse(url)?.host;
+    if (host == null || host.isEmpty || !allowedHosts.contains(host)) {
+      throw StateError('Host "$host" is not allowed');
     }
 
     final response = await dio.get<List<int>>(
       url,
-      options: Options(responseType: ResponseType.bytes),
+      options: Options(
+        responseType: ResponseType.bytes,
+        // Never follow redirects: the host allow-list check above only covers
+        // the initial URL, and following a redirect to a non-allow-listed (or
+        // internal) host would turn this proxy into an SSRF vector.
+        followRedirects: false,
+      ),
     );
     final image = CachedImage(
       bytes: response.data ?? const [],

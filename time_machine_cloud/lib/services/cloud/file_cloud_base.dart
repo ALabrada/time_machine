@@ -41,12 +41,14 @@ abstract class FileCloudBase extends CloudBase {
 
   @override
   Future<void> deleteRecord(String collection, String id) async {
+    _requireCollection(collection);
     final path = p.join(modelsDir, collection, Uri.encodeComponent(id));
     await onDelete(path);
   }
 
   @override
   Future<Map<String, dynamic>?> getRecord(String collection, String id) async {
+    _requireCollection(collection);
     final path = p.join(modelsDir, collection, Uri.encodeComponent(id));
     final data = await _load(path);
     return data[dataKey];
@@ -54,6 +56,7 @@ abstract class FileCloudBase extends CloudBase {
 
   @override
   Future<List<CloudMetadata>> listRecords(String collection, {DateTime? since}) async {
+    _requireCollection(collection);
     final dirPath = p.join(modelsDir, collection);
     final result = <CloudMetadata>[];
     await for (final entry in onList(dirPath, since: since)) {
@@ -73,6 +76,7 @@ abstract class FileCloudBase extends CloudBase {
 
   @override
   Future<CloudMetadata> saveRecord(String collection, CloudMetadata? metadata, Map<String, dynamic> data) async {
+    _requireCollection(collection);
     final id = metadata?.id ?? Uuid().v4();
     final now = DateTime.fromMillisecondsSinceEpoch(DateTime.now().millisecondsSinceEpoch);
     final path = p.join(modelsDir, collection, Uri.encodeComponent(id));
@@ -118,6 +122,9 @@ abstract class FileCloudBase extends CloudBase {
     String? mimeType,
   }) async {
     final path = p.join(filesDir, name);
+    if (!p.isWithin(filesDir, path)) {
+      throw const FormatException('Invalid path');
+    }
     await onPush(
       path: path,
       fileData: fileData,
@@ -129,7 +136,7 @@ abstract class FileCloudBase extends CloudBase {
   @override
   Future<Uint8List> downloadFile(String path) async {
     if (!p.isWithin(filesDir, path)) {
-      throw 'Invalid path';
+      throw const FormatException('Invalid path');
     }
     return await onPull(path);
   }
@@ -137,9 +144,18 @@ abstract class FileCloudBase extends CloudBase {
   @override
   Future<void> deleteFile(String path) async {
     if (!p.isWithin(filesDir, path)) {
-      throw 'Invalid path';
+      throw const FormatException('Invalid path');
     }
     await onDelete(path);
+  }
+
+  /// Collection names must be one of the known model collections. The value is
+  /// joined onto [modelsDir], so an unknown name would otherwise allow path
+  /// traversal within the cloud storage.
+  void _requireCollection(String collection) {
+    if (!collectionNames.values.contains(collection)) {
+      throw const FormatException('Invalid collection');
+    }
   }
 
   Stream<CloudFileEntry> onList(String path, {DateTime? since});

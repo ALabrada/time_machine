@@ -360,6 +360,25 @@ void main() {
       expect(results.single.id, 'a');
     });
 
+    test('rejects collection names outside the known set', () async {
+      expect(
+        cloud.saveRecord('../secret', null, {'id': 'x'}),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        cloud.getRecord('../secret', 'x'),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        cloud.listRecords('../secret'),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        cloud.deleteRecord('../secret', 'x'),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
     test('falls back to the metadata embedded in the file data when the '
         'custom metadata field is absent', () async {
       final createdAt = DateTime(2024, 1, 1);
@@ -545,14 +564,11 @@ void main() {
       expect(data, fileBytes);
     });
 
-    test('uploadFile accepts names and stores under filesDir', () async {
-      final path = await cloud.uploadFile(
-        name: '../secret',
-        fileData: fileBytes,
+    test('uploadFile rejects names that escape filesDir', () async {
+      expect(
+        cloud.uploadFile(name: '../secret', fileData: fileBytes),
+        throwsA(isA<FormatException>()),
       );
-
-      expect(path, p.join(FileCloudBase.filesDir, '../secret'));
-      expect(cloud.pushedPaths, isNotEmpty);
     });
 
     test('downloadFile returns stored bytes', () async {
@@ -562,9 +578,9 @@ void main() {
     });
 
     test('downloadFile rejects paths outside filesDir', () async {
-      expect(cloud.downloadFile('models/x'), throwsA('Invalid path'));
-      expect(cloud.downloadFile('files/../x'), throwsA('Invalid path'));
-      expect(cloud.downloadFile('x'), throwsA('Invalid path'));
+      expect(cloud.downloadFile('models/x'), throwsA(isA<FormatException>()));
+      expect(cloud.downloadFile('files/../x'), throwsA(isA<FormatException>()));
+      expect(cloud.downloadFile('x'), throwsA(isA<FormatException>()));
     });
 
     test('downloadFile returns null-safe error for missing file', () async {
@@ -578,7 +594,7 @@ void main() {
 
       expect(cloud.deletedPaths, ['files/b.jpg']);
       expect(cloud.store.containsKey('files/b.jpg'), isFalse);
-      expect(cloud.deleteFile('x'), throwsA('Invalid path'));
+      expect(cloud.deleteFile('x'), throwsA(isA<FormatException>()));
     });
   });
 }
