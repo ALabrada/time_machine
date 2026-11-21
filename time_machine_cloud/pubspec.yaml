@@ -1,6 +1,7 @@
 name: time_machine_cloud
 description: "Pure-Dart cloud storage and sync backends for history-lens: Dropbox, Google Drive, Nextcloud, Yandex Disk and Supabase. Consumed by the Flutter app through time_machine_net and by the pure-Dart server."
 version: 1.0.0
+repository: https://github.com/ALabrada/time_machine
 publish_to: 'none'
 
 environment:

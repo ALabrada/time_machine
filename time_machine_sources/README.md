@@ -1,17 +1,23 @@
 # time_machine_sources
 
-Pure-Dart external content layer shared by the History Lens app and the proxy
-server.
+Pure-Dart external content layer for History Lens: the `NetworkService`
+registry, historical-photo providers, geocoders and the Telegram publisher.
+Shared by the Flutter app and the proxy server.
 
-- `services/network_service.dart` — `NetworkService`, the registry that ties
-  geocoders and photo providers together, plus their `DataProvider` and
-  `GeocodingService` contracts.
-- `services/providers` — historical photo providers (PastVu, Retro Photos,
-  Historypin, Russia in Photo, SepiaTown).
-- `services/geocoders` — forward and reverse geocoding backends (OSM/Nominatim,
-  GeoNames, VK Maps, Yandex).
-- `services/telegram_service.dart` — submits suggested posts to a Telegram
-  channel.
+## Contents
 
-Models and shared helpers live in `time_machine_core`; cloud-storage backends
-live in `time_machine_cloud`.
+- **NetworkService** — the registry used to look up providers and geocoders.
+- **Photo providers** — PastVu, RePhotos, HistoryPin, SepiaTown and
+  Russia in Photo.
+- **Geocoders** — Geonames, OSM, VKMaps and Yandex.
+- **Telegram** — publisher that submits posts as Telegram suggested posts.
+
+## Usage
+
+Add `time_machine_sources` as a path dependency and import
+`package:time_machine_sources/time_machine_sources.dart`.
+
+## Additional information
+
+Part of the History Lens monorepo — see the
+[GitHub repository](https://github.com/ALabrada/time_machine).

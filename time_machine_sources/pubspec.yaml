@@ -1,6 +1,7 @@
 name: time_machine_sources
 description: "Pure-Dart external content layer for history-lens: the NetworkService registry, historical photo providers, geocoders and the Telegram publisher. Shared by the Flutter app and the proxy server."
 version: 1.0.0
+repository: https://github.com/ALabrada/time_machine
 publish_to: 'none'
 
 environment:

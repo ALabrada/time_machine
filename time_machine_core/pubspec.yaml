@@ -1,6 +1,7 @@
 name: time_machine_core
 description: "Pure-Dart models and shared helpers (image cache, geo math) used by the app and the proxy server."
 version: 1.1.0
+repository: https://github.com/ALabrada/time_machine
 publish_to: 'none'
 
 environment:

@@ -1,6 +1,7 @@
 name: time_machine_server
 description: "Proxy backend for the history-lens web build: host the provider/geocoder network calls that the browser cannot make (CORS)."
-version: 1.0.0
+version: 0.1.0
+repository: https://github.com/ALabrada/time_machine
 publish_to: 'none'
 
 environment:
