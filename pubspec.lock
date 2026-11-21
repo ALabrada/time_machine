@@ -488,14 +488,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.14"
-  desktop_webview_window:
-    dependency: transitive
-    description:
-      name: desktop_webview_window
-      sha256: "57cf20d81689d5cbb1adfd0017e96b669398a669d927906073b0e42fc64111c0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.3"
   dio:
     dependency: transitive
     description:
@@ -512,14 +504,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
-  dropbox_api:
-    dependency: transitive
-    description:
-      name: dropbox_api
-      sha256: "5bd9ceec233cb0d9f7c2bbb8b4722b47e49ebe3851af9311a5622397611a30a3"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.6"
   dynamite_runtime:
     dependency: transitive
     description:
@@ -705,6 +689,13 @@ packages:
       relative: true
     source: path
     version: "1.2.0-beta.3"
+  flutter_inappwebview_linux:
+    dependency: "direct overridden"
+    description:
+      path: "flutter_inappwebview/flutter_inappwebview_linux"
+      relative: true
+    source: path
+    version: "0.1.0-beta.1"
   flutter_inappwebview_macos:
     dependency: "direct overridden"
     description:
@@ -810,14 +801,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.1.0"
-  flutter_map_math:
-    dependency: transitive
-    description:
-      name: flutter_map_math
-      sha256: "86c442a946d4695fa3e5d9c53c802344160d8db1745b067b528df3813820eb85"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.4"
   flutter_markdown_plus:
     dependency: transitive
     description:
@@ -903,22 +886,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_web_auth_2:
-    dependency: "direct overridden"
-    description:
-      name: flutter_web_auth_2
-      sha256: "30f4fbdfadabd7ec381aed7804e289cf520209f0e515279190ab67671527ad97"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.2"
-  flutter_web_auth_2_platform_interface:
-    dependency: transitive
-    description:
-      name: flutter_web_auth_2_platform_interface
-      sha256: c63a472c8070998e4e422f6b34a17070e60782ac442107c70000dd1bed645f4d
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.1.0"
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -952,10 +919,10 @@ packages:
     dependency: transitive
     description:
       name: functions_client
-      sha256: e9685e9ab852a8b8e0579c867f6c9155da27317b294b3df796a536b8b8e0d253
+      sha256: "5b17b8dcf5ae1cd6a6428e7a4ca8b569477297a7f158955b5407dda23baeaa5b"
       url: "https://pub.dev"
     source: hosted
-    version: "2.6.4"
+    version: "2.6.3"
   geoclue:
     dependency: transitive
     description:
@@ -1120,10 +1087,10 @@ packages:
     dependency: transitive
     description:
       name: gotrue
-      sha256: "360bba9606e58d5acc59a033ab64ae3cf571a6868f7a7267cb8e9a204b7bf1b2"
+      sha256: ea9aacde70ec9a5b0c59493dcc1ec133190ae42554b06dcae4fe9133a2ba500a
       url: "https://pub.dev"
     source: hosted
-    version: "2.26.0"
+    version: "2.23.0"
   group_grid_view:
     dependency: transitive
     description:
@@ -1165,7 +1132,7 @@ packages:
     source: hosted
     version: "0.15.6"
   http:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: http
       sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
@@ -1196,14 +1163,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.8.0"
-  image_compare_2:
-    dependency: transitive
-    description:
-      name: image_compare_2
-      sha256: "50ff6f6a793f61fc5b19e9ad7bf1bb9507e57b73ec689332eed11c1473954807"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.7"
   image_compare_slider:
     dependency: transitive
     description:
@@ -1484,22 +1443,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.0.0"
-  oauth2_client:
-    dependency: transitive
-    description:
-      name: oauth2_client
-      sha256: db7e93d8097ad0dff1cb07cbe7158344fb32082f8f2ed60b32af84591fb81722
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.3.0"
-  oauth2restclient:
-    dependency: transitive
-    description:
-      name: oauth2restclient
-      sha256: "4522861da28f412f05e6411bf72e76dc54bac888724480f1de795258cef299fb"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.9"
   objective_c:
     dependency: transitive
     description:
@@ -1712,10 +1655,10 @@ packages:
     dependency: transitive
     description:
       name: postgrest
-      sha256: "10e3f195e131eec944fa872644aed89b33b5be998f3fc77c87325db3927bc646"
+      sha256: "41c313d3c0aeb8ded9e06d49daadd7f036a3c092e7849e87375b6264a602624c"
       url: "https://pub.dev"
     source: hosted
-    version: "2.8.0"
+    version: "2.7.3"
   proj4dart:
     dependency: transitive
     description:
@@ -1764,22 +1707,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.2"
-  random_string:
-    dependency: transitive
-    description:
-      name: random_string
-      sha256: "03b52435aae8cbdd1056cf91bfc5bf845e9706724dd35ae2e99fa14a1ef79d02"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.3.1"
   realtime_client:
     dependency: transitive
     description:
       name: realtime_client
-      sha256: "0cfbe0047e2591eba348938e9b4e620d5b1a8df6c374757e8eb8645252b8387f"
+      sha256: f377b8e30d23eb83f30110ddfb6cbfa7af67232ead04abad6b39b3885d7ad699
       url: "https://pub.dev"
     source: hosted
-    version: "2.11.0"
+    version: "2.9.0"
   record_use:
     dependency: transitive
     description:
@@ -2029,10 +1964,10 @@ packages:
     dependency: transitive
     description:
       name: storage_client
-      sha256: "221263cfbe0c01575b7d7fe7543e44abff380eb4d38d936372844a1caa85ba12"
+      sha256: "2cc5432c312c4a08687bcce795aff377d006e2892097c7f88d57512885bb4b10"
       url: "https://pub.dev"
     source: hosted
-    version: "2.6.0"
+    version: "2.5.9"
   stream_channel:
     dependency: transitive
     description:
@@ -2061,10 +1996,10 @@ packages:
     dependency: transitive
     description:
       name: supabase
-      sha256: "3879996256325fcc9abb03b62b12c07e4eaae2e008e1bf043cc1525184159a43"
+      sha256: "187a14e7c7e5da9b2a507381eace5c8f73e3459337c2e96f272717e568544336"
       url: "https://pub.dev"
     source: hosted
-    version: "2.14.0"
+    version: "2.13.2"
   synchronized:
     dependency: transitive
     description:
@@ -2077,10 +2012,10 @@ packages:
     dependency: transitive
     description:
       name: televerse
-      sha256: "617f51bb34cd9dc289728eddc5e5fbb94d77ca6df588072f4f733ca647ca22fb"
+      sha256: ac453a1ea8533797998613f83b952acc16cad5d3f9df462a7125c65a60e5ccfb
       url: "https://pub.dev"
     source: hosted
-    version: "3.5.2"
+    version: "3.7.0"
   term_glyph:
     dependency: transitive
     description:
@@ -2104,10 +2039,24 @@ packages:
       relative: true
     source: path
     version: "1.1.0"
+  time_machine_cloud:
+    dependency: "direct main"
+    description:
+      path: time_machine_cloud
+      relative: true
+    source: path
+    version: "1.0.0"
   time_machine_config:
     dependency: "direct main"
     description:
       path: time_machine_config
+      relative: true
+    source: path
+    version: "1.1.0"
+  time_machine_core:
+    dependency: "direct main"
+    description:
+      path: time_machine_core
       relative: true
     source: path
     version: "1.1.0"
@@ -2138,7 +2087,7 @@ packages:
       path: time_machine_net
       relative: true
     source: path
-    version: "1.1.0"
+    version: "1.0.0"
   time_machine_res:
     dependency: "direct main"
     description:
@@ -2146,6 +2095,13 @@ packages:
       relative: true
     source: path
     version: "1.1.0"
+  time_machine_sources:
+    dependency: "direct main"
+    description:
+      path: time_machine_sources
+      relative: true
+    source: path
+    version: "1.0.0"
   timezone:
     dependency: transitive
     description:
@@ -2371,29 +2327,21 @@ packages:
     source: hosted
     version: "1.2.1"
   web:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: web
       sha256: "868d88a33d8a87b18ffc05f9f030ba328ffefba92d6c127917a2ba740f9cfe4a"
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
-  web_socket:
-    dependency: transitive
-    description:
-      name: web_socket
-      sha256: "34d64019aa8e36bf9842ac014bb5d2f5586ca73df5e4d9bf5c936975cae6982c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.1"
   web_socket_channel:
     dependency: transitive
     description:
       name: web_socket_channel
-      sha256: d645757fb0f4773d602444000a8131ff5d48c9e47adfe9772652dd1a4f2d45c8
+      sha256: d88238e5eac9a42bb43ca4e721edba3c08c6354d4a53063afaa568516217621b
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.3"
+    version: "2.4.0"
   win32:
     dependency: transitive
     description:
@@ -2402,14 +2350,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.15.0"
-  window_to_front:
-    dependency: transitive
-    description:
-      name: window_to_front
-      sha256: "14fad8984db4415e2eeb30b04bb77140b180e260d6cb66b26de126a8657a9241"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.4"
   wkt_parser:
     dependency: transitive
     description:

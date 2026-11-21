@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,9 +15,10 @@ Future<void> main() async {
     runApp(TimeMachineApp());
   } else {
     WidgetsFlutterBinding.ensureInitialized();
+    await registerLinuxAuthSchemeHandler();
     // Swallows the warm OAuth consent return before GoRouter sees it, so the
-    // page the sign-in started from (e.g. the Cloud page) is not navigated
-    // away from. Must be registered before the router builds to run first.
+    // page the user signed in from stays put; the auth flow reads the URI off
+    // the app_links stream instead.
     WidgetsBinding.instance.addObserver(
       OAuthDeepLinkObserver(oauthRedirectSchemes()),
     );
@@ -38,5 +41,61 @@ Future<void> main() async {
       userAgent: userAgent,
       packageInfo: packageInfo,
     ));
+  }
+}
+
+/// The custom URL scheme used by every OAuth provider consent return. Because
+/// the headless Linux bundle ships no .desktop file, register one for the
+/// current executable so the system routes `scheme://` redirects back here.
+///
+/// Writes `~/.local/share/applications/history_lens.desktop` and registers it
+/// as the default handler for the scheme; tolerant of environments without
+/// xdg tooling (the failure only disables OAuth return deep links).
+Future<void> registerLinuxAuthSchemeHandler() async {
+  if (defaultTargetPlatform != TargetPlatform.linux) {
+    return;
+  }
+  const scheme = 'com.fakegem.historylens';
+  final home = Platform.environment['HOME'];
+  if (home == null || home.isEmpty) {
+    return;
+  }
+  final applicationsDir =
+      Directory('$home/.local/share/applications');
+  try {
+    await applicationsDir.create(recursive: true);
+    final desktopFile = File('${applicationsDir.path}/history_lens.desktop');
+    final exec = Platform.resolvedExecutable;
+    await desktopFile.writeAsString('''
+[Desktop Entry]
+Type=Application
+Name=History Lens
+TryExec=$exec
+Exec=$exec %u
+Terminal=false
+NoDisplay=true
+MimeType=x-scheme-handler/$scheme;
+''');
+    await _runQuiet([
+      'update-desktop-database',
+      applicationsDir.path,
+    ]);
+    await _runQuiet([
+      'xdg-mime',
+      'default',
+      'history_lens.desktop',
+      'x-scheme-handler/$scheme',
+    ]);
+  } catch (_) {
+    // Registration is best-effort; the OAuth return just needs the scheme to
+    // reach the running app through GApplication.
+  }
+}
+
+Future<void> _runQuiet(List<String> command) async {
+  try {
+    await Process.run(command.first, command.sublist(1));
+  } catch (_) {
+    // Missing xdg tooling is fine; the desktop entry is still written.
   }
 }

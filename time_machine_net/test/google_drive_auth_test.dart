@@ -1,11 +1,11 @@
-import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:googleapis_auth/googleapis_auth.dart' as auth;
-import 'package:time_machine_net/services/cloud/google_drive_auth.dart';
-import 'package:time_machine_net/services/cloud/google_drive_cloud.dart';
-import 'package:time_machine_net/services/cloud/google_drive_token_store.dart';
+import 'package:time_machine_cloud/services/cloud/google_drive_auth.dart';
+import 'package:time_machine_cloud/services/cloud/google_drive_cloud.dart';
+import 'package:time_machine_cloud/services/cloud/google_drive_token_store.dart';
+import 'package:time_machine_cloud/services/cloud/oauth_consent_browser.dart';
 
 import 'fakes/fake_drive_adapter.dart';
 
@@ -14,10 +14,7 @@ void main() {
 
   group('GoogleDriveSignIn', () {
     test('scopes only grant the Drive app data access', () {
-      final signIn = GoogleDriveSignIn(
-        clientId: clientId,
-        redirectStream: _emptyStream(),
-      );
+      final signIn = GoogleDriveSignIn(clientId: clientId);
       expect(signIn.scopes, [GoogleDriveCloud.appDataScope]);
       expect(signIn.scopes, [
         'https://www.googleapis.com/auth/drive.appdata',
@@ -26,16 +23,14 @@ void main() {
 
     test('connect runs the consent flow and initializes the cloud', () async {
       final adapter = FakeDriveAdapter();
-      final redirects = _RedirectStream();
       final signIn = GoogleDriveSignIn(
         clientId: clientId,
         baseClient: adapter.client(),
-        redirectStream: redirects.stream,
       );
 
       final store = _MemoryTokenStore();
       final cloud = await signIn.connect(
-        openBrowser: redirects.simulateRedirect(signIn),
+        consentBrowser: const _ConsentBrowser(),
         tokenStore: store,
       );
       expect(store.session, isNotNull);
@@ -50,7 +45,6 @@ void main() {
       );
       cloud.dispose();
       signIn.dispose();
-      redirects.close();
     });
 
     test('connectWithRefreshToken restores a session silently', () async {
@@ -58,7 +52,6 @@ void main() {
       final signIn = GoogleDriveSignIn(
         clientId: clientId,
         baseClient: adapter.client(),
-        redirectStream: _emptyStream(),
       );
 
       final cloud = await signIn.connectWithRefreshToken(
@@ -79,14 +72,12 @@ void main() {
 
     test('connect saves and downloads a record file', () async {
       final adapter = FakeDriveAdapter();
-      final redirects = _RedirectStream();
       final signIn = GoogleDriveSignIn(
         clientId: clientId,
         baseClient: adapter.client(),
-        redirectStream: redirects.stream,
       );
       final cloud = await signIn.connect(
-        openBrowser: redirects.simulateRedirect(signIn),
+        consentBrowser: const _ConsentBrowser(),
         tokenStore: _MemoryTokenStore(),
       );
       await cloud.initialize();
@@ -98,7 +89,6 @@ void main() {
 
       cloud.dispose();
       signIn.dispose();
-      redirects.close();
     });
   });
 }
@@ -116,28 +106,22 @@ class _MemoryTokenStore implements GoogleDriveTokenStore {
   Future<void> clear() async => session = null;
 }
 
-Stream<Uri> _emptyStream() => const Stream.empty();
+/// Simulates a user consenting inside the in-app webview: given the
+/// authorization URL, it answers with the provider's redirect carrying the
+/// same `state` and a fixed authorization code — as if the webview had
+/// captured the redirect before it ever left the app.
+class _ConsentBrowser implements OAuthConsentBrowser {
+  const _ConsentBrowser();
 
-/// Simulates the app return leg of the custom-scheme OAuth flow: the
-/// `openBrowser` callback opens the consent URI, and the redirect (with the
-/// authorization code and the state) is delivered back to [GoogleDriveSignIn]
-/// through [stream] — as if iOS/Android had relaunched the app with the custom
-/// scheme URL.
-class _RedirectStream {
-  final StreamController<Uri> _controller = StreamController<Uri>.broadcast();
-
-  Stream<Uri> get stream => _controller.stream;
-
-  void Function(Uri consentUri) simulateRedirect(GoogleDriveSignIn signIn) {
-    return (consentUri) {
-      final state = consentUri.queryParameters['state']!;
-      final redirect = signIn.redirectUri.replace(queryParameters: {
-        'code': 'granted-code',
-        'state': state,
-      });
-      _controller.add(redirect);
-    };
+  @override
+  Future<Uri> consent({
+    required Uri authorizationUri,
+    required Uri redirectUri,
+  }) async {
+    final state = authorizationUri.queryParameters['state']!;
+    return redirectUri.replace(queryParameters: {
+      'code': 'granted-code',
+      'state': state,
+    });
   }
-
-  void close() => _controller.close();
 }

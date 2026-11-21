@@ -1,0 +1,89 @@
+import 'dart:math';
+
+import 'package:json_annotation/json_annotation.dart';
+
+import 'date_time_converter.dart';
+import 'picture.dart';
+
+part 'record.g.dart';
+
+@JsonSerializable()
+class Record {
+  Record({
+    required this.pictureId,
+    required this.createdAt,
+    required this.updateAt,
+    this.visitedAt,
+    this.originalId,
+    this.localId,
+    this.original,
+    this.picture,
+    this.height,
+    this.width,
+    this.originalViewPort,
+    this.pictureViewPort,
+  });
+
+  @JsonKey(includeToJson: false, includeFromJson: false)
+  int? localId;
+  int? originalId;
+  int pictureId;
+  @DateTimeConverter()
+  DateTime createdAt;
+  @DateTimeConverter()
+  DateTime updateAt;
+  @DateTimeConverter()
+  DateTime? visitedAt;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  Picture? original;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  Picture? picture;
+
+  double? height;
+  double? width;
+  String? originalViewPort;
+  String? pictureViewPort;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  double? get originalAspectRatio {
+    final viewPort = tryParseViewPort(originalViewPort);
+    return viewPort == null ? null : viewPort.width / viewPort.height;
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  double? get pictureAspectRatio {
+    final viewPort = tryParseViewPort(pictureViewPort);
+    return viewPort == null ? null : viewPort.width / viewPort.height;
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  double? get aspectRatio {
+    final originalViewPort = tryParseViewPort(this.originalViewPort);
+    final pictureViewPort = tryParseViewPort(this.pictureViewPort);
+    if (originalViewPort != null && pictureViewPort != null) {
+      final width = max(originalViewPort.width, pictureViewPort.width);
+      final height = max(originalViewPort.height, pictureViewPort.height);
+      return width / height;
+    } else {
+      final width = this.width;
+      final height = this.height;
+      return width == null || height == null ? null : width / height;
+    }
+  }
+
+  static Rectangle? tryParseViewPort(String? str) {
+    final values = str?.split(RegExp(r'[\s,;]'))
+        .map(double.tryParse)
+        .whereType<double>()
+        .toList();
+    if (values == null || values.length != 4) {
+      return null;
+    }
+    return Rectangle(values[0], values[1], values[2], values[3]);
+  }
+
+  factory Record.fromJson(Map<String, dynamic> json) => _$RecordFromJson(json);
+
+  Map<String, dynamic> toJson() => _$RecordToJson(this);
+}

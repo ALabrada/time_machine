@@ -34,6 +34,7 @@ class ConfigurationPageState extends State<ConfigurationPage> {
   void initState() {
     controller = ConfigurationController(
       configurationService: context.read(),
+      cloudService: context.read(),
       networkService: context.read(),
     );
     super.initState();

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -83,7 +84,7 @@ class _HomePageState extends State<HomePage> {
         icon: Icon(Icons.photo_album_outlined),
         label: AppLocalizations.of(context).homeTabsGallery,
       ),
-      if (!isDesktopPlatform())
+      if (!isDesktopPlatform() && !kIsWeb)
         NavigationDestination(
           selectedIcon: Icon(Icons.radar),
           icon: Icon(Icons.radar_outlined),
@@ -109,7 +110,7 @@ class _HomePageState extends State<HomePage> {
         icon: Icon(Icons.photo_album_outlined),
         label: Text(AppLocalizations.of(context).homeTabsGallery),
       ),
-      if (!isDesktopPlatform())
+      if (!isDesktopPlatform() && !kIsWeb)
         NavigationRailDestination(
           selectedIcon: Icon(Icons.radar),
           icon: Icon(Icons.radar_outlined),
@@ -180,7 +181,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildPage() {
     return <Widget>[
       GalleryPage(),
-      if (!isDesktopPlatform()) ScanningPage(),
+      if (!isDesktopPlatform() && !kIsWeb) ScanningPage(),
       MapPage(
         pictureId: widget.pictureId,
       ),
@@ -192,7 +193,7 @@ class _HomePageState extends State<HomePage> {
     if (name == null) {
       return;
     }
-    final isDesktop = isDesktopPlatform();
+    final isDesktop = isDesktopPlatform() || kIsWeb;
     setState(() {
       switch (name.toLowerCase()) {
         case "gallery": currentPageIndex = 0;

@@ -8,6 +8,7 @@ import 'package:time_machine_net/time_machine_net.dart';
 final class ConfigurationController extends ChangeNotifier {
   ConfigurationController({
     required this.configurationService,
+    this.cloudService,
     this.networkService,
   }) :
         cameraRatio = SelectionController<String>(
@@ -16,7 +17,7 @@ final class ConfigurationController extends ChangeNotifier {
         ),
         cloud = _createClouds(
           configurationService: configurationService,
-          networkService: networkService,
+          cloudService: cloudService,
         ),
         fps = SelectionController<int>(
           value: configurationService.fps ?? ConfigurationService.defaultFps,
@@ -105,6 +106,7 @@ final class ConfigurationController extends ChangeNotifier {
   }
 
   final NetworkService? networkService;
+  final CloudService? cloudService;
   final ConfigurationService configurationService;
 
   final SelectionController<String> cameraRatio;
@@ -157,9 +159,9 @@ final class ConfigurationController extends ChangeNotifier {
 
   static SelectionController<String> _createClouds({
     required ConfigurationService configurationService,
-    NetworkService? networkService,
+    CloudService? cloudService,
   }) {
-    final services = networkService?.clouds.keys.toList();
+    final services = cloudService?.clouds.keys.toList();
     services?.sort();
     return SelectionController<String>(
       value: configurationService.cloud ?? '',

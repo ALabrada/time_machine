@@ -1,0 +1,3 @@
+# This file configures the analyzer for the pure-Dart `time_machine_sources`
+# package (it has no Flutter dependency).
+include: package:lints/recommended.yaml

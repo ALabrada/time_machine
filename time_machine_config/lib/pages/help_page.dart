@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:time_machine_config/l10n/config_localizations.dart';
 import 'package:time_machine_config/molecules/question_cell.dart';
@@ -30,7 +31,7 @@ class HelpPageState extends State<HelpPage> {
   }
 
   Widget _buildContent() {
-    final isDesktop = isDesktopPlatform();
+    final isDesktop = isDesktopPlatform() || kIsWeb;
     final localizations = ConfigLocalizations.of(context);
     return ListView(
       children: [

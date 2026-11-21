@@ -8,5 +8,6 @@
   "menuActionSave": "Guardar foto",
   "menuActionView": "Ver foto",
   "saveFileDialogTitle": "Guardar archivo",
-  "savedToFile": "Guardado en {path}"
+  "savedToFile": "Guardado en {path}",
+  "telegramSubmitted": "Enviado a Telegram para su revisión"
 }

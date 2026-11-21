@@ -106,6 +106,44 @@ foreach(bundled_library ${PLUGIN_BUNDLED_LIBRARIES})
     COMPONENT Runtime)
 endforeach(bundled_library)
 
+# === WPE Library Symlink Creation ===
+# flutter_inappwebview_linux bundles the WPE WebKit libraries next to the
+# plugins and sets RUNPATH to $ORIGIN, so the versioned sonames need matching
+# .so.1 symlinks for the dynamic loader to find them.
+install(CODE "
+  set(LIB_DIR \"${INSTALL_BUNDLE_LIB_DIR}\")
+
+  macro(create_lib_symlinks LIB_PATTERN SONAME_BASE)
+    file(GLOB LIB_FILES \"\${LIB_DIR}/\${LIB_PATTERN}\")
+    if(LIB_FILES)
+      list(GET LIB_FILES 0 REAL_LIB)
+      get_filename_component(REAL_LIB_NAME \"\${REAL_LIB}\" NAME)
+
+      set(SONAME_LINK \"\${LIB_DIR}/\${SONAME_BASE}.so.1\")
+      if(NOT EXISTS \"\${SONAME_LINK}\")
+        execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+          \"\${REAL_LIB_NAME}\" \"\${SONAME_LINK}\")
+      endif()
+
+      set(SO_LINK \"\${LIB_DIR}/\${SONAME_BASE}.so\")
+      if(NOT EXISTS \"\${SO_LINK}\")
+        execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+          \"\${SONAME_BASE}.so.1\" \"\${SO_LINK}\")
+      endif()
+    endif()
+  endmacro()
+
+  create_lib_symlinks(\"libWPEWebKit-2.0.so.*.*.*\" \"libWPEWebKit-2.0\")
+  create_lib_symlinks(\"libwpe-1.0.so.*.*.*\" \"libwpe-1.0\")
+  create_lib_symlinks(\"libWPEBackend-fdo-1.0.so.*.*.*\" \"libWPEBackend-fdo-1.0\")
+
+  set(DEFAULT_BACKEND_LINK \"\${LIB_DIR}/libWPEBackend-default.so\")
+  if(NOT EXISTS \"\${DEFAULT_BACKEND_LINK}\")
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+      \"libWPEBackend-fdo-1.0.so.1\" \"\${DEFAULT_BACKEND_LINK}\")
+  endif()
+  " COMPONENT Runtime)
+
 # Copy the native assets provided by the build.dart from all packages.
 set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/linux/")
 install(DIRECTORY "${NATIVE_ASSETS_DIR}"

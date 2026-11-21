@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:dropbox_api/dropbox_api.dart';
+import 'package:time_machine_cloud/services/cloud/dropbox_api.dart';
 
 /// In-memory [DropboxApi] double reproducing the behaviour of the REST layer:
 /// conflicts and missing resources surface as [HttpException]s whose message
@@ -51,6 +51,9 @@ class FakeDropboxApi implements DropboxApi {
       size: files[path]?.length,
     );
   }
+
+  @override
+  void setAccessToken(String accessToken) {}
 
   @override
   Future<Stream<List<int>>> download(String path) async {

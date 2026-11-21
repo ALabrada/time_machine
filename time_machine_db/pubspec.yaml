@@ -11,6 +11,11 @@ dependencies:
   flutter:
     sdk: flutter
 
+  time_machine_core:
+    path: ../time_machine_core
+  time_machine_cloud:
+    path: ../time_machine_cloud
+
   crypto: ^3.0.0
   file_picker: ^10.1.7
   json_annotation: ^4.8.1

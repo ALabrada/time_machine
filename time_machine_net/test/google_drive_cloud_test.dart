@@ -3,11 +3,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 import 'package:googleapis_auth/googleapis_auth.dart' as auth;
-import 'package:time_machine_db/time_machine_db.dart';
-import 'package:time_machine_net/services/cloud/file_cloud_base.dart';
-import 'package:time_machine_net/services/cloud/google_drive_cloud.dart';
-import 'package:time_machine_net/services/cloud/google_drive_token_store.dart';
+import 'package:time_machine_cloud/services/cloud/file_cloud_base.dart';
+import 'package:time_machine_cloud/services/cloud/google_drive_cloud.dart';
+import 'package:time_machine_cloud/services/cloud/google_drive_token_store.dart';
 
 import 'fakes/fake_drive_adapter.dart';
 

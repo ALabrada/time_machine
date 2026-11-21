@@ -3,11 +3,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:time_machine_net/time_machine_net.dart';
 import 'package:nextcloud/nextcloud.dart';
 import 'package:nextcloud/webdav.dart';
-import 'package:time_machine_db/time_machine_db.dart';
-import 'package:time_machine_net/services/cloud/nextcloud_cloud.dart';
-import 'package:time_machine_net/services/cloud/nextcloud_token_store.dart';
+import 'package:time_machine_cloud/services/cloud/nextcloud_cloud.dart';
+import 'package:time_machine_cloud/services/cloud/nextcloud_token_store.dart';
 
 import 'fakes/fake_nextcloud_server.dart';
 

@@ -267,6 +267,9 @@ class PicturesController {
       // Desktop geolocator implementations do not expose the service status
       // stream; fall back to a single emission of the service state.
       serviceStatus = const Stream.empty();
+    } on UnsupportedError {
+      // The web geolocator does not expose the service status stream either.
+      serviceStatus = const Stream.empty();
     }
     _positionSubscription = serviceStatus.mergeWith([
       Stream.value(serviceEnabled ? ServiceStatus.enabled : ServiceStatus.disabled),

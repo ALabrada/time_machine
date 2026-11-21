@@ -74,7 +74,7 @@ extension DatabaseExtensions on DatabaseService {
     final pictureData = record.picture?.toJson();
     final currentFilePath = filePath;
 
-    final bytes = await Isolate.run(() {
+    Uint8List buildArchive() {
       final archive = Archive();
       if (originalData != null) {
         for (final entry in _encodePicture(
@@ -96,7 +96,8 @@ extension DatabaseExtensions on DatabaseService {
       }
       archive.add(ArchiveFile.string('meta.json', jsonEncode(recordData)));
       return ZipEncoder().encodeBytes(archive);
-    });
+    }
+    final bytes = kIsWeb ? buildArchive() : await Isolate.run(buildArchive);
 
     if (targetPath != null) {
       await File(targetPath).writeAsBytes(bytes);
@@ -115,7 +116,7 @@ extension DatabaseExtensions on DatabaseService {
     final picturesData = records.map((r) => r.picture?.toJson()).toList();
     final currentFilePath = filePath;
 
-    final bytes = await Isolate.run(() {
+    Uint8List buildArchive() {
       final archive = Archive();
       for (var i = 0; i < recordsData.length; i++) {
         final dirName = Uuid().v4();
@@ -141,7 +142,8 @@ extension DatabaseExtensions on DatabaseService {
         archive.add(ArchiveFile.string('$dirName/meta.json', jsonEncode(recordsData[i])));
       }
       return ZipEncoder().encodeBytes(archive);
-    });
+    }
+    final bytes = kIsWeb ? buildArchive() : await Isolate.run(buildArchive);
 
     if (targetPath != null) {
       await File(targetPath).writeAsBytes(bytes);
@@ -154,7 +156,9 @@ extension DatabaseExtensions on DatabaseService {
   }) async {
     final fileBytes = await file.readAsBytes();
 
-    final extracted = await Isolate.run(() => _extractRecords(fileBytes));
+    final extracted = kIsWeb
+        ? _extractRecords(fileBytes)
+        : await Isolate.run(() => _extractRecords(fileBytes));
 
     if (extracted.isEmpty) return [];
 
